@@ -176,8 +176,7 @@ class Order:
     def updateValidness(self):
         if (self.num_replicas == 0 and self.num_pending == 0) or (self.expired is True) or (self.settled is True):
             self.setInvalid()
-            return False
-        return True
+        return self.valid
             
 # Each peer maintains a set of neighbors. Note, a neighbor physically is a peer, but a neighbor instance is not a peer instance;
 # instead, it has limited and specialized information from a peer's viewpoint.
