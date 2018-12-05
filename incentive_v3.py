@@ -954,7 +954,7 @@ for time in range(ROUND):
         peerDeparture(peer_id_to_depart)
      
     # existing orders depart, sample of current orders
-    order_ids_to_depart = random.sample(set(global_id_order_mapping_table.keys()), 1)
+    order_ids_to_depart = random.sample(set(idx for idx, order in global_id_order_mapping_table.items() if order.valid is True), 5)
     for order_id_to_depart in order_ids_to_depart:
         orderDeparture(order_id_to_depart)
       
