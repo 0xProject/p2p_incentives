@@ -15,7 +15,7 @@ It is not constriant by any particular incentives, but works as a platform so th
 
 ===========================
 
-Structure:
+Structure::
 
 This simulator uses a descrete time based structure. In the initialization, a given # of peers are created, each with a certain # of
 orders. In each time round, (1) a given set of peers depart, (2) a given set of orders are canceled, (3) a given set of orders are expired,
