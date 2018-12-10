@@ -7,7 +7,7 @@ Dec 3, 2018
 
 ===========================
 
-Purpose:
+Purpose::
 
 This simulator works for the P2P architecture of sharing orders under the 0x protocol.
 Its initial aim is to facilitate the design of incentives in such system, but it can also be used to test other design issues.
