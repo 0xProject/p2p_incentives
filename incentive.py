@@ -134,6 +134,7 @@ Limitations:
 '''
 
 BATCH_PERIOD = 1
+#
 
 OLD_ORDER_SHARE_PROB = 0.5
 MUTUAL_HELPERS = 9
