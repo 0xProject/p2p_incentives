@@ -133,10 +133,10 @@ Limitations:
 
 '''
 
-BATCH_PERIOD = 2
+BATCH_PERIOD = 1
 
 OLD_ORDER_SHARE_PROB = 0.5
-MUTUAL_HELPERS = 4
+MUTUAL_HELPERS = 9
 OPTIMISTIC_CHOICES = 1
 
 SHARE_REWARD_A = 0
@@ -746,8 +746,11 @@ class Peer:
             set_neighbor_id_to_share = set()
             
             if ( cur_time == self.birthtime): # This is a new peer. It wants to share its orders with its neighbors.
-                for neighbor_id in self.id_neighbor_mapping.keys():
-                    set_neighbor_id_to_share.add(neighbor_id)   
+                #for neighbor_id in self.id_neighbor_mapping.keys():
+                #    set_neighbor_id_to_share.add(neighbor_id)
+                for neighbor_id in random.sample(self.id_neighbor_mapping.keys(), \
+                                                 min(len(self.id_neighbor_mapping.keys()), MUTUAL_HELPERS + OPTIMISTIC_CHOICES)):
+                    set_neighbor_id_to_share.add(neighbor_id)
             else: # This is an old peer
                 ranked_id_list_of_neighbors = self.rankNeighbors()
                 highly_ranked_neighbors_list = ranked_id_list_of_neighbors[:MUTUAL_HELPERS]
