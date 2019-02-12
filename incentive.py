@@ -141,15 +141,22 @@ Limitations:
 
 '''
 
+# super-level simulation rounds, to average the uncertainty
+
+SIMULATION_ROUNDS = 1
+
 # order related parameters
 
-ORDER_LIFETIME_MEAN = 80
-ORDER_LIFETIME_VAR = 20
+ORDER_LIFETIME_MEAN = 50
+ORDER_LIFETIME_VAR = 10
 
 # topology related parameters
 
-NEIGHBOR_MAX = 30
-NEIGHBOR_MIN = 20
+NEIGHBOR_MAX = 20
+NEIGHBOR_MIN = 10
+
+LAZY_NEIGHBOR_CONTRI_THRESHOLD = 2
+LAZY_NEIGHBOR_LENGTH_THRESHOLD = 3
 
 # init period
 
@@ -159,7 +166,7 @@ INIT_SIZE = 10
 # growing period
 
 GROWING_RATE = 3
-GROWING_TIME = 30
+GROWING_TIME = 60
 PEER_EARLY_QUIT_RATE = 0
 
 ORDER_EARLY_EXTERNAL_ARRIVAL_RATE = 15
@@ -167,7 +174,7 @@ ORDER_EARLY_DEPARTURE_RATE = 15
 
 # stable period
 
-SIMULATION_ROUND = 100
+STABLE_ROUND = 30
 PEER_ARRIVAL_RATE = 2
 PEER_DEPARTURE_RATE = 2
 
@@ -177,14 +184,17 @@ ORDER_DEPARTURE_RATE = 15
 # order propagation
 
 BATCH_PERIOD = 10
+
 OLD_ORDER_SHARE_PROB = 0.5
-MUTUAL_HELPERS = 5
-OPTIMISTIC_CHOICES = 3
+
+BABY_ENDING_TIME = 0
+MUTUAL_HELPERS = 3
+OPTIMISTIC_CHOICES = 1
 
 # peer init related parameters
 
 ORDERBOOK_SIZE_MEAN = 6 # initial orderbook size when a peer is created, mean
-ORDERBOOK_SIZE_VAR = 1 # initial orderbook size when a peer is created, variance
+ORDERBOOK_SIZE_VAR = 0 # initial orderbook size when a peer is created, variance
 
 # incentive parameters
 
@@ -195,12 +205,13 @@ SHARE_REWARD_D = 1 # for sharing an order I decide to store
 SHARE_REWARD_E = 0 # for sharing an order I have multiple copies in the pending table and decided to store a copy from someone else
 
 SHARE_PENALTY_A = -1 # for sharing an invalid order
-SHARE_PENALTY_B = -1 # for sharing an idential and duplicate order within the same batch
+SHARE_PENALTY_B = -1 # for sharing an identical and duplicate order within the same batch
 
 STORAGE_REWARD = 0 # storage reward for storing my sharing
 STORAGE_PENALTY = 0 # penalty for being unwilling to store my orders
 
 CONTRIBUTION_LENGTH = 3 # length of the score queue
+DISCOUNT_FACTOR_VECTOR = [1] * CONTRIBUTION_LENGTH
 
 '''
 =======================================
@@ -210,6 +221,7 @@ Classes
 
 import collections
 import random
+import statistics
 
 class Order:
     
@@ -300,6 +312,9 @@ class Neighbor:
         self.total_storage_contribution = 0 # sum of all entry values in the queue.
         
         self.score = 0 # scores to evaluate my neighbor.
+        # indicator for the lazyness of this neighbor.
+        # Default is 0. Increased by 1 if its score is below THRESHOLD, and reset to 0 if beyond.
+        self.lazy_round = 0 
     
     def setPreference(self, new_preference): # changes my preference to this peer
         self.preference = new_preference
@@ -762,7 +777,7 @@ class Peer:
         global global_id_peer_mapping_table
         
         new_order_id_set = self.new_order_id_set
-        old_order_id_set = set(self.id_orderinfo_mapping.keys()) - self.new_order_id_set
+        old_order_id_set = set(self.id_orderinfo_mapping) - self.new_order_id_set
         
         '''
         The following funtion defines what orders to share with a particular neighbor.
@@ -800,9 +815,9 @@ class Peer:
             
             set_neighbor_id_to_share = set()
             
-            if ( cur_time == self.birthtime): # This is a new peer. random select neighbors
-                for neighbor_id in random.sample(self.id_neighbor_mapping.keys(), \
-                                                 min(len(self.id_neighbor_mapping.keys()), MUTUAL_HELPERS + OPTIMISTIC_CHOICES)):
+            if ( cur_time - self.birthtime <= BABY_ENDING_TIME): # This is a new peer. random select neighbors
+                for neighbor_id in random.sample(list(self.id_neighbor_mapping), \
+                                                 min(len(self.id_neighbor_mapping), MUTUAL_HELPERS + OPTIMISTIC_CHOICES)):
                     set_neighbor_id_to_share.add(neighbor_id)
             else: # This is an old peer
                 ranked_id_list_of_neighbors = self.rankNeighbors()
@@ -869,18 +884,29 @@ class Peer:
         ============================
         '''
         
-        discount_share = [0.7, 0.8, 1]
-        discount_storage = [0.7, 0.8, 1]
-        
         def scoreCalculator(share, storage):
-            return share
+            return share + 0 * storage
         
         global cur_time
         
-        for neighbor in self.id_neighbor_mapping.values():
+        for neighbor_id in list(self.id_neighbor_mapping):
             
-            neighbor_total_share_contribution = sum(a * b for a, b in zip(neighbor.share_contribution, discount_share))
-            neighbor_total_storage_contribution = sum(a * b for a, b in zip(neighbor.storage_contribution, discount_storage))
+            neighbor = self.id_neighbor_mapping[neighbor_id]
+            
+            # update laziness
+            if neighbor.share_contribution[-1] <=  LAZY_NEIGHBOR_CONTRI_THRESHOLD \
+               and neighbor.storage_contribution[-1] <= LAZY_NEIGHBOR_CONTRI_THRESHOLD:
+                neighbor.lazy_round += 1
+            else:
+                neighbor.lazy_round = 0
+                
+            # delete neighbor if necessary
+            if neighbor.lazy_round >= LAZY_NEIGHBOR_LENGTH_THRESHOLD:
+                self.delNeighbor(neighbor_id)
+                continue
+            
+            neighbor.total_share_contribution = sum(a * b for a, b in zip(neighbor.share_contribution, DISCOUNT_FACTOR_VECTOR))
+            neighbor.total_storage_contribution = sum(a * b for a, b in zip(neighbor.storage_contribution, DISCOUNT_FACTOR_VECTOR))
             
             #neighbor_total_share_contribution = sum(share for share in neighbor.share_contribution)
             #neighbor_total_storage_contribution = sum (store for store in neighbor.storage_contribution)
@@ -894,6 +920,8 @@ class Peer:
             
             neighbor.storage_contribution.popleft()
             neighbor.storage_contribution.append(0)
+            
+            
     
     # This function ranks neighbors according to their scores. It is called by shareOrders function
     # It returns a list of neighbor IDs with the highest score in the front.
@@ -981,7 +1009,7 @@ def globalInit(init_size_peer, birth_time_span):
         
     # add neighbors to the peers. Use shuffle function to avoid preference of forming neighbors for
     # peers with small id.
-    keys = list(global_id_peer_mapping_table.keys())
+    keys = list(global_id_peer_mapping_table)
     random.shuffle(keys)
     
     for peer_id in keys:
@@ -1026,7 +1054,7 @@ def addNewLinks(requester_id, demand, minimum):
         raise ValueError('Wrong in requested number or range.')
     
     requester_instance = global_id_peer_mapping_table[requester_id]
-    pool = set(global_id_peer_mapping_table.keys()) - set([requester_id])
+    pool = set(global_id_peer_mapping_table) - set([requester_id])
     selection_size = demand
     links_added = 0
     
@@ -1203,7 +1231,7 @@ def updateGlobalOrderbook():
 # if all orders of a particular age (smaller than max age) are all invalid, then string 'None' is printed.
 # the spreading ratio is defined as the # of peers holding this order, over the total # of peers in the system at cur time.
 
-def printOrderSpreadingRatio():
+def orderSpreadingRatioStat():
     
     global global_id_order_mapping_table
     global cur_time
@@ -1214,6 +1242,8 @@ def printOrderSpreadingRatio():
 
     for order in global_id_order_mapping_table.values():
         if order.valid is True:
+            #if order.birthtime == cur_time:
+            #    print(order.id, order.num_replicas)
             ratio = order.num_replicas / num_active_peers
             order_spreading_ratio[cur_time - order.birthtime].append(ratio)
         
@@ -1223,7 +1253,7 @@ def printOrderSpreadingRatio():
         else:
             order_spreading_ratio[index] = None
 
-    print(order_spreading_ratio)
+    return order_spreading_ratio
 
 # The following function runs normal operations at a particular time point.
 # It includes peer/order dept/arrival, order status update,
@@ -1233,23 +1263,20 @@ def operationsInATimeRound(peer_dept_rate, peer_arr_rate, order_dept_rate, order
     
     global cur_time
         
-    # peers leave
-    
-    peer_ids_to_depart = random.sample(set(global_id_peer_mapping_table.keys()), peer_dept_rate)
+    # peers leave 
+    peer_ids_to_depart = random.sample(set(global_id_peer_mapping_table), peer_dept_rate)
     for peer_id_to_depart in peer_ids_to_depart:
         peerDeparture(peer_id_to_depart)
     
     # new peers come in
-    
     for _ in range(peer_arr_rate):
         num_init_orders = max(0, round(random.gauss(ORDERBOOK_SIZE_MEAN, ORDERBOOK_SIZE_VAR)))
         peerArrival(num_init_orders)
           
     # external order arrival
-    
     for _ in range(order_arr_rate):
         # decide which peer to hold this order
-        target_peer_idx = random.sample(set(global_id_peer_mapping_table.keys()), 1)
+        target_peer_idx = random.sample(set(global_id_peer_mapping_table), 1)
         # decide the max lifetime for this order
         duration = max(0, round(random.gauss(ORDER_LIFETIME_MEAN, ORDER_LIFETIME_VAR)))    
         orderArrival(target_peer_idx[0], duration)
@@ -1258,7 +1285,6 @@ def operationsInATimeRound(peer_dept_rate, peer_arr_rate, order_dept_rate, order
     active_order_id_set = updateGlobalOrderbook()
     
     # existing orders depart
-    
     order_ids_to_depart = random.sample(active_order_id_set, order_dept_rate)
     for order_id_to_depart in order_ids_to_depart:
         orderDeparture(order_id_to_depart)
@@ -1274,38 +1300,57 @@ def operationsInATimeRound(peer_dept_rate, peer_arr_rate, order_dept_rate, order
         if (cur_time - peer.birthtime ) % BATCH_PERIOD == 0:
             peer.storeOrders()
             peer.shareOrders()
-
-        
+       
 '''
 ========================================================
 Main simulation begins here.
 ========================================================
 '''
-cur_time = 0 # the current system time
 
-latest_order_id = 0 # the next order ID that can be used
-latest_peer_id = 0 # the next peer ID that can be used
+max_age_to_track = ORDER_LIFETIME_MEAN # will track spreading ratio of orders between age 0 and max_age_to_track - 1
+average_order_spreading_ratio = [[] for _ in range(max_age_to_track)] # this is our performance metrics
 
-global_id_peer_mapping_table = {} # mapping table from ID to peer instance
-global_id_order_mapping_table = {} # mapping table from ID to order instance
+for i in range(SIMULATION_ROUNDS):
 
-# initialization, orders are only held by creators
+    cur_time = 0 # the current system time
 
-globalInit(INIT_SIZE, BIRTH_TIME_SPAN)
+    latest_order_id = 0 # the next order ID that can be used
+    latest_peer_id = 0 # the next peer ID that can be used
 
-updateGlobalOrderbook()
-
-# growth period [BIRTH_TIME_SPAN, BIRTH_TIME_SPAN + GROWING_TIME]
-
-for time in range(BIRTH_TIME_SPAN, BIRTH_TIME_SPAN + GROWING_TIME):
-    cur_time = time
-    operationsInATimeRound(PEER_EARLY_QUIT_RATE, GROWING_RATE, ORDER_EARLY_DEPARTURE_RATE, ORDER_EARLY_EXTERNAL_ARRIVAL_RATE)
-
-# from round 1 and onward, we allow peer departure, order departure, peer arrival, and order arrival.
-
-for time in range(BIRTH_TIME_SPAN + GROWING_TIME, BIRTH_TIME_SPAN + GROWING_TIME + SIMULATION_ROUND):
-    cur_time = time
-    operationsInATimeRound(PEER_DEPARTURE_RATE, PEER_ARRIVAL_RATE, ORDER_DEPARTURE_RATE, ORDER_EXTERNAL_ARRIVAL_RATE)
+    global_id_peer_mapping_table = {} # mapping table from ID to peer instance
+    global_id_order_mapping_table = {} # mapping table from ID to order instance
     
-printOrderSpreadingRatio()
+    # initialization, orders are only held by creators
+    globalInit(INIT_SIZE, BIRTH_TIME_SPAN)
+    updateGlobalOrderbook()
+
+    # growth period [BIRTH_TIME_SPAN, BIRTH_TIME_SPAN + GROWING_TIME]
+    # more peer coming in than leaving
+    for time in range(BIRTH_TIME_SPAN, BIRTH_TIME_SPAN + GROWING_TIME):
+        cur_time = time
+        operationsInATimeRound(PEER_EARLY_QUIT_RATE, GROWING_RATE, ORDER_EARLY_DEPARTURE_RATE, ORDER_EARLY_EXTERNAL_ARRIVAL_RATE)
+
+    # steady state, we allow peer departure, order departure, peer arrival, and order arrival.
+    # The # of peers remain a constant.
+    for time in range(BIRTH_TIME_SPAN + GROWING_TIME, BIRTH_TIME_SPAN + GROWING_TIME + STABLE_ROUND):
+        cur_time = time
+        operationsInATimeRound(PEER_DEPARTURE_RATE, PEER_ARRIVAL_RATE, ORDER_DEPARTURE_RATE, ORDER_EXTERNAL_ARRIVAL_RATE)
+        
+    # we use the status of order spreading at the last time point, as an appoximation of the steady state status    
+    order_spreading_ratio_this_time = orderSpreadingRatioStat()
+    
+    # add the values into order spreading ratio table
+    for ratio_idx, spreading_ratio in enumerate(order_spreading_ratio_this_time[:max_age_to_track]):
+        if spreading_ratio is not None:
+            average_order_spreading_ratio[ratio_idx].append(spreading_ratio)
+            
+for item_idx, item in enumerate(average_order_spreading_ratio):
+    if item == []:
+        average_order_spreading_ratio[item_idx] = None
+    else:
+        average_order_spreading_ratio[item_idx] = statistics.mean(item)
+
+for index, ratio in enumerate(average_order_spreading_ratio):
+    print('Order of age', index, 'has a spreading ratio of', ratio)
+        
  
