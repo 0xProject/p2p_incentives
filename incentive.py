@@ -141,22 +141,31 @@ Limitations:
 
 '''
 
-# super-level simulation rounds, to average the uncertainty
+''' Simulation rounds, for averaging the result '''
 
-SIMULATION_ROUNDS = 1
+SIMULATION_ROUNDS = 40
+
+''' Orders and peers '''
 
 # order related parameters
 
 ORDER_LIFETIME_MEAN = 50
 ORDER_LIFETIME_VAR = 10
 
-# topology related parameters
+# peer related parameters
 
-NEIGHBOR_MAX = 20
-NEIGHBOR_MIN = 10
+NEIGHBOR_MAX = 30
+NEIGHBOR_MIN = 20
 
 LAZY_NEIGHBOR_CONTRI_THRESHOLD = 2
-LAZY_NEIGHBOR_LENGTH_THRESHOLD = 3
+LAZY_NEIGHBOR_LENGTH_THRESHOLD = 6
+
+BATCH_PERIOD = 10
+
+ORDERBOOK_SIZE_MEAN = 6 # initial orderbook size when a peer is created, mean
+ORDERBOOK_SIZE_VAR = 1 # initial orderbook size when a peer is created, variance
+
+''' system dynamics '''
 
 # init period
 
@@ -166,7 +175,7 @@ INIT_SIZE = 10
 # growing period
 
 GROWING_RATE = 3
-GROWING_TIME = 60
+GROWING_TIME = 10
 PEER_EARLY_QUIT_RATE = 0
 
 ORDER_EARLY_EXTERNAL_ARRIVAL_RATE = 15
@@ -174,29 +183,21 @@ ORDER_EARLY_DEPARTURE_RATE = 15
 
 # stable period
 
-STABLE_ROUND = 30
+STABLE_ROUND = 50
 PEER_ARRIVAL_RATE = 2
 PEER_DEPARTURE_RATE = 2
 
 ORDER_EXTERNAL_ARRIVAL_RATE = 15
 ORDER_DEPARTURE_RATE = 15
 
-# order propagation
+''' incentives '''
 
-BATCH_PERIOD = 10
+# scoring system
 
-OLD_ORDER_SHARE_PROB = 0.5
+CONTRIBUTION_LENGTH = 3 # length of the score queue
+DISCOUNT_FACTOR_VECTOR = [1] * CONTRIBUTION_LENGTH
 
-BABY_ENDING_TIME = 0
-MUTUAL_HELPERS = 3
-OPTIMISTIC_CHOICES = 1
-
-# peer init related parameters
-
-ORDERBOOK_SIZE_MEAN = 6 # initial orderbook size when a peer is created, mean
-ORDERBOOK_SIZE_VAR = 0 # initial orderbook size when a peer is created, variance
-
-# incentive parameters
+# score change
 
 SHARE_REWARD_A = 0 # for sharing an order already in my local storage, shared by the same peer
 SHARE_REWARD_B = 0 # for shairng an order already in my local storage, shared by a different peer
@@ -210,8 +211,14 @@ SHARE_PENALTY_B = -1 # for sharing an identical and duplicate order within the s
 STORAGE_REWARD = 0 # storage reward for storing my sharing
 STORAGE_PENALTY = 0 # penalty for being unwilling to store my orders
 
-CONTRIBUTION_LENGTH = 3 # length of the score queue
-DISCOUNT_FACTOR_VECTOR = [1] * CONTRIBUTION_LENGTH
+# sharing mechanics
+
+OLD_ORDER_SHARE_PROB = 0.5
+
+BABY_ENDING_TIME = 0
+MUTUAL_HELPERS = 3
+OPTIMISTIC_CHOICES = 1
+
 
 '''
 =======================================
@@ -222,6 +229,7 @@ Classes
 import collections
 import random
 import statistics
+import matplotlib.pyplot as plt
 
 class Order:
     
@@ -1310,6 +1318,12 @@ Main simulation begins here.
 max_age_to_track = ORDER_LIFETIME_MEAN # will track spreading ratio of orders between age 0 and max_age_to_track - 1
 average_order_spreading_ratio = [[] for _ in range(max_age_to_track)] # this is our performance metrics
 
+cur_time = 0
+latest_order_id = 0
+latest_peer_id = 0
+global_id_peer_mapping_table = {}
+global_id_order_mapping_table = {}
+
 for i in range(SIMULATION_ROUNDS):
 
     cur_time = 0 # the current system time
@@ -1317,8 +1331,8 @@ for i in range(SIMULATION_ROUNDS):
     latest_order_id = 0 # the next order ID that can be used
     latest_peer_id = 0 # the next peer ID that can be used
 
-    global_id_peer_mapping_table = {} # mapping table from ID to peer instance
-    global_id_order_mapping_table = {} # mapping table from ID to order instance
+    global_id_peer_mapping_table.clear()# mapping table from ID to peer instance
+    global_id_order_mapping_table.clear()# mapping table from ID to order instance
     
     # initialization, orders are only held by creators
     globalInit(INIT_SIZE, BIRTH_TIME_SPAN)
@@ -1329,13 +1343,13 @@ for i in range(SIMULATION_ROUNDS):
     for time in range(BIRTH_TIME_SPAN, BIRTH_TIME_SPAN + GROWING_TIME):
         cur_time = time
         operationsInATimeRound(PEER_EARLY_QUIT_RATE, GROWING_RATE, ORDER_EARLY_DEPARTURE_RATE, ORDER_EARLY_EXTERNAL_ARRIVAL_RATE)
-
+    
     # steady state, we allow peer departure, order departure, peer arrival, and order arrival.
     # The # of peers remain a constant.
     for time in range(BIRTH_TIME_SPAN + GROWING_TIME, BIRTH_TIME_SPAN + GROWING_TIME + STABLE_ROUND):
         cur_time = time
         operationsInATimeRound(PEER_DEPARTURE_RATE, PEER_ARRIVAL_RATE, ORDER_DEPARTURE_RATE, ORDER_EXTERNAL_ARRIVAL_RATE)
-        
+    
     # we use the status of order spreading at the last time point, as an appoximation of the steady state status    
     order_spreading_ratio_this_time = orderSpreadingRatioStat()
     
@@ -1349,8 +1363,19 @@ for item_idx, item in enumerate(average_order_spreading_ratio):
         average_order_spreading_ratio[item_idx] = None
     else:
         average_order_spreading_ratio[item_idx] = statistics.mean(item)
+        
+print('Number of peers is', len(global_id_peer_mapping_table), 'number of orders is', len(list(order for order in global_id_order_mapping_table.values() if order.valid is True)))
 
-for index, ratio in enumerate(average_order_spreading_ratio):
-    print('Order of age', index, 'has a spreading ratio of', ratio)
+#x_axis = []
+#y_axis = []
+#for index, ratio in enumerate(average_order_spreading_ratio):
+#    #print('Orders of age', index, 'have a spreading ratio of', ratio)
+#    x_axis.append(index)
+#    y_axis.append(ratio)
+    
+plt.plot(average_order_spreading_ratio)
+plt.xlabel('age of orders')
+plt.ylabel('spreading ratio')
+plt.show()
         
  
