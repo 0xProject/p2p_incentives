@@ -143,7 +143,7 @@ Limitations:
 
 ''' Simulation rounds, for averaging the result '''
 
-SIMULATION_ROUNDS = 40
+SIMULATION_ROUNDS = 20
 
 ''' Orders and peers '''
 
@@ -175,11 +175,11 @@ INIT_SIZE = 10
 # growing period
 
 GROWING_RATE = 3
-GROWING_TIME = 10
+GROWING_TIME = 30
 PEER_EARLY_QUIT_RATE = 0
 
 ORDER_EARLY_EXTERNAL_ARRIVAL_RATE = 15
-ORDER_EARLY_DEPARTURE_RATE = 15
+ORDER_EARLY_DEPARTURE_RATE =15
 
 # stable period
 
@@ -189,6 +189,7 @@ PEER_DEPARTURE_RATE = 2
 
 ORDER_EXTERNAL_ARRIVAL_RATE = 15
 ORDER_DEPARTURE_RATE = 15
+
 
 ''' incentives '''
 
@@ -1363,6 +1364,9 @@ for item_idx, item in enumerate(average_order_spreading_ratio):
         average_order_spreading_ratio[item_idx] = None
     else:
         average_order_spreading_ratio[item_idx] = statistics.mean(item)
+        
+for peer in global_id_peer_mapping_table.values():
+    print('number of my neighbor is', len(peer.id_neighbor_mapping))
         
 print('Number of peers is', len(global_id_peer_mapping_table), 'number of orders is', len(list(order for order in global_id_order_mapping_table.values() if order.valid is True)))
 
