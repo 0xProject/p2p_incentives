@@ -143,7 +143,7 @@ Limitations:
 
 ''' Simulation rounds, for averaging the result '''
 
-SIMULATION_ROUNDS = 40
+SIMULATION_ROUNDS = 20
 
 ''' Orders and peers '''
 
