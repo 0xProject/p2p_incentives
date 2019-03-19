@@ -3,7 +3,7 @@
 P2P Orderbook simulator
 
 Weijie Wu
-Feb 6, 2019
+March 19, 2019
 
 ===========================
 
@@ -30,7 +30,7 @@ At each time point:
 - For any peer in the system, it needs to (1) update its local orderbook (delete invalid ones),
   (2) add neighbors if needed, and (3) decide order acceptance (updating its pending table).
 
-- If this is the end of a batch period, a peer needs to do additinoally:
+- If this is the end of a batch period, a peer needs to do additionally:
   (1) decide order storing, and (2) decide order sharing.
 
 
@@ -52,7 +52,7 @@ Design details:
 
 - Deletion of an order (settled, expired, or due to owner cancellation):
     - Each time, the system will update the status of all orders.
-        Invalid ones will be set Invalid. In the next time of update, these invalid orders will be deleted.
+        Invalid ones will be set Invalid and will be deleted.
     - Every peer will update local status for OrderInfo instances. Invalid ones will be deleted.
 
 - Deletion of a peer:
@@ -70,7 +70,7 @@ Design details:
         - Y: both sides add neighbors
         - N: nothing happens.
     Accept or reject: Always accept if # of my neighbor has not reached NEIGHBOR_MAX.
-- If neighbor departs (or is scored too low for a long time, to be implemented), neighborhood is cancelled.
+- If neighbor departs or it is considered as lazy (score is too low) for a long time, neighborhood is cancelled.
     Procedure is: delete my neighbor - notify my neighbor (if he's still alive) to delete me too.
 
 3. Order flows: arrival -> accept to pending table -> accept to local storage -> share it with others
@@ -81,13 +81,13 @@ Design details:
     If happend, the arrival will call the targeting peer's function receiveOrderInternal or receiveOrderExternal.
 
 3.2 Order acceptance: The functions receiveOrderInternal or receiveOrderExternal can only be called by order sharing
-    or external order arrival, at any time. These functions will determine whether to put the orders into the pendint table.
+    or external order arrival, at any time. These functions will determine whether or not to put the orders into the pending table.
     
 3.3 Order storing: This function can only be called from the main function proactively. No other function calls it.
     It runs only at the end of a batch period. It will decide whether to put pending orders into the local storage.
     Pending table will be cleared.
     
-3.4 Order sharing: This function can only be called from the main function proactively, following storing.
+3.4 Order sharing: This function can only be called from the main function proactively, following order storing function's execution.
     No other function calls it. It runs only at the end of a batch period.
     It will decide whether to share any stored order to any neighbor.
     It will call neighbor ranking function, which will first update neighbor scores.
@@ -96,7 +96,7 @@ Note: Peer init will directly put some orders into the local storage, without go
     For new peers, the birthtime is the end of the 0th batch period, so order sharing will be called at birth.
     
     New neighbor establishment does not call any order-related operations.
-    If I am an old peer but I am newly accepted by some other peer in the system as his neighbor,
+    That being said, if I am an old peer but I am newly accepted by some other peer in the system as his neighbor,
     I need to wait till the end of batch period of the peer who accepted me, to receive his sharing;
     I will also wait till the end of my batch period, to share with him my orders.
          
@@ -109,10 +109,6 @@ Some Options:
   If fee sharing is enabled, then enabling this feature will be useful (since some versions of a transmitted order can fill in
   a taker fee, some cannot).
 
-- When a peer departs from the system, we have an option to delete all orders it created.
-  If a peer simply goes offline but are still intersted in the orders it makes, then this option should not be enabled.
-  If a peer departs pamenantly (by cancelling all orders and taking away everything in wallet, then this option should be enabled.
-
 - When a peer A deletes a neighbor B, we have an option for A to delete orders that are transmitted
     from B (in which case we call B is the order's previous owner).
   Normally we don't need to enable this feature, but if this neighbor is malicious, you may want to delete all ordes from it.
@@ -122,45 +118,64 @@ Some Options:
 Limitations:
 
 - In blockchain, the status of an order settlement is based on consensus, so it is in an asymptotic sense.
-  There might be different beliefs/forks due to lantency in P2P, but for now,
+  There might be different beliefs/forks due to latency in P2P, but for now,
   we assume that there is some global grand truth for an order status.
   This simplification ignores races and may bring inaccuracy.
 
-- Descrete time setting might be less accurate than event driven simulation.
+- Discrete time setting might be less accurate than event driven simulation.
 
 - We do not model communication delay.
 
 - Once there are more replicas of an order in the system, there is a better opportunity for settlement.
     This is not reflected.
 
-- There is no "interest of topic" right now.
+- There is no namespacing (i.e., peers have particular interest in some trading pairs and only store/share these orders) right now.
 
-- Topology is totally random.
+- Neighborhood topology is totally random.
   
 ==========================
-
 '''
 
-''' Simulation rounds, for averaging the result '''
+import collections
+import random
+import statistics
+import matplotlib.pyplot as plt
+import numpy
 
-SIMULATION_ROUNDS = 20
+
+'''
+=======================
+Parameters
+=======================
+'''
+
+'''
+SIMULATION_ROUNDS is the number of times this simulator is run.
+This is NOT the time rounds of order propagation.
+Instead, in each round of simulation, there will be certain time rounds where orders are created, propogated, and settled,
+and we will run the whole process for SIMULATION_ROUNDS times.
+The reason is there is some randomness in the simulator, so in order to smooth the
+final result, we need to run the simulator multiple times and take the average.
+'''
+
+SIMULATION_ROUNDS = 40
 
 ''' Orders and peers '''
 
 # order related parameters
 
-ORDER_LIFETIME_MEAN = 50
-ORDER_LIFETIME_VAR = 10
+ORDER_EXPIRATION_MEAN = 50 # time for an order to expire, mean
+ORDER_EXPIRATION_VAR = 10 # time for an order to expire, variance
 
 # peer related parameters
 
-NEIGHBOR_MAX = 30
-NEIGHBOR_MIN = 20
+NEIGHBOR_MAX = 30 # neighborhood size, max
+NEIGHBOR_MIN = 20 # neighborhood size, min. Only exception is the peer has tried all possibilities but can't reach this number.
 
-LAZY_NEIGHBOR_CONTRI_THRESHOLD = 2
-LAZY_NEIGHBOR_LENGTH_THRESHOLD = 6
+LAZY_NEIGHBOR_CONTRI_THRESHOLD = 2 # If a neighbor's score is under this value, it is "lazy" in this batch
+LAZY_NEIGHBOR_LENGTH_THRESHOLD = 6 # If a neighbor has been lazy for this number of batches, it is permanently lazy and kicked off from neighborhood.
 
-BATCH_PERIOD = 10
+BATCH_PERIOD = 10 # length of a batch period
 
 ORDERBOOK_SIZE_MEAN = 6 # initial orderbook size when a peer is created, mean
 ORDERBOOK_SIZE_VAR = 1 # initial orderbook size when a peer is created, variance
@@ -169,26 +184,26 @@ ORDERBOOK_SIZE_VAR = 1 # initial orderbook size when a peer is created, variance
 
 # init period
 
-BIRTH_TIME_SPAN = 20
-INIT_SIZE = 10
+INIT_SIZE = 10 # number of peers joining the P2P at the very first beginning
+BIRTH_TIME_SPAN = 20 # birth time of such peers is randomly distributed over [0,BIRTH_TIME_SPAN]
 
-# growing period
+# growing period (# of peers increases)
 
-GROWING_RATE = 3
-GROWING_TIME = 10
-PEER_EARLY_QUIT_RATE = 0
+GROWING_TIME = 30 # number of time rounds of the growth period
+GROWING_RATE = 3 # number of peers joining the P2P system in each time round
+PEER_EARLY_QUIT_RATE = 0 # number of peers leaving the P2P system in each time round
 
-ORDER_EARLY_EXTERNAL_ARRIVAL_RATE = 15
-ORDER_EARLY_DEPARTURE_RATE = 15
+ORDER_EARLY_EXTERNAL_ARRIVAL_RATE = 15 # number of new orders created during each time round
+ORDER_EARLY_DEPARTURE_RATE = 15 # number of orders canceled during each time round
 
-# stable period
+# stable period (# of peers remain relatively stable)
 
-STABLE_ROUND = 50
-PEER_ARRIVAL_RATE = 2
-PEER_DEPARTURE_RATE = 2
+STABLE_ROUND = 50 # number of time rounds of the stable period
+PEER_ARRIVAL_RATE = 2 # number of peers joining the P2P system in each time round
+PEER_DEPARTURE_RATE = 2 # number of peers leaving the P2P system in each time round (should be the same or close to PEER_ARRIVAL_RATE)
 
-ORDER_EXTERNAL_ARRIVAL_RATE = 15
-ORDER_DEPARTURE_RATE = 15
+ORDER_EXTERNAL_ARRIVAL_RATE = 15 # number of new orders created during each time round
+ORDER_DEPARTURE_RATE = 15 # number of orders canceled during each time round
 
 ''' incentives '''
 
@@ -205,20 +220,134 @@ SHARE_REWARD_C = 0 # for sharing an order that I accepted to pending table, but 
 SHARE_REWARD_D = 1 # for sharing an order I decide to store
 SHARE_REWARD_E = 0 # for sharing an order I have multiple copies in the pending table and decided to store a copy from someone else
 
-SHARE_PENALTY_A = -1 # for sharing an invalid order
+SHARE_PENALTY_A = 0 # for sharing an order that I have no interest
 SHARE_PENALTY_B = -1 # for sharing an identical and duplicate order within the same batch
-
-STORAGE_REWARD = 0 # storage reward for storing my sharing
-STORAGE_PENALTY = 0 # penalty for being unwilling to store my orders
 
 # sharing mechanics
 
-OLD_ORDER_SHARE_PROB = 0.5
-
+MAX_SHARE = 5000 # maximal number of orders to share in each sharing event
+OLD_ORDER_SHARE_PROB = 0.5 # probability for an old order to be shared again
+MUTUAL_HELPERS = 3 # number of mutual helpers (who ranked high in the neighborhood)
+OPTIMISTIC_CHOICES = 1 # number of randomly seleted neighbors
+# if a peer joins the system for no more than this time, it is considered a "baby peer" without enough
+# knowledge about its neighbor and will randomly choose beneficiaries.
 BABY_ENDING_TIME = 0
-MUTUAL_HELPERS = 3
-OPTIMISTIC_CHOICES = 1
 
+'''
+====================
+Design choices
+====================
+'''
+
+class Engine:
+    
+    # This function updates the settle status for orders
+    def orderUpdateSettleStatus(self, order):
+        pass
+    
+    # This function sets preference to a neighbor
+    def neighborSetPreference(self, neighbor, peer, master, preference):
+        if preference is not None:
+            neighbor.preference = preference
+        else:
+            neighbor.preference = None
+            
+    # This function sets priority for an orderinfo instance        
+    def orderinfoSetPriority(self, orderinfo, master, order, priority):
+        if priority is not None:
+            self.priority = priority
+        else: # may need to depend on the master node's namespacing, and category of this order
+            self.priority = None
+            
+    # This function determines whether to accept an external order into the pending table
+    def externalOrderAcceptance(self, receiver, order):
+        return True
+    
+    # This function determines whether to accept an internal order into the pending table
+    def internalOrderAcceptance(self, receiver, sender, order):
+        return True
+    
+    # This function is for a peer to determine whether to store each order
+    # in the pending table to the local storage, or discard it.
+    # Right now, the implementation is: Set the first orderinfo of each order as "store,"
+    # and the rest ones as "not to store."
+    # Need to make sure that for each order, at most one orderinfo instance is stored.
+    def orderStorage(self, peer):
+        for order, pending_orderinfolist_of_same_id in peer.order_pending_orderinfo_mapping.items():
+            pending_orderinfolist_of_same_id[0].storage_decision = True # first orderinfo is stored
+            for orderinfo in pending_orderinfolist_of_same_id[1:]: # the rest (if any) are not stored
+                orderinfo.storage_decision = False
+                
+    # This function determins the set of orders to share for this peer
+    # Right now, the implementation is:
+    # share min(max_to_share, size_of_new_peers) new peers,
+    # and share min(remaining_quota, size_of_old_peers * prob) old peers.
+    
+    def orderToShare(self, peer, old_order_share_prob):
+        new_order_set = peer.new_order_set
+        old_order_set = set(peer.order_orderinfo_mapping) - peer.new_order_set
+        selected_order_set = set()
+                      
+        selected_order_set |= set(random.sample(new_order_set, min(peer.max_to_share, len(new_order_set))))
+        
+        remaining_share_size = max(0, peer.max_to_share - len(new_order_set))
+        probability_selection_size = round(len(old_order_set) * old_order_share_prob)
+        selected_order_set |= set(random.sample(old_order_set, min(remaining_share_size, probability_selection_size)))            
+        return selected_order_set
+    
+    # This function determines the set of neighboring nodes to share the order in this batch.
+    # Right now the strategy is: If I am a new peer and do not know my neighbors well,
+    # share to random ones (# = MUTUAL_HELP + OPTIMISTIC_CHOICES).
+    # Otherwise, share to MUTUAL_HELP highly-reputated neighbors, and
+    # OPTIMISTIC_CHOICES random low-reputated neighbors.
+    
+    def neighborToShare(self, cur_time, peer, baby_ending_time, mutual_helpers, optimistic_choices):
+        
+        selected_peer_set = set() 
+        if (cur_time - peer.birthtime <= baby_ending_time): # This is a new peer. random select neighbors
+            selected_peer_set |= set(\
+                random.sample(list(peer.peer_neighbor_mapping),\
+                              min(len(peer.peer_neighbor_mapping), mutual_helpers + optimistic_choices)))
+        else: # This is an old peer
+            ranked_list_of_peers = peer.rankNeighbors()
+            highly_ranked_peers_list = ranked_list_of_peers[:mutual_helpers]
+            lowly_ranked_peers_list = ranked_list_of_peers[mutual_helpers:]
+            selected_peer_set |= set(highly_ranked_peers_list)
+            selected_peer_set |= set(\
+                random.sample(lowly_ranked_peers_list,\
+                                                   min(len(lowly_ranked_peers_list), optimistic_choices)))            
+        return selected_peer_set
+    
+    # This function calculates the fairness index for each peer
+    # Right now, it is not implemented.
+    def calFairness(self, peer):
+        return 0
+    
+    # This function selects some peers from the base peer set for the requester to form neighborhoods
+    # Current versio: random. No differentiation accross requesters.
+    def neighborRec(self, requester, base, target_number):
+        if not base or not target_number:
+            raise ValueError('Base set is empty or target number is zero.')
+        
+        # if the target number is larger than the set size, output the whole set.
+        return set(random.sample(base, min(target_number, len(base))))
+    
+    # This function generates a sample following a certain event happening pattern.
+    # Input is the expected rate, output is a sample of number of incidents for this time slot.
+    # Current implementation: Poisson process. May want to consider Hawkes process later.
+    
+    def numEvents(self, rate):
+        return numpy.random.poisson(rate)
+ 
+'''
+=======================================
+Simulation codes begin.
+To change a strategy or parameter, modify lines above,
+but not supposed to modify lines below.
+=======================================
+'''
+
+myengine = Engine()
 
 '''
 =======================================
@@ -226,63 +355,33 @@ Classes
 =======================================
 '''
 
-import collections
-import random
-import statistics
-import matplotlib.pyplot as plt
-
 class Order:
     
-    def __init__(self, idx, birthtime, creator, lifetime = float('inf'), order_property = None):
-        self.id = idx
+    def __init__(self, seq, birthtime, creator, expiration = float('inf'), category = None):
+        self.seq = seq # sequence number
         self.birthtime = birthtime # will be decided by system clock
-        self.creator = creator # the ID of its original owner (a peer ID)
-        self.lifetime = lifetime # maximal lifetime allowed, specified by the creation of the order instance
-        self.order_property = order_property # refers to some property so that a peer can be interested in/evading this order.
+        self.creator = creator # the peer who creates this order
+        self.expiration = expiration # maximum time for a peer to be valid, and will expire thereafter.
+        self.category = category # may refer to a trading pair lable or something else
         
         # the following two properties are the numbers of stored/pending replicas in the whole system, held by all peers.
         # Only God knows that. But we track them for simulation convenience.
         self.num_replicas = 0 
         self.num_pending = 0
         
-        # set of peers who put this order into their local storage/pending list.
+        # set of peers who put this order into their local storage.
         self.holders = set() # len() = num_replicas
+        
+        # set of peers who put this order into their pending table but not local storage.
+        # in order words, these peers are hesitating whether to store the orders.
         self.hesitators = set() # len() != num_pending since there might be multiple copies for one ID
         
-        self.expired = False # this order instance has not been expired.
         self.settled = False # this order instance has not been taken and settled
-        self.valid = True # this order is still valid. Once it is false, it should be removed.
+        self.canceled = False # will change to True when the order departs proactively.
     
-    def updateExpiredStatus(self): # too old, expire.
-        global cur_time
-        if cur_time - self.birthtime >= self.lifetime:
-            self.expired = True
-            
-    def updateSettledStatus(self):
-        if not True:
-            self.setSettled()
-    
-        '''
-        =======================
-        Design space in here!
-
-        probability = ??? # need to fix the parameters, related to age, num of replicas, etc.
-        temp = random.random()
-        if temp < probability:
-            self.settled = True
-        =======================
-        '''        
-    
-    def setSettled(self):
-        self.settled = True
-    
-    def setInvalid(self): 
-        self.valid = False
-    
-    def updateValidness(self):
-        if (self.num_replicas == 0 and self.num_pending == 0) or (self.expired is True) or (self.settled is True):
-            self.setInvalid()
-        return self.valid
+    # This function updates the settled status for this order
+    def updateSettledStatus(self): 
+        myengine.orderUpdateSettleStatus(self)
             
 # Each peer maintains a set of neighbors. Note, a neighbor physically is a peer, but a neighbor instance is not a peer instance;
 # instead, it has specialized information from a peer's viewpoint.
@@ -290,42 +389,29 @@ class Order:
 
 class Neighbor:
     
-    def __init__(self, neighbor_id, est_time, preference = None):
-        
-        global global_id_peer_mapping_table
-        if neighbor_id not in global_id_peer_mapping_table:
-            raise KeyError('This peer does not exist in the system and hance cannot be my neighbor.')
-        
-        self.id = neighbor_id # same as peer id
-        self.preference = preference # refers to my "observation" of the neighbor (e.g., friend or foe). 
+    def __init__(self, peer, master, est_time, preference = None):
+         
         self.est_time = est_time # establishment time
+        self.setPreference(peer, master, preference) # setup the master node's preference to this neighbor
 
-        
-        # If peer A shares his info with peer B, or stores info shared by peer B, we say peer A contributes to B.
-        # Such contribution is recorded in peer B's local record, i.e., the neighbor instance of peer A in the local storage of peer B.
-        # Formally, "share_contribution/storage_contribution" are two queues to record a length of
-        # "contribution_length" of contributions in the previous rounds.
+        # If peer A shares his info to peer B, we say peer A contributes to B.
+        # Such contribution is recorded in peer B's local record, i.e., the neighbor instance for peer A in the local storage of peer B.
+        # Formally, "share_contribution" is a queue to record a length of "contribution_length" of contributions in the previous rounds.
         # each round is defined as the interval of two contiguous executions of updateNeighborScore function.
         
-        # share_contribution is the contribution of my neighbor for sharing his information to me.
         self.share_contribution = collections.deque()
         for _ in range(CONTRIBUTION_LENGTH):
             self.share_contribution.append(0)
-        self.total_share_contribution = 0 # sum of all entry values in the queue
         
-        # storage_contribution is the contribution of my neighbor for storing my information shared to him.
-        self.storage_contribution = collections.deque()
-        for _ in range(CONTRIBUTION_LENGTH):
-            self.storage_contribution.append(0)
-        self.total_storage_contribution = 0 # sum of all entry values in the queue.
+        self.score = 0 # the score to evaluate my neighbor.
         
-        self.score = 0 # scores to evaluate my neighbor.
         # indicator for the lazyness of this neighbor.
         # Default is 0. Increased by 1 if its score is below THRESHOLD, and reset to 0 if beyond.
-        self.lazy_round = 0 
+        self.lazy_round = 0
     
-    def setPreference(self, new_preference): # changes my preference to this peer
-        self.preference = new_preference
+    def setPreference(self, peer, master, preference):
+        # determine the master node's preference to this neighbor
+        myengine.neighborSetPreference(self, peer, master, preference)
         
 
 # This class OrderInfo is similar to Neighbor: An instance of an orderinfo is an order from a peers viewpoint.
@@ -334,113 +420,74 @@ class Neighbor:
 
 class OrderInfo:
     
-    def __init__(self, order_id, arrival_time, local_property = None, prev_owner = None, novelty = 0):
+    def __init__(self, order, master, arrival_time, priority = None, prev_owner = None, novelty = 0):
     
-        global global_id_order_mapping_table
-        if order_id not in global_id_order_mapping_table or global_id_order_mapping_table[order_id].valid is False:
-            raise KeyError('Orderinfo cannot be initicated since the order does not exist or is invalid.')
-        
-        self.id = order_id
         self.arrival_time = arrival_time
         self.prev_owner = prev_owner # previous owner, default is None (a new order)
         self.novelty = novelty # how many hops it has travalled. Default is 0. Leave design space for TEC.
-        
-        # if a local property of orderinfo is specified, then use it. Otherwise, use the order property.
-        # it can represent trading pairs of tokens, or anything of interest.
-        
-        if local_property is not None:
-            self.local_property = local_property
-        else:
-            self.local_property = global_id_order_mapping_table[order_id].order_property
+        self.setPriority(master, order, priority) # set up priority
         
         # storage_decision is to record whether this peer decides to put this order into the storage.
         # It seems redundant, but it is actually useful in storeOrders function.
         self.storage_decision = False
-    
+        
+    # this function sets the priority for this orderinfo.
+    def setPriority(self, master, order, priority): 
+        myengine.orderinfoSetPriority(self, master, order, priority)
 
 class Peer:
 
     # Note: initialization deals with initial orders, but does not establish neighborhood relationships.
     
-    def __init__(self, idx, birthtime, init_order_ids, max_neighbors, min_neighbors, preference = None):
+    def __init__(self, seq, birthtime, init_orders, max_neighbors, min_neighbors, max_to_share, namespacing = None):
         
-        global global_id_order_mapping_table
-        global global_id_peer_mapping_table
         global cur_time
         
         # simple parameter setting
-        self.id = idx
+        self.seq = seq # sequence number
         self.birthtime = birthtime
-        self.preference = preference # A peers preference (e.g., deals in particular orders). May impact the storage decision.
-        self.min_neighbors = min_neighbors # minimal # of neighbors to have
-        self.max_neighbors = max_neighbors # max # of neighbors to have
+        self.namespacing = namespacing # A peers namespacing is its interest in certain trading groups. Currently we don't set it.
+        self.min_neighbors = min_neighbors # minimal # of neighbors 
+        self.max_neighbors = max_neighbors # maximum # of neighbors 
+        self.max_to_share = max_to_share # maximum # of orders to share in each share decision
         
-        self.id_orderinfo_mapping = {} # mapping from id to orderinfo instances that have been formally stored.
-        self.id_neighbor_mapping = {} # mapping from id to neighbor instance. Note, neighborhood relationship must be bilateral.
-        
-        self.new_order_id_set = set() # set of ids of newly and formally-stored orders that have NEVER been shared out by this peer.
+        self.order_orderinfo_mapping = {} # mapping from the order instance to orderinfo instances that have been formally stored.
+        self.peer_neighbor_mapping = {} # mapping from the peer instance to neighbor instance. Note, neighborhood relationship must be bilateral.
+        self.new_order_set = set() # set of newly and formally-stored orders that have NEVER been shared out by this peer.
         
         # the following mapping maintains a table of pending orders, by recording their orderinfo instance.
-        # note that an order can have multiple orderinfo instances here, because it can be forwarded by different neighbors.
-        # in such a case, the IDs of the instances are the same, but local local_property, prev_owner and novelty might be different.
-        self.pending_id_orderinfo_mapping = {}
+        # note that an order can have multiple orderinfo instances, because it can be forwarded by different neighbors.
+        self.order_pending_orderinfo_mapping = {}
         
         # initiate orders
-        for order_id in init_order_ids: # inital orders will directly be stored without going through the storage decison.
-
-            if order_id not in global_id_order_mapping_table:
-                raise KeyError('Peer init: Some order ID does not exist.')
+        for order in init_orders: # inital orders will directly be stored without going through the storage decison.
+     
+            # if this order is created by this peer, but in the peer initialization,
+            # it was unable to define the creator as this peer since the peer has not been created.
+            # there we defined the creator as None, and we will modify here.
+            if order.creator is None:
+                order.creator = self
+                    
+            priority = None # we don't set the priority for now
+            new_orderinfo = OrderInfo(order, self, birthtime, priority)
+            self.order_orderinfo_mapping[order] = new_orderinfo
+            self.new_order_set.add(order)
+                
+            new_orderinfo.storage_decision = True # not sure if this is useful. Just keep it here to keep consistency.
+                
+            order.num_replicas += 1
+            order.holders.add(self)
             
-            # check if this order is still valid, and add only valid ones.
-            if global_id_order_mapping_table[order_id].valid is True:
-                '''
-                ====================================
-                Design space in here!
-                chance of defining the local_property,
-                or leave it None (use the Order property)
-                ====================================
-                '''
-                local_property = None
-                new_orderinfo = OrderInfo(order_id, cur_time, local_property)
-                self.id_orderinfo_mapping[order_id] = new_orderinfo
-                self.new_order_id_set.add(order_id)
-                
-                new_orderinfo.storage_decision = True # not sure if this is useful. Just keep it here to keep consistency.
-                
-                global_id_order_mapping_table[order_id].num_replicas += 1
-                global_id_order_mapping_table[order_id].holders.add(self.id)
-        
-        
-    # for each peer in each round, before executing anything, call this function to update the local orderinfo list.
-    # for the local mapping, if an order is not valid any more, delete OrderInfo instance from the mapping.
-    
-    def updateOrderinfoValidity(self):
-        
-        global global_id_order_mapping_table
-        
-        for order_id in list(self.id_orderinfo_mapping):
-            if order_id not in global_id_order_mapping_table:
-                raise KeyError('updateOrderinfoValidity: Non-existance order.')
-            if global_id_order_mapping_table[order_id].valid is False:
-                del self.id_orderinfo_mapping[order_id]
-                self.new_order_id_set.discard(order_id)
-        
-        for order_id in list(self.pending_id_orderinfo_mapping):
-            if order_id not in global_id_order_mapping_table:
-                raise KeyError('updateOrderinfoValidity: Non-existance order.')
-            if global_id_order_mapping_table[order_id].valid is False: 
-                del self.pending_id_orderinfo_mapping[order_id]
-                
-                
+                    
     # this function requests to add neighbors if the number of neighbors is not enough.
     # it aims at adding up to demand_num neighbors, but is fine if added up to min_num, or all possibilities have been tried.
     # The function returns the size of neighbors after update.
     # This function needs to be proactively and periodically called.
     
     def checkAddingNeighbor(self):
-        cur_neighbor_size = len(self.id_neighbor_mapping)
+        cur_neighbor_size = len(self.peer_neighbor_mapping)
         if cur_neighbor_size < self.min_neighbors:
-            links_added = addNewLinks(self.id, self.max_neighbors - cur_neighbor_size, \
+            links_added = addNewLinks(self, self.max_neighbors - cur_neighbor_size, \
                                       self.min_neighbors - cur_neighbor_size)
         else:
             links_added = 0
@@ -452,225 +499,169 @@ class Peer:
     # or False if the cur # of neighbors already reaches the maximal.
     # Note, this function does not establish neighborhood relationship by itself. It accepts or rejects only.
     
-    def acceptNeighborRequest(self, requester_id):
+    def acceptNeighborRequest(self, requester):
         
-        if requester_id in self.id_neighbor_mapping:
-            raise KeyError('You are my neighbor already. How come you request a connection again?')
-        
-        return len(self.id_neighbor_mapping) < self.max_neighbors
+        if requester in self.peer_neighbor_mapping:
+            raise ValueError('You are my neighbor. No need to request again.')
     
+        return len(self.peer_neighbor_mapping) < self.max_neighbors
     
     # The following function establishes a neighborhood relationship.
     # It can only be called by the global function addNewLinks, where bilateral relationship is ganranteed.
         
-    def addNeighbor(self, neighbor_id):
+    def addNeighbor(self, peer):
         
-        global global_id_peer_mapping_table
         global cur_time
         
-        # the neighbor must exists as a peer first.
-        if neighbor_id not in global_id_peer_mapping_table:
-            raise KeyError('No such peer.')
-        
         # if this peer is already a neighbor, error with addNewLinks function.
-        if neighbor_id in self.id_neighbor_mapping:
-            raise KeyError('The addNewLinks function is requesting me to add my current neighbor.')
-        
+        if peer in self.peer_neighbor_mapping:
+            raise ValueError('The addNewLinks function is requesting me to add my current neighbor.')
+                
         # create new neighbor in my local storage
-        new_neighbor = Neighbor(neighbor_id, cur_time)
-        self.id_neighbor_mapping[neighbor_id] = new_neighbor
+        new_neighbor = Neighbor(peer, self, cur_time)
+        self.peer_neighbor_mapping[peer] = new_neighbor
         
-    # This function defines what to do if I am notified by someone for cancelling a neighborhood relationship.
-    # Normally, I accept and deletes him from my neighbor.
+    # This function defines what a peer will do if it's notified by someone for cancelling a neighborhood relationship.
+    # Normally, it will accept and deletes that peer from his neighbor.
+    # Note that this is different from real system that a peer simply drops a neighborhood relationship
+    # without need to being accepted by the other side. This function is for simulation bookkeeping purpose only.
         
-    def acceptNeighborCancellation(self, requester_id, remove_order = False):
-        
-        global global_id_peer_mapping_table
-        
-        if requester_id not in global_id_peer_mapping_table:
-            raise KeyError('I am receiving cancellation notification from someone non-existing.')
-        
-        if requester_id in self.id_neighbor_mapping:
-            self.delNeighbor(requester_id, remove_order, False)
-        
+    def acceptNeighborCancellation(self, requester):
+        # If I got removed as a neighbor by my neighbor, I will delete him as well.
+        # But I will not remove orders from him, and I don't need to inform him to delete me.
+        if requester in self.peer_neighbor_mapping:
+            self.delNeighbor(requester, False, False) 
         
     # this function deletes a neighbor. If remove_order is True, then all orderinfo instances with the
     # prev_owner being this neighbor will also be deleted (order instances are still there).
-    # It is allowed to delete a neighbor if it is no longer a valid peer now.
     # notification: whether to notify the other party to cancel neighborhood.
     
-    def delNeighbor(self, neighbor_id, remove_order = False, notification = True): 
-        
-        global global_id_peer_mapping_table
-        
-        if neighbor_id not in self.id_neighbor_mapping:
-            raise KeyError('This peer is not my neighbor. Unable to delete.')
+    def delNeighbor(self, peer, remove_order = False, notification = True): 
+   
+        if peer not in self.peer_neighbor_mapping:
+            raise ValueError('This peer is not my neighbor. Unable to delete.')
         
         # if remove_order is True, delete all orders whose previous owner is this neighbor
         if remove_order is True:
             
-            global global_id_order_mapping_table
-            
-            for order_id, orderinfo in self.id_orderinfo_mapping.items():
-                if orderinfo.prev_owner == neighbor_id:
-                    order_instance = global_id_order_mapping_table[order_id]
-                    if order_instance.valid is True:
-                        order_instance.num_replicas -= 1
-                        order_instance.holders.remove(self.id)
-                    self.new_order_id_set.discard(order_id)
-                    del self.id_orderinfo_mapping[order_id]
+            for order, orderinfo in self.order_orderinfo_mapping.items():
+                if orderinfo.prev_owner == peer:
+                    order.num_replicas -= 1
+                    order.holders.remove(self)
+                    self.new_order_set.discard(order)
+                    del self.order_orderinfo_mapping[order]
                     
-            for order_id, orderinfolist in self.pending_id_orderinfo_mapping.values():
-                order_instance = global_id_order_mapping_table[order_id]
+            for order, orderinfolist in self.order_pending_orderinfo_mapping.items():
                 for idx, orderinfo in enumerate(orderinfolist):
-                    if orderinfo.prev_owner == neighbor_id:
-                        if order_instance.valid is True:
-                            order_instance.num_pending -= 1
+                    if orderinfo.prev_owner == peer:
+                        order.num_pending -= 1
                         del orderinfolist[idx]
-                if orderinfolist == []: # no pending order under this id. need to delete this entry
-                    order_instance.hesitators.remove(self.id) 
-                    del self.pending_id_orderinfo_mapping[order_id]
+                if orderinfolist == []: # no pending orderinfo for this order. need to delete this entry
+                    order.hesitators.remove(self) 
+                    del self.order_pending_orderinfo_mapping[order]
         
         # if this neighbor is still an active peer, notify him to delete me as well.
         if notification is True:
-            if neighbor_id in global_id_peer_mapping_table:
-                global_id_peer_mapping_table[neighbor_id].acceptNeighborCancellation(self.id, False)
+            peer.acceptNeighborCancellation(self)
         
         # delete this neighbor
-        del self.id_neighbor_mapping[neighbor_id] 
+        del self.peer_neighbor_mapping[peer]
     
-    # receiveOrderExternal() is called by orderArrval function.
+    # receiveOrderExternal() is called by orderArrival function.
     # OrderInfo will be put into pending table (just to keep consistent with receive_internal,
     # though most likely it will be accepted).
-    # return True if accept or False otherwise
+    # return True if accepted or False otherwise
     
-    def receiveOrderExternal(self, order_id):
+    def receiveOrderExternal(self, order):
         
-        def storeExtHelper(ext_order):
-            '''
-            Design space begins here.
-            Naive implementation:
-            return True for all.
-            '''
-            return ext_order.valid
-        
-        if order_id in self.pending_id_orderinfo_mapping:
-            raise KeyError('Abnormal external order. This order is now pending for storing decision.')
-        if order_id in self.id_orderinfo_mapping:
-            raise KeyError('Abnormal external order. This order is already in my local order list.')
-        
-        global global_id_order_mapping_table
+        if order in self.order_pending_orderinfo_mapping:
+            raise ValueError('Abnormal external order. This order is in my pending table.')
+        if order in self.order_orderinfo_mapping:
+            raise ValueError('Abnormal external order. This order is already in my local storage.')
+
         global cur_time
         
-        if order_id not in global_id_order_mapping_table:
-            raise KeyError('This order does not exist.')
-        order_instance = global_id_order_mapping_table[order_id]
-        
-        if storeExtHelper(order_instance) is True:
+        if myengine.externalOrderAcceptance(self, order) is True:
             
             # create the orderinfo instance and add it into the local mapping table
-            new_orderinfo = OrderInfo(order_id, cur_time)
-            self.pending_id_orderinfo_mapping[order_id] = [new_orderinfo]
+            new_orderinfo = OrderInfo(order, self, cur_time)
+            self.order_pending_orderinfo_mapping[order] = [new_orderinfo]
             
             # update the number of replicas for this order and hesitator of this order
-            global_id_order_mapping_table[order_id].num_pending += 1
-            global_id_order_mapping_table[order_id].hesitators.add(self.id)
-            
+            order.num_pending += 1
+            order.hesitators.add(self) # a peer is a hesitator of an order if this order is in its pending table
             return True
         
         return False
 
     # receiveOrderInternal() is called by shareOrder function. It will immediately decide whether
-    # to put order_id shared from neighbor_id into the pending table.
+    # to put the order from the peer (who is my neighbor) into my pending table.
     # when novelty_update is True, its count will increase by one once transmitted.
-    # Return True if accept and False otherwise.
+    # Return True if accepted or False otherwise.
     
-    def receiveOrderInternal(self, neighbor_id, order_id, novelty_update = False):
+    def receiveOrderInternal(self, peer, order, novelty_update = False):
         
-        global global_id_peer_mapping_table
-        global global_id_order_mapping_table
         global cur_time
         
-        if neighbor_id not in global_id_peer_mapping_table:
-            raise KeyError('Neighbor peer not found.')
-        if order_id not in global_id_order_mapping_table:
-            raise KeyError('Order not found.')
+        if self not in peer.peer_neighbor_mapping or peer not in self.peer_neighbor_mapping:
+            raise ValueError('Order transmission cannot be peformed between non-neighbors.')
         
-        # find the global peer instance for my neighbor
-        cur_neighbor_as_a_peer_instance = global_id_peer_mapping_table[neighbor_id]
-        
-        # find the order instance
-        order_instance = global_id_order_mapping_table[order_id]
-        
-        # neighbor_id and self must be neighbors of each other
-        if self.id not in cur_neighbor_as_a_peer_instance.id_neighbor_mapping \
-           or neighbor_id not in self.id_neighbor_mapping:
-            raise KeyError('Order transmission cannot be peformed between non-neighbors.')
-        
-        # the instance for the neighbor sending this order.
-        neighbor_instance = self.id_neighbor_mapping[neighbor_id]
-        
-        # the neighbor instance of myself stored by the sender
-        myself_as_a_neighbor_instance = cur_neighbor_as_a_peer_instance.id_neighbor_mapping[self.id]
-        
-        if order_instance.valid is False:
+        neighbor = self.peer_neighbor_mapping[peer]
+                
+        if myengine.internalOrderAcceptance(self, peer, order) is False:
             # update the contribution of my neighbor for his sharing
-            neighbor_instance.share_contribution[-1] += SHARE_PENALTY_A
-            # update my neighbor's record of me for my storage contribution
-            myself_as_a_neighbor_instance.storage_contribution[-1] += STORAGE_PENALTY
+            neighbor.share_contribution[-1] += SHARE_PENALTY_A
             return False
         
-        if order_id in self.id_orderinfo_mapping: # no need to store again
-            if self.id_orderinfo_mapping[order_id].prev_owner == neighbor_id:
+        if order in self.order_orderinfo_mapping: # no need to store again
+            orderinfo = self.order_orderinfo_mapping[order]
+            if orderinfo.prev_owner == peer:
                 # I have this order in my local storage.
                 # my neighbor is sending me the same order again.
                 # It may be due to randomness of sharing old orders.
-                # no need to update storage contribution since the order is there.
-                neighbor_instance.share_contribution[-1] += SHARE_REWARD_A
+                neighbor.share_contribution[-1] += SHARE_REWARD_A
             else:
                 # I have this order in my local storage, but it was from someone else.
                 # No need to store it anymore. Just update the reward for the uploader.
-                neighbor_instance.share_contribution[-1] += SHARE_REWARD_B
-                myself_as_a_neighbor_instance.storage_contribution[-1] += STORAGE_PENALTY
+                neighbor.share_contribution[-1] += SHARE_REWARD_B
             return False
             
         # if this order has not been formally stored.
         # Need to write it into the pending table (even if there has been one with the same ID).            
         if novelty_update is True:
-            order_novelty = cur_neighbor_as_a_peer_instance.id_orderinfo_mapping[order_id].novelty + 1
+            order_novelty = peer.order_orderinfo_mapping[order].novelty + 1
         else:
-            order_novelty = cur_neighbor_as_a_peer_instance.id_orderinfo_mapping[order_id].novelty
+            order_novelty = peer.order_orderinfo_mapping[order].novelty
                     
-        # create an orderinfo instance and add to the pending table
-        new_orderinfo = OrderInfo(order_id, cur_time, None, neighbor_id, order_novelty)
+        # create an orderinfo instance
+        new_orderinfo = OrderInfo(order, self, cur_time, None, peer, order_novelty)
                     
-        # if not in the pending list, need to add it to the pending_id_orderinfo_mapping
-        if order_id not in self.pending_id_orderinfo_mapping: # order id not in the pending set 
-            self.pending_id_orderinfo_mapping[order_id] = [new_orderinfo]
-            global_id_order_mapping_table[order_id].num_pending += 1
-            global_id_order_mapping_table[order_id].hesitators.add(self.id)
-            # put into the pending table. share/storage reward will be updated when a storing decision is made.
+        # if no such order in the pending list, create an entry for it
+        if order not in self.order_pending_orderinfo_mapping: # order id not in the pending set 
+            self.order_pending_orderinfo_mapping[order] = [new_orderinfo]
+            order.num_pending += 1
+            order.hesitators.add(self)
+            # put into the pending table. share reward will be updated when a storing decision is made.
             return True
                         
-        # if already in the pending list, check if this order is from the same prev_owner.    
-        for existing_orderinfo in self.pending_id_orderinfo_mapping[order_id]:
-            if neighbor_id == existing_orderinfo.prev_owner:
+        # if there is such order in the pending list, check if this order is from the same prev_owner.    
+        for existing_orderinfo in self.order_pending_orderinfo_mapping[order]:
+            if peer == existing_orderinfo.prev_owner:
                 # this neighbor is sending duplicates to me in a short period of time
                 # Likely to be a malicious one.
-                # neighbor does not need to update storage contirbution
-                neighbor_instance.share_contribution[-1] += SHARE_PENALTY_B
+                neighbor.share_contribution[-1] += SHARE_PENALTY_B
                 return False
-                
+       
         # my neighbor is honest, but he is late in sending me the message.
         # Add it to the pending list anyway since later, his version of the order might be selected.
-        self.pending_id_orderinfo_mapping[order_id].append(new_orderinfo)
-        global_id_order_mapping_table[order_id].num_pending += 1
-        
-        # no need to add hesitator since I am already a hesitator.
-        # share reward will be updated when a storing decision is made.
+        self.order_pending_orderinfo_mapping[order].append(new_orderinfo)
+        order.num_pending += 1
         
         return True
-                            
+    
+    # storeOrders() function determines which orders to store and which to discard, for all orders
+    # in the pending table. It is proactively called in the main function by each peer, when the time is
+    # the end of a batch period.
         
     def storeOrders(self):
         
@@ -679,46 +670,20 @@ class Peer:
         if (cur_time - self.birthtime) % BATCH_PERIOD != 0:
             raise RuntimeError('Store order decision should not be called at this time.')
         
-        global global_id_order_mapping_table
-        global global_id_peer_mapping_table
-    
-        '''
-        ===========================
-        design space begins here.
-        change instance.storage_decision to True if you would like to store this order.
-        Later part of this function will take care of such orders and write them into the local storage.
-        This decision process must make sure that for the set of pending orders
-        with the same id, at most one will be selected.
-        below is a naive one that labels the first entry of each pending orderinfolist as True.
-        ===========================
-        '''
-        
-        for idx, pending_orderinfolist_of_same_id in self.pending_id_orderinfo_mapping.items():
-            if global_id_order_mapping_table[idx].valid is False:
-                for orderinfo in pending_orderinfolist_of_same_id:
-                    orderinfo.storage_decision = False
-            else: # it is a valid order
-                pending_orderinfolist_of_same_id[0].storage_decision = True # first orderinfo of idx is stored
-                for orderinfo in pending_orderinfolist_of_same_id[1:]: # the rest (if any) are not stored
-                    orderinfo.storage_decision = False
-                    
+        # change instance.storage_decision to True if you would like to store this order.
+        myengine.orderStorage(self)
+               
         # Now store an order if necessary
         
-        for idx, pending_orderinfolist_of_same_id in self.pending_id_orderinfo_mapping.items():
-            
-            if idx not in global_id_order_mapping_table:
-                raise KeyError('This order does not exist.')
-            
+        for order, pending_orderinfolist_of_same_id in self.order_pending_orderinfo_mapping.items():
+                      
             # sort the list of pending orderinfo with the same id, so that if
             # there is some order to be stored, it will be the first one.
             pending_orderinfolist_of_same_id.sort(key = lambda item: item.storage_decision, reverse = True)
             
-            # find the global order instance for all orderinfo in this list,
-            # update its number of pending orders, and remove the hesitator, in advance.
-            
-            pending_orderinfo_as_an_order_instance = global_id_order_mapping_table[idx]
-            pending_orderinfo_as_an_order_instance.num_pending -= len(pending_orderinfolist_of_same_id)
-            pending_orderinfo_as_an_order_instance.hesitators.remove(self.id)
+            # update the order instance, e.g., number of pending orders, and remove the hesitator, in advance.
+            order.num_pending -= len(pending_orderinfolist_of_same_id)
+            order.hesitators.remove(self)
             
             # after sorting, for all pending orderinfo with the same id,
             # either (1) no one is to be stored, or (2) only the first one is stored
@@ -726,23 +691,19 @@ class Peer:
             if pending_orderinfolist_of_same_id[0].storage_decision is False: # if nothing is to be stored
                 for pending_orderinfo in pending_orderinfolist_of_same_id:
                     # find the global instance of the sender, and update it.
-                    if pending_orderinfo.prev_owner in self.id_neighbor_mapping: # internal order, sender is still a neighbor
-                        sender_as_a_peer_instance = global_id_peer_mapping_table[pending_orderinfo.prev_owner]
-                        sender_as_a_peer_instance.id_neighbor_mapping[self.id].storage_contribution[-1] += STORAGE_PENALTY
-                        self.id_neighbor_mapping[pending_orderinfo.prev_owner].share_contribution[-1] += SHARE_REWARD_C
+                    if pending_orderinfo.prev_owner in self.peer_neighbor_mapping: # internal order, sender is still a neighbor
+                        self.peer_neighbor_mapping[pending_orderinfo.prev_owner].share_contribution[-1] += SHARE_REWARD_C
             
             else: # the first element is to be stored
                 first_pending_orderinfo = pending_orderinfolist_of_same_id[0]
                 # find the global instance for the sender, and update it.
-                if first_pending_orderinfo.prev_owner in self.id_neighbor_mapping: # internal order, sender is still neighbor
-                    first_sender_as_a_peer_instance = global_id_peer_mapping_table[first_pending_orderinfo.prev_owner]
-                    first_sender_as_a_peer_instance.id_neighbor_mapping[self.id].storage_contribution[-1] += STORAGE_REWARD
-                    self.id_neighbor_mapping[first_pending_orderinfo.prev_owner].share_contribution[-1] += SHARE_REWARD_D
+                if first_pending_orderinfo.prev_owner in self.peer_neighbor_mapping: # internal order, sender is still neighbor
+                    self.peer_neighbor_mapping[first_pending_orderinfo.prev_owner].share_contribution[-1] += SHARE_REWARD_D
                 # add the order into the local storage, and update the global order instance
-                self.id_orderinfo_mapping[idx] = first_pending_orderinfo
-                self.new_order_id_set.add(idx)
-                pending_orderinfo_as_an_order_instance.num_replicas += 1
-                pending_orderinfo_as_an_order_instance.holders.add(self.id)
+                self.order_orderinfo_mapping[order] = first_pending_orderinfo
+                self.new_order_set.add(order)
+                order.num_replicas += 1
+                order.holders.add(self)
                 
                 
                 # for the rest pending orderinfo in the list, no need to store them, but may need to do other updates
@@ -751,22 +712,12 @@ class Peer:
                     if pending_orderinfo.storage_decision is True:
                         raise ValueError('Should not store multiple orders. Wrong in storage decision process.')
                     
-                    if pending_orderinfo.prev_owner in self.id_neighbor_mapping: # internal order, sender is still neighbor
+                    if pending_orderinfo.prev_owner in self.peer_neighbor_mapping: # internal order, sender is still neighbor
                         # update the share contribution
-                        self.id_neighbor_mapping[pending_orderinfo.prev_owner].share_contribution[-1] += SHARE_REWARD_E
-                        # find the global instance for the sender
-                        sender_as_a_peer_instance = global_id_peer_mapping_table[pending_orderinfo.prev_owner]
-                        # if their novelties are the same, then they are indistinguishable.
-                        # so you can just pretend that you're storing the order for the sender (though you're storing it for someone else)
-                        if pending_orderinfo.novelty == first_pending_orderinfo.novelty:
-                            # update the sender instance
-                            sender_as_a_peer_instance.id_neighbor_mapping[self.id].storage_contribution[-1] += STORAGE_REWARD
-                        else:
-                            # the orders are distinguishable. No way to take advantage. Update the sender instance.
-                            sender_as_a_peer_instance.id_neighbor_mapping[self.id].storage_contribution[-1] += STORAGE_PENALTY
+                        self.peer_neighbor_mapping[pending_orderinfo.prev_owner].share_contribution[-1] += SHARE_REWARD_E
                         
         # clear the pending mapping table                
-        self.pending_id_orderinfo_mapping.clear()
+        self.order_pending_orderinfo_mapping.clear()
         
         
     # shareOrders() function determines which orders to be shared to which neighbors.
@@ -781,100 +732,41 @@ class Peer:
         if ( cur_time - self.birthtime ) % BATCH_PERIOD != 0:
             raise RuntimeError('Share order decision should not be called at this time.')
         
-        global global_id_order_mapping_table
-        global global_id_peer_mapping_table
+        # orders to share
+        order_to_share_set = myengine.orderToShare(self, OLD_ORDER_SHARE_PROB)
         
-        new_order_id_set = self.new_order_id_set
-        old_order_id_set = set(self.id_orderinfo_mapping) - self.new_order_id_set
+        # peers to share
+        peer_to_share_set = myengine.neighborToShare(cur_time, self, BABY_ENDING_TIME, MUTUAL_HELPERS, OPTIMISTIC_CHOICES)
         
-        '''
-        The following funtion defines what orders to share with a particular neighbor.
-        Default setting: share every new order and randomly select some old orders to share.
-        '''
-        
-        def shareOrdersToSingleNeighbor(neighbor_id):
-            
-            neighbor_as_a_peer_instance = global_id_peer_mapping_table[neighbor_id]
-            
-            for order_id in new_order_id_set:
-                if order_id not in global_id_order_mapping_table\
-                   or global_id_order_mapping_table[order_id].valid is False:
-                    raise ValueError('Invalid order to be shared.')
-                
-                neighbor_as_a_peer_instance.receiveOrderInternal(self.id, order_id)
-                
-            for order_id in old_order_id_set:
-                if order_id not in global_id_order_mapping_table\
-                   or global_id_order_mapping_table[order_id].valid is False:
-                    raise ValueError('Invalid order to be shared.')
-                
-                random_number = random.random()
-                if random_number < OLD_ORDER_SHARE_PROB:
-                    neighbor_as_a_peer_instance.receiveOrderInternal(self.id, order_id)
-                    
-        '''
-        The following function decides the set of neighbors to share with.
-        This is the design space.
-        Default: If I am new, share to random ones (# = MUTUAL_HELP + OPTIMISTIC_CHOICES).
-        If I am old, share to MUTUAL_HELP highly-reputated neighbors, and OPTIMISTIC_CHOICES random low-reputated neighbors.
-        '''
-        
-        def selectNeighborsToShare():
-            
-            set_neighbor_id_to_share = set()
-            
-            if ( cur_time - self.birthtime <= BABY_ENDING_TIME): # This is a new peer. random select neighbors
-                for neighbor_id in random.sample(list(self.id_neighbor_mapping), \
-                                                 min(len(self.id_neighbor_mapping), MUTUAL_HELPERS + OPTIMISTIC_CHOICES)):
-                    set_neighbor_id_to_share.add(neighbor_id)
-            else: # This is an old peer
-                ranked_id_list_of_neighbors = self.rankNeighbors()
-                highly_ranked_neighbors_list = ranked_id_list_of_neighbors[:MUTUAL_HELPERS]
-                lowly_ranked_neighbors_list = ranked_id_list_of_neighbors[MUTUAL_HELPERS:]
-                for neighbor_id in highly_ranked_neighbors_list:
-                    set_neighbor_id_to_share.add(neighbor_id)
-                for neighbor_id in random.sample(lowly_ranked_neighbors_list, min(len(lowly_ranked_neighbors_list), OPTIMISTIC_CHOICES)):
-                    set_neighbor_id_to_share.add(neighbor_id)
-                    
-            for neighbor_id in set_neighbor_id_to_share:
-                if neighbor_id not in global_id_peer_mapping_table:
-                    raise ValueError('Non-existant neighbor was seleted.')
-                
-            return set_neighbor_id_to_share
-        
-        # share every order to every correct peer:
-        
-        for neighbor_id in selectNeighborsToShare():   
-            shareOrdersToSingleNeighbor(neighbor_id)
+        # sharing event
+        for peer in peer_to_share_set:
+            for order in order_to_share_set:
+                peer.receiveOrderInternal(self, order)
             
         # clear the new order set. Every order becomes old.        
-        self.new_order_id_set.clear()
-    
-     
-    # this function deletes a valid orderinfo instance. Now, it is not called anywhere in the simulator.
-    # We just put it here for future use.
-    # for the case where an order becomes invalid, updateOrderinfoValidity() will delete it.
-    
-    def delOrder(self, order_id):
-        
-        global global_id_order_mapping_table
-        if order_id not in global_id_order_mapping_table:
-            raise KeyError('This order does not exist.')
+        self.new_order_set.clear()
 
-        global_order_instance = global_id_order_mapping_table[order_id]
+
+    # This function deletes all orderinfo instances of a particular order.
+    
+    def delOrder(self, order):
+        
+        global order_full_set
         
         # check if this order is in the pending table
-        if order_id in self.pending_id_orderinfo_mapping:
-            global_order_instance.num_pending -= len(self.pending_id_orderinfo_mapping[order_id])
-            global_order_instance.hesitators.remove(self.id)
-            del self.pending_id_orderinfo_mapping[order_id]
+        if order in self.order_pending_orderinfo_mapping:
+            if order in order_full_set:
+                order.num_pending -= len(self.order_pending_orderinfo_mapping[order])
+                order.hesitators.remove(self)
+            del self.order_pending_orderinfo_mapping[order]
         
         # check if this order is in the local storage
-        if order_id in self.id_orderinfo_mapping:
-            global_order_instance.num_replicas -= 1
-            global_order_instance.holders.remove(self.id)
-            self.new_order_id_set.discard(order_id)
-            del self.id_orderinfo_mapping[order_id]
+        if order in self.order_orderinfo_mapping:
+            self.new_order_set.discard(order)
+            del self.order_orderinfo_mapping[order]
+            if order in order_full_set:
+                order.num_replicas -= 1
+                order.holders.remove(self)
             
     # This function updates neighbor score, by (1) calculating the current score according to the queue
     # and (2) update the queue by moving one step forward and delete the oldest element.
@@ -882,80 +774,44 @@ class Peer:
     
     def updateNeighborScore(self):
         
-        '''
-        ============================
-        design space:
-        how to decide a neighbors score?
-        how to decide the discount factor?
-        Below we simply return scores of share and storage, where storage score is 0.
-        Discounts are all 1.
-        ============================
-        '''
-        
-        def scoreCalculator(share, storage):
-            return share + 0 * storage
-        
-        global cur_time
-        
-        for neighbor_id in list(self.id_neighbor_mapping):
+        for peer in list(self.peer_neighbor_mapping):
             
-            neighbor = self.id_neighbor_mapping[neighbor_id]
+            neighbor = self.peer_neighbor_mapping[peer]
             
             # update laziness
-            if neighbor.share_contribution[-1] <=  LAZY_NEIGHBOR_CONTRI_THRESHOLD \
-               and neighbor.storage_contribution[-1] <= LAZY_NEIGHBOR_CONTRI_THRESHOLD:
+            if neighbor.share_contribution[-1] <=  LAZY_NEIGHBOR_CONTRI_THRESHOLD:
                 neighbor.lazy_round += 1
             else:
                 neighbor.lazy_round = 0
                 
             # delete neighbor if necessary
             if neighbor.lazy_round >= LAZY_NEIGHBOR_LENGTH_THRESHOLD:
-                self.delNeighbor(neighbor_id)
+                self.delNeighbor(peer)
                 continue
             
-            neighbor.total_share_contribution = sum(a * b for a, b in zip(neighbor.share_contribution, DISCOUNT_FACTOR_VECTOR))
-            neighbor.total_storage_contribution = sum(a * b for a, b in zip(neighbor.storage_contribution, DISCOUNT_FACTOR_VECTOR))
-            
-            #neighbor_total_share_contribution = sum(share for share in neighbor.share_contribution)
-            #neighbor_total_storage_contribution = sum (store for store in neighbor.storage_contribution)
-            
-            neighbor.score = scoreCalculator(neighbor.total_share_contribution, neighbor.total_storage_contribution)
+            neighbor.score = sum(a * b for a, b in zip(neighbor.share_contribution, DISCOUNT_FACTOR_VECTOR))
             
             # update the contribution queue since it is the end of a calculation circle
-            
             neighbor.share_contribution.popleft()
             neighbor.share_contribution.append(0) 
-            
-            neighbor.storage_contribution.popleft()
-            neighbor.storage_contribution.append(0)
-            
-            
+
     
-    # This function ranks neighbors according to their scores. It is called by shareOrders function
-    # It returns a list of neighbor IDs with the highest score in the front.
+    # This function ranks neighbors according to their scores. It is called by shareOrders function.
+    # It returns a list peers ranked by the scores of their corresponding neighbor instances.
     
     def rankNeighbors(self):
         
         self.updateNeighborScore()
         
-        neighbor_list = list(self.id_neighbor_mapping.values())
-        neighbor_list.sort(key = lambda item: item.score, reverse = True)
-        return [item.id for item in neighbor_list]
-    
+        peer_list = list(self.peer_neighbor_mapping)
+        peer_list.sort(key = lambda item: self.peer_neighbor_mapping[item].score, reverse = True)
+        return peer_list
     
     # This function measures the fairness of the incentive scheme.
     # There is no implemetion for now, and it is called from nowhere.
     
     def fairnessIndex(self):
-        
-        '''
-        ============================
-        design space:
-        how to decide a neighbors fairness index?
-        ============================
-        '''
-        pass
- 
+        return myengine.calFaireness(self)
  
  
 '''
@@ -964,302 +820,224 @@ System functions begin here.
 ===========================================
 '''
 
-
+# This is the initialization function.
+# Construct a number of peers and a number of orders and maintain their references in two sets.
+# Sequence numbers of peers and neighbors begin from 0 and increase by 1 each time.
+    
 def globalInit(init_size_peer, birth_time_span):
     
-    # construct a number of peers and a number of orders
-    # also, construct a global mapping table from peer id to the peer instances
-    # and a global mapping table from order id to order instances
-    # track the next IDs for order and peer
-    
-    global global_id_order_mapping_table # mapping from order ID to order instance
-    global global_id_peer_mapping_table # mapping from peer ID to peer instance
+
+    global order_full_set # set of orders
+    global peer_full_set # set of peers
     global cur_time # current system time
-    global latest_order_id # id for next order to use
-    global latest_peer_id # id for next peer to use
+    global latest_order_seq # sequence number for next order to use
+    global latest_peer_seq # sequence number for next peer to use
     
-    order_index = latest_order_id # should start from zero, but can be customized
-    peer_index = latest_peer_id # same thing as above
+    order_seq = latest_order_seq # order sequence number should start from zero, but can be customized
+    peer_seq = latest_peer_seq # same as above
     
     # first create all peer instances with no neighbors
     
     for _ in range(init_size_peer):
         
-        # decide the birth time for this peer
+        # decide the birth time for this peer. Randomlized over [0, birth_time_span] to avoid sequentiality issue.
         birth_time = random.randint(0, birth_time_span - 1)
         
         # decide the number of orders for this peer
         num_orders = max(0, round(random.gauss(ORDERBOOK_SIZE_MEAN, ORDERBOOK_SIZE_VAR)))
 
         # create all order instances, and the initial orderbooks
-        beginning_order_index = order_index
+        cur_order_set = set()
         
         for _ in range(num_orders):
-            # decide the max lifetime for this order
-            duration = max(0, round(random.gauss(ORDER_LIFETIME_MEAN, ORDER_LIFETIME_VAR)))
+            # decide the max expiration for this order
+            expiration = max(0, round(random.gauss(ORDER_EXPIRATION_MEAN, ORDER_EXPIRATION_VAR)))
             
             # create the order. Order's birth time is cur_time, different from peer's birthtime.
-            new_order = Order(order_index, cur_time, peer_index, duration)
-            global_id_order_mapping_table[order_index] = new_order
-            order_index += 1
-        
-        order_id_set = set(range(beginning_order_index, order_index))
+            # Order's creator is set to be None since the peer is not initiated, but will be changed
+            # in the peer's initiation function.
+            new_order = Order(order_seq, cur_time, None, expiration)
+            order_full_set.add(new_order)
+            cur_order_set.add(new_order)
+            order_seq += 1
         
         # create the peer instance. Neighbor set is empty.
-        new_peer = Peer(peer_index, birth_time, order_id_set, NEIGHBOR_MAX, NEIGHBOR_MIN)
+        new_peer = Peer(peer_seq, birth_time, cur_order_set, NEIGHBOR_MAX, NEIGHBOR_MIN, MAX_SHARE)
+        peer_full_set.add(new_peer)
+        peer_seq += 1
         
-        global_id_peer_mapping_table[peer_index] = new_peer
-        peer_index += 1
-        
-    # update the latest order id and latest peer id
-    latest_order_id = order_index
-    latest_peer_id = peer_index
+    # update the latest order sequence number and latest peer sequence number
+    latest_order_seq = order_seq
+    latest_peer_seq = peer_seq
         
     # add neighbors to the peers. Use shuffle function to avoid preference of forming neighbors for
-    # peers with small id.
-    keys = list(global_id_peer_mapping_table)
-    random.shuffle(keys)
+    # peers with small sequence number.
+    peer_list = list(peer_full_set)
+    random.shuffle(peer_list)
     
-    for peer_id in keys:
-        peer = global_id_peer_mapping_table[peer_id]
+    for peer in peer_list:
         peer.checkAddingNeighbor()
         
     
-# The following function helps the peer with requester_id to add neighbors.
-# It targets at adding demand_num neighbors, but is fine if the final added #
-# is in the range [min_num, demand_num], or stop when all possible links are added.
+# The following function helps the requester peer to add neighbors.
+# It targets at adding demand_num neighbors, but is fine if the final added number
+# is in the range [min_num, demand_num], or stops when all possible links are added.
 # This function will call the corresponding peers' functions to add the neighbors, respectively.
-# finally, this function will output the # of links established.
+# Finally, this function will output the # of links established.
 
-def addNewLinks(requester_id, demand, minimum):
-    
-    '''
-    ============================
-    Design space:
-    How to perform the selection. Right now: random.
-    ============================
-    '''
-    
-    # this function is a helper function to addNewLinks. It takes in a base set and a targeted number,
-    # and outputs a subset of the base set whose size is targeted number, or all items are selected.
-    
-    def selectionFromBase(base, target_number):
-        
-        if not base or not target_number:
-            raise ValueError('Base set is empty or target number is zero.')
-        
-        # if the target number is larger than the set size, output the whole set.
-        try:
-            return_set = set(random.sample(base, min(target_number, len(base))))
-        except ValueError:
-            print(len(base), target_number)
-        
-        return return_set
+def addNewLinks(requester, demand, minimum):
              
-    if requester_id not in global_id_peer_mapping_table:
-        raise KeyError('Request from a non-existance peer.')
     if demand <= 0 or minimum < 0 or demand < minimum:
         raise ValueError('Wrong in requested number or range.')
     
-    requester_instance = global_id_peer_mapping_table[requester_id]
-    pool = set(global_id_peer_mapping_table) - set([requester_id])
+    pool = peer_full_set - set([requester])
     selection_size = demand
     links_added = 0
     
     while links_added < minimum and pool:
         
         links_added_this_round = 0
-        
-        selected_peer_id_set = selectionFromBase(pool, selection_size)
-        
-        for candidate_id in selected_peer_id_set:
-            
-            if candidate_id not in global_id_peer_mapping_table:
-                raise KeyError('Some non-existance peer was selected. Wrong.')
-            candidate_instance = global_id_peer_mapping_table[candidate_id]
-            
-            # if this peer_id is already the requester's neighbor, ignore.
-            if candidate_id not in requester_instance.id_neighbor_mapping:
+        selected_peer_set = myengine.neighborRec(requester, pool, selection_size)
+        for candidate in selected_peer_set: 
+            # if this peer is already the requester's neighbor, ignore.
+            if candidate not in requester.peer_neighbor_mapping:
                 # check if the candidate is willing to add the requester.
-                if candidate_instance.acceptNeighborRequest(requester_id) is True:
+                if candidate.acceptNeighborRequest(requester) is True:
                     # mutual add neighbors
-                    candidate_instance.addNeighbor(requester_id)
-                    requester_instance.addNeighbor(candidate_id)
+                    candidate.addNeighbor(requester)
+                    requester.addNeighbor(candidate)
                     links_added += 1
                     links_added_this_round += 1
                     
-        pool -= selected_peer_id_set
+        pool -= selected_peer_set
         selection_size -= links_added_this_round
     
     return links_added
 
         
-# when a new peer arrives, it will bring a new set of orders. It only needs to specify the number of initial orders, 
-# the function will specify the order IDs and the peer ID, which are the next integers to use, respectively.
+# when a new peer arrives, it may already have a set of orders. It only needs to specify the number of initial orders, 
+# the function will specify the sequence numbers for the peers and orders.
 
 def peerArrival(num_orders): 
 
-    global global_id_peer_mapping_table
-    global global_id_order_mapping_table
+    global peer_full_set
+    global order_full_set
     global cur_time
-    global latest_peer_id
-    global latest_order_id
+    global latest_peer_seq
+    global latest_order_seq
     
-    # decide this peer's ID
-    peer_id = latest_peer_id
+    # decide this peer's sequence number
+    peer_seq = latest_peer_seq
 
-    # create the initial orders for this peer and update global info for orders
-    order_index = latest_order_id
+    # create the initial orders for this peer and update global order set
+    cur_order_set = set()
+    order_seq = latest_order_seq
     for _ in range(num_orders):
-        duration = max(0, round(random.gauss(ORDER_LIFETIME_MEAN, ORDER_LIFETIME_VAR)))
-        new_order = Order(order_index, cur_time, peer_id, duration)
-        global_id_order_mapping_table[order_index] = new_order
-        order_index += 1
-    
-    init_orderIDs = set(range(latest_order_id, order_index))
+        duration = max(0, round(random.gauss(ORDER_EXPIRATION_MEAN, ORDER_EXPIRATION_VAR)))
+        new_order = Order(order_seq, cur_time, None, duration) # creator of the order temp set to be None
+        order_full_set.add(new_order)
+        cur_order_set.add(new_order)
+        order_seq += 1
     
     # create the new peer, and add it to the table
-    new_peer = Peer(peer_id, cur_time, init_orderIDs, NEIGHBOR_MAX, NEIGHBOR_MIN)
-    global_id_peer_mapping_table[peer_id] = new_peer
+    new_peer = Peer(peer_seq, cur_time, cur_order_set, NEIGHBOR_MAX, NEIGHBOR_MIN, MAX_SHARE)
+    peer_full_set.add(new_peer)
     
     # add neighbors
     new_peer.checkAddingNeighbor()
     
-    # update latest IDs for peer and order
-    latest_peer_id += 1
-    latest_order_id = order_index
+    # update latest sequence numberes for peer and order
+    latest_peer_seq += 1
+    latest_order_seq = order_seq
     
 # this peer departs from the system.
-# There is an option to cancel all orders it creats, by setting cancel_orders to be True.
 
-def peerDeparture(peer_id, cancel_orders = False):
-    
-    global global_id_peer_mapping_table
-    global global_id_order_mapping_table
-    
-    if peer_id not in global_id_peer_mapping_table:
-        raise KeyError('Peer ID is not found.')
-    
+def peerDeparture(peer):
+
     # update number of replicas of all stored/pending orders with this peer
-
-    peer_instance = global_id_peer_mapping_table[peer_id]
-    for order_id in peer_instance.id_orderinfo_mapping.keys():
-        global_id_order_mapping_table[order_id].num_replicas -= 1
-        global_id_order_mapping_table[order_id].holders.remove(peer_id)
+    for order in peer.order_orderinfo_mapping:
+        order.num_replicas -= 1
+        order.holders.remove(peer)
     
-    for order_id, pending_orderlist in peer_instance.pending_id_orderinfo_mapping.items():
-        global_id_order_mapping_table[order_id].num_pending -= len(pending_orderlist)
-        global_id_order_mapping_table[order_id].hesitators.remove(peer_id)
+    for order, pending_orderlist in peer.order_pending_orderinfo_mapping.items():
+        order.num_pending -= len(pending_orderlist)
+        order.hesitators.remove(peer)
     
     # update existing peers
-    for other_peer in global_id_peer_mapping_table.values():
-        if peer_id in other_peer.id_neighbor_mapping:
-            other_peer.delNeighbor(peer_id)
-            
-    # disactivate all orders it created, optional
-    if cancel_orders is True:
-        for order in global_id_order_mapping_table.values():
-            if order.creator == peer_id:
-                order.setInvalid()
+    for other_peer in peer_full_set:
+        if peer in other_peer.peer_neighbor_mapping:
+            other_peer.delNeighbor(peer)
     
-    # update peer global mapping table
-    del global_id_peer_mapping_table[peer_id]
+    # update the global peer set
+    peer_full_set.remove(peer)
 
  
-# This function creates external order arrival
+# This function creates an external order arrival
 
-def orderArrival(target_peer_id, duration_time):
-    
-    global global_id_order_mapping_table
-    global global_id_peer_mapping_table
+def orderArrival(target_peer, expiration):
     
     global cur_time
-    global latest_order_id
-
-    if target_peer_id not in global_id_peer_mapping_table:
-        raise KeyError('The targeted peer does not exist.')
+    global latest_order_seq
     
     # create a new order
-    new_order_id = latest_order_id
-    new_order = Order(new_order_id, cur_time, target_peer_id, duration_time)
+    new_order_seq = latest_order_seq
+    new_order = Order(new_order_seq, cur_time, target_peer, expiration)
     
     # update global info of this order
-    global_id_order_mapping_table[new_order_id] = new_order
-    latest_order_id += 1
+    order_full_set.add(new_order)
+    latest_order_seq += 1
     
     # update the order info to the target peer
-    global_id_peer_mapping_table[target_peer_id].receiveOrderExternal(new_order_id)
+    target_peer.receiveOrderExternal(new_order)
     
     
-# This function proactively invalidate an order.
+# This function takes a set of orders to depart as input,
+# deletes them, updates all other order status. and deletes invalid ones
+# from both the global set and all peers' pending tables and storages.
 
-def orderDeparture(order_id):
+def updateGlobalOrderbook(order_dept_set):
     
-    global global_id_order_mapping_table
+    global order_full_set
     
-    if order_id not in global_id_order_mapping_table:
-        raise KeyError('Order ID is not found.')
-    
-    if global_id_order_mapping_table[order_id].valid is False:
-        raise KeyError('An invalid order cannot depart again.')
-
-    # set the order to be invalid so that it will be deleted by the updateGlobalOrderbook function.
-    global_id_order_mapping_table[order_id].setInvalid()
-
-# Invalidate expired or settled orders and delete them if appropriate.
-# Return the set of valid order IDs.
-
-def updateGlobalOrderbook():
-    
-    global global_id_order_mapping_table
-    
-    #num_active = 0
-    cur_active_order_id_set = set()
-    
-    for idx in list(global_id_order_mapping_table):
-        order = global_id_order_mapping_table[idx]
+    for order in order_dept_set:
+        order.canceled = True
         
-        # delete invalid orders, labeled in the last round.
-        # so that new invalid orders are still there for one round, to avoid KeyError.
-        if order.valid is False:
-            del global_id_order_mapping_table[idx]
-                
-        # update expired and settled status
-        order.updateExpiredStatus()
-        order.updateSettledStatus()
-        
-        # update validity
-        if order.updateValidness() is True:
-            cur_active_order_id_set.add(idx)
+    for order in list(order_full_set):
+        if (order.num_replicas == 0 and order.num_pending == 0) \
+           or (cur_time - order.birthtime >= order.expiration) \
+           or (order.settled is True) or (order.canceled is True):
+            for peer in list(order.holders):
+                peer.delOrder(order)
+            for peer in list(order.hesitators):
+                peer.delOrder(order)
+            order_full_set.remove(order)
             
-    return cur_active_order_id_set
+    return order_full_set       
+            
 
-# the following function prints out the spreading ratio of orders in the same age.
-# printout is a list, each element being the spreading ratio of orders of the same age (starting from 0 till the maximal age)
-# if all orders of a particular age (smaller than max age) are all invalid, then string 'None' is printed.
+# The following function returns the spreading ratio of orders of the same age.
+# The return value is a list, each element being the spreading ratio of orders of the same age (starting from 0)
+# if all orders of a particular age are all invalid, then that entry is 'None'.
 # the spreading ratio is defined as the # of peers holding this order, over the total # of peers in the system at cur time.
 
 def orderSpreadingRatioStat():
     
-    global global_id_order_mapping_table
     global cur_time
     
-    num_active_peers = len(global_id_peer_mapping_table)
-    max_age = cur_time - min(order.birthtime for order in global_id_order_mapping_table.values() if order.valid is True)
+    num_active_peers = len(peer_full_set)
+    cur_active_order_set = updateGlobalOrderbook(set())
+    max_age = cur_time - min(order.birthtime for order in cur_active_order_set)
     order_spreading_ratio = [[] for _ in range(max_age + 1)]
 
-    for order in global_id_order_mapping_table.values():
-        if order.valid is True:
-            #if order.birthtime == cur_time:
-            #    print(order.id, order.num_replicas)
-            ratio = order.num_replicas / num_active_peers
-            order_spreading_ratio[cur_time - order.birthtime].append(ratio)
+    for order in cur_active_order_set:
+        ratio = order.num_replicas / num_active_peers
+        order_spreading_ratio[cur_time - order.birthtime].append(ratio)
         
-    for index, sublist in enumerate(order_spreading_ratio):
+    for idx, sublist in enumerate(order_spreading_ratio):
         if sublist != []:
-            order_spreading_ratio[index] = sum(item for item in sublist) / len(sublist)
+            order_spreading_ratio[idx] = sum(item for item in sublist) / len(sublist)
         else:
-            order_spreading_ratio[index] = None
+            order_spreading_ratio[idx] = None
 
     return order_spreading_ratio
 
@@ -1270,41 +1048,38 @@ def orderSpreadingRatioStat():
 def operationsInATimeRound(peer_dept_rate, peer_arr_rate, order_dept_rate, order_arr_rate):
     
     global cur_time
-        
-    # peers leave 
-    peer_ids_to_depart = random.sample(set(global_id_peer_mapping_table), peer_dept_rate)
-    for peer_id_to_depart in peer_ids_to_depart:
-        peerDeparture(peer_id_to_depart)
+    global order_full_set
+    
+    # peers leave
+    peer_dept_num = myengine.numEvents(peer_dept_rate)
+    for peer_to_depart in random.sample(peer_full_set, peer_dept_num):
+        peerDeparture(peer_to_depart)
     
     # new peers come in
-    for _ in range(peer_arr_rate):
+    peer_arr_num = myengine.numEvents(peer_arr_rate)
+    for _ in range(peer_arr_num):
         num_init_orders = max(0, round(random.gauss(ORDERBOOK_SIZE_MEAN, ORDERBOOK_SIZE_VAR)))
         peerArrival(num_init_orders)
           
     # external order arrival
-    for _ in range(order_arr_rate):
+    order_arr_num = myengine.numEvents(order_arr_rate)
+    for _ in range(order_arr_num):
         # decide which peer to hold this order
-        target_peer_idx = random.sample(set(global_id_peer_mapping_table), 1)
-        # decide the max lifetime for this order
-        duration = max(0, round(random.gauss(ORDER_LIFETIME_MEAN, ORDER_LIFETIME_VAR)))    
-        orderArrival(target_peer_idx[0], duration)
-    
-    # system update of order validity
-    active_order_id_set = updateGlobalOrderbook()
-    
+        target_peer = random.sample(peer_full_set, 1)
+        # decide the max expiration for this order
+        expiration = max(0, round(random.gauss(ORDER_EXPIRATION_MEAN, ORDER_EXPIRATION_VAR)))    
+        orderArrival(target_peer[0], expiration)
+        
     # existing orders depart
-    order_ids_to_depart = random.sample(active_order_id_set, order_dept_rate)
-    for order_id_to_depart in order_ids_to_depart:
-        orderDeparture(order_id_to_depart)
+    order_dept_num = myengine.numEvents(order_dept_rate)
+    order_to_depart = random.sample(order_full_set, order_dept_num)
+    updateGlobalOrderbook(order_to_depart)
         
     # peer operations
-    for peer in global_id_peer_mapping_table.values():
+    for peer in peer_full_set:
         peer.checkAddingNeighbor()
-            
-    for peer in global_id_peer_mapping_table.values():
-        peer.updateOrderinfoValidity()
-            
-    for peer in global_id_peer_mapping_table.values():
+        
+    for peer in peer_full_set:
         if (cur_time - peer.birthtime ) % BATCH_PERIOD == 0:
             peer.storeOrders()
             peer.shareOrders()
@@ -1315,67 +1090,58 @@ Main simulation begins here.
 ========================================================
 '''
 
-max_age_to_track = ORDER_LIFETIME_MEAN # will track spreading ratio of orders between age 0 and max_age_to_track - 1
+max_age_to_track = ORDER_EXPIRATION_MEAN # will track spreading ratio of orders between age 0 and max_age_to_track - 1
 average_order_spreading_ratio = [[] for _ in range(max_age_to_track)] # this is our performance metrics
 
 cur_time = 0
-latest_order_id = 0
-latest_peer_id = 0
-global_id_peer_mapping_table = {}
-global_id_order_mapping_table = {}
+latest_order_seq = 0
+latest_peer_seq = 0
+peer_full_set = set()
+order_full_set = set()
 
 for i in range(SIMULATION_ROUNDS):
 
     cur_time = 0 # the current system time
 
-    latest_order_id = 0 # the next order ID that can be used
-    latest_peer_id = 0 # the next peer ID that can be used
-
-    global_id_peer_mapping_table.clear()# mapping table from ID to peer instance
-    global_id_order_mapping_table.clear()# mapping table from ID to order instance
+    latest_order_seq = 0 # the next order ID that can be used
+    latest_peer_seq = 0 # the next peer ID that can be used
+    peer_full_set.clear() # for each round of simulation, clear everything
+    order_full_set.clear()
     
-    # initialization, orders are only held by creators
+    # Initialization, orders are only held by creators
+    # Peers do not exchange orders at this moment.
     globalInit(INIT_SIZE, BIRTH_TIME_SPAN)
-    updateGlobalOrderbook()
+    updateGlobalOrderbook(set())
 
     # growth period [BIRTH_TIME_SPAN, BIRTH_TIME_SPAN + GROWING_TIME]
     # more peer coming in than leaving
     for time in range(BIRTH_TIME_SPAN, BIRTH_TIME_SPAN + GROWING_TIME):
         cur_time = time
+        # All the following rates can be fractional. The real numbers of events follow a Poisson process.
         operationsInATimeRound(PEER_EARLY_QUIT_RATE, GROWING_RATE, ORDER_EARLY_DEPARTURE_RATE, ORDER_EARLY_EXTERNAL_ARRIVAL_RATE)
     
     # steady state, we allow peer departure, order departure, peer arrival, and order arrival.
-    # The # of peers remain a constant.
+    # The # of peers remains a constant.
     for time in range(BIRTH_TIME_SPAN + GROWING_TIME, BIRTH_TIME_SPAN + GROWING_TIME + STABLE_ROUND):
         cur_time = time
+        # All the following rates can be fractional. The real numbers of events follow a Poisson process.
         operationsInATimeRound(PEER_DEPARTURE_RATE, PEER_ARRIVAL_RATE, ORDER_DEPARTURE_RATE, ORDER_EXTERNAL_ARRIVAL_RATE)
     
     # we use the status of order spreading at the last time point, as an appoximation of the steady state status    
     order_spreading_ratio_this_time = orderSpreadingRatioStat()
     
     # add the values into order spreading ratio table
-    for ratio_idx, spreading_ratio in enumerate(order_spreading_ratio_this_time[:max_age_to_track]):
-        if spreading_ratio is not None:
-            average_order_spreading_ratio[ratio_idx].append(spreading_ratio)
+    for ratio_idx, ratio_value in enumerate(order_spreading_ratio_this_time[:max_age_to_track]):
+        if ratio_value is not None:
+            average_order_spreading_ratio[ratio_idx].append(ratio_value)
             
-for item_idx, item in enumerate(average_order_spreading_ratio):
-    if item == []:
-        average_order_spreading_ratio[item_idx] = None
+for ratio_idx, ratio_value_list in enumerate(average_order_spreading_ratio):
+    if ratio_value_list == []:
+        average_order_spreading_ratio[ratio_idx] = 0
     else:
-        average_order_spreading_ratio[item_idx] = statistics.mean(item)
-        
-print('Number of peers is', len(global_id_peer_mapping_table), 'number of orders is', len(list(order for order in global_id_order_mapping_table.values() if order.valid is True)))
-
-#x_axis = []
-#y_axis = []
-#for index, ratio in enumerate(average_order_spreading_ratio):
-#    #print('Orders of age', index, 'have a spreading ratio of', ratio)
-#    x_axis.append(index)
-#    y_axis.append(ratio)
-    
+        average_order_spreading_ratio[ratio_idx] = statistics.mean(ratio_value_list)
+           
 plt.plot(average_order_spreading_ratio)
 plt.xlabel('age of orders')
 plt.ylabel('spreading ratio')
-plt.show()
-        
- 
+plt.show()     
