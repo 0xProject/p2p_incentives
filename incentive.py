@@ -228,7 +228,7 @@ SHARE_PENALTY_B = -1 # for sharing an identical and duplicate order within the s
 MAX_SHARE = 5000 # maximal number of orders to share in each sharing event
 OLD_ORDER_SHARE_PROB = 0.5 # probability for an old order to be shared again
 MUTUAL_HELPERS = 3 # number of mutual helpers (who ranked high in the neighborhood)
-OPTIMISTIC_CHOICES = 1 # number of randomly seleted neighbors
+OPTIMISTIC_CHOICES = 1 # number of randomly selected neighbors
 # if a peer joins the system for no more than this time, it is considered a "baby peer" without enough
 # knowledge about its neighbor and will randomly choose beneficiaries.
 BABY_ENDING_TIME = 0
