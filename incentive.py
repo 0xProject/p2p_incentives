@@ -811,7 +811,7 @@ class Peer:
     # There is no implemetion for now, and it is called from nowhere.
     
     def fairnessIndex(self):
-        return myengine.calFaireness(self)
+        return myengine.calFairness(self)
  
  
 '''
