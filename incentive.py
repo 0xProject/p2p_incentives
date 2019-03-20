@@ -150,7 +150,7 @@ Parameters
 '''
 
 '''
-SIMULATION_ROUNDS is the number of times this simulator is run.
+SIMULATION_ROUNDS is the number of times the simulator is run.
 This is NOT the time rounds of order propagation.
 Instead, in each round of simulation, there will be certain time rounds where orders are created, propogated, and settled,
 and we will run the whole process for SIMULATION_ROUNDS times.
