@@ -43,22 +43,17 @@ Classes:
 - Class OrderInfo represents an order instance stored in a peer's local storage or pending table.
     It is physically an order, but with some local information, e.g., who transmitted at what time.
 
+- Class Scenario is our basic assumptions of the system
+- Class Engine is our decision choice
+- Class Simulator contains all system functions for the simulator to run
+- Class Execution contains functions that run the simulator in multi-processing manner and generates the figure
+
 ===========================
 
 Design details:
 
 
-1. Departure of orders and peers:
-
-- Deletion of an order (settled, expired, or due to owner cancellation):
-    - Each time, the system will update the status of all orders.
-        Invalid ones will be set Invalid and will be deleted.
-    - Every peer will update local status for OrderInfo instances. Invalid ones will be deleted.
-
-- Deletion of a peer:
-    - Both peer and neighbor instances will be deleted immediately.
-    
-2. Neighborhood relationship:
+1. Neighborhood relationship:
 
 - Any neighborhood relationships must to be bilateral.
 - A peer will try to maintain the size of neighbors within a certain range
@@ -71,23 +66,23 @@ Design details:
         - N: nothing happens.
     Accept or reject: Always accept if # of my neighbor has not reached NEIGHBOR_MAX.
 - If neighbor departs or it is considered as lazy (score is too low) for a long time, neighborhood is cancelled.
-    Procedure is: delete my neighbor - notify my neighbor (if he's still alive) to delete me too.
+    Procedure is: delete my neighbor -> notify my neighbor (if he's still alive) to delete me too.
 
-3. Order flows: arrival -> accept to pending table -> accept to local storage -> share it with others
+2. Order flows: arrival -> accept to pending table -> accept to local storage -> share it with others
 
-3.1 Order arrival: two forms of arrival: internal and external.
+2.1 Order arrival: two forms of arrival: internal and external.
     Internal: caused by a neighbor sharing an order. Can happen any time.
     External: caused by an external order arrival. Can also happen any time.
     If happend, the arrival will call the targeting peer's function receiveOrderInternal or receiveOrderExternal.
 
-3.2 Order acceptance: The functions receiveOrderInternal or receiveOrderExternal can only be called by order sharing
+2.2 Order acceptance: The functions receiveOrderInternal or receiveOrderExternal can only be called by order sharing
     or external order arrival, at any time. These functions will determine whether or not to put the orders into the pending table.
     
-3.3 Order storing: This function can only be called from the main function proactively. No other function calls it.
+2.3 Order storing: This function can only be called from the Simulator class proactively. No other function calls it.
     It runs only at the end of a batch period. It will decide whether to put pending orders into the local storage.
     Pending table will be cleared.
     
-3.4 Order sharing: This function can only be called from the main function proactively, following order storing function's execution.
+2.4 Order sharing: This function can only be called from the Simulator class proactively, following order storing.
     No other function calls it. It runs only at the end of a batch period.
     It will decide whether to share any stored order to any neighbor.
     It will call neighbor ranking function, which will first update neighbor scores.
@@ -157,7 +152,10 @@ peer_parameter = collections.namedtuple('peer_parameter', ('orderbook_mean', 'or
 
 class Scenario:
     
-    def __init__(self, order_type_ratios, peer_type_ratios, order_par_list, peer_par_list, init_par, growth_par, stable_par):
+    def __init__(self, parameters, options):
+        
+        # unpacking parameters
+        (order_type_ratios, peer_type_ratios, order_par_list, peer_par_list, init_par, growth_par, stable_par) = parameters
 
         self.order_type_ratios = order_type_ratios # ratio vector for each type of orders
         self.peer_type_ratios = peer_type_ratios # ratio vector for each type of peers
@@ -184,24 +182,150 @@ class Scenario:
         # peer dept rate, order arrival rate, order dept rate
         # Theoretically, peer arrival rate = peer dept rate, order arrival rate = order dept rate, approximately.
         (self.s_round, self.s_p_arrival, self.s_p_dept, self.s_o_arrival, self.s_o_dept) = stable_par
-            
+        
+        # unpacking options
+        # function_options are options on functions that describe the system.
+        # option_numEvent is an option on what the peer/order's arrival pattern is. Now only Poisson is implemented.
+        # option_settle is an option on whether an order is filled and settled. Now only "never settle" is implementd.
+        (self.option_numEvent, self.option_settle) = options
+        
     # This function generates a sample following a certain event happening pattern.
     # Input is the expected rate, output is a sample of number of incidents for this time slot.
     # Current implementation: Poisson process. May want to consider Hawkes process later.
 
     def numEvents(self, rate):
-        return numpy.random.poisson(rate)
+        if self.option_numEvent == 'Poisson':
+            return numpy.random.poisson(rate)
+        else:
+            raise ValueError('No such option to generate events.')
     
     # This function updates the settle status for orders.
     def orderUpdateSettleStatus(self, order):
-        pass
+        if self.option_settle == 'Never':
+            pass
+        else:
+            raise ValueError('No such option to change settle statues for orders.')
+'''
+====================
+Set of design choices
+====================
+'''
+
+class Candidates:
+    
+    # This is a candidate design for setting preference for neighbors.
+    # The choice is: set it as preference if the value is given, or set it as None.
+    def setPreferencePassive(self, neighbor, peer, master, preference):
+        neighbor.preference = preference
+    
+    # This is a candidate design for setting a priority for orderinfo.
+    # The choice is: set it as priority if the value is given, or set it as None.
+    def setPriorityPassive(self, orderinfo, master, order, priority):
+        orderinfo.priority = priority
+    
+    # This is a candidate design for storing orders.
+    # Note that there might be multiple orderinfo instances for a given order instance.
+    # The design needs to make sure to store at most one of such orderinfo instances.
+    # The choice is: store the first instance of orderinfo for every order.
+    def storeFirst(self, peer):
+        for order, pending_orderinfolist_of_same_id in peer.order_pending_orderinfo_mapping.items():
+            pending_orderinfolist_of_same_id[0].storage_decision = True # first orderinfo is stored
+            for orderinfo in pending_orderinfolist_of_same_id[1:]: # the rest (if any) are not stored
+                orderinfo.storage_decision = False        
+    
+    # This is a candidate design for sharing orders.
+    # The choice is: share min(max_share, size_of_new_peers) of new peers,
+    # and share min(remaining_quota, size_of_old_peers * prob) of old peers.
+    
+    def shareAllNewSelectedOld(self, option, peer):
+        
+        (_, max_to_share, old_prob) = option
+        
+        new_order_set = peer.new_order_set
+        old_order_set = set(peer.order_orderinfo_mapping) - peer.new_order_set
+        selected_order_set = set()
+                      
+        selected_order_set |= set(random.sample(new_order_set, min(max_to_share, len(new_order_set))))
+        
+        remaining_share_size = max(0, max_to_share - len(new_order_set))
+        probability_selection_size = round(len(old_order_set) * old_prob)
+        selected_order_set |= set(random.sample(old_order_set, min(remaining_share_size, probability_selection_size)))            
+        return selected_order_set
+    
+    # This is a candidate design for calculating the scores of neighbors of a peer.
+    # The choice is: (1) calculating the current score according to the queue
+    # (2) update the queue by moving one step forward and delete the oldest element, and
+    # (3) delete a neighbor if it has been lazy for a long time.
+ 
+    def weightedSum(self, option, peer):
+        
+        # If a neighbor's score is under self.lazy_contri, it is "lazy" in this batch;
+        # If a neighbor has been lazy for self.lazy_length time, it is permanently lazy and gets kicked off.
+        # discount elements are the weights to add each element of the score queue
+        (_, lazy_contri, lazy_length, discount) = option
+        
+        for neighboring_peer in list(peer.peer_neighbor_mapping):
+            
+            neighbor = peer.peer_neighbor_mapping[neighboring_peer]
+            # update laziness
+            if neighbor.share_contribution[-1] <=  lazy_contri:
+                neighbor.lazy_round += 1
+            else:
+                neighbor.lazy_round = 0  
+            # delete neighbor if necessary
+            if neighbor.lazy_round >= lazy_length:
+                peer.delNeighbor(neighboring_peer)
+                continue
+        
+            neighbor.score = sum(a * b for a, b in zip(neighbor.share_contribution, discount))
+            
+            # update the contribution queue since it is the end of a calculation circle
+            neighbor.share_contribution.popleft()
+            neighbor.share_contribution.append(0)
+    
+    
+    # This is a candidate design to select beneficiaries from neighbors.
+    # The choice is similar similar to tit-for-tat.
+    # If I am a new peer and do not know my neighbors well,
+    # share to random ones (# = mutual + optimistic).
+    # Otherwise, share to "mutual" highly-reputated neighbors, and
+    # "optimistic" random low-reputated neighbors.
+    
+    def titForTat(self, option, time_now, peer):
+        
+        (_, baby_ending, mutual, optimistic) = option
+        
+        selected_peer_set = set() 
+        if (time_now - peer.birthtime <= baby_ending): # This is a new peer. random select neighbors
+            selected_peer_set |= set(\
+                random.sample(list(peer.peer_neighbor_mapping),\
+                              min(len(peer.peer_neighbor_mapping), mutual + optimistic)))
+        else: # This is an old peer
+            ranked_list_of_peers = peer.rankNeighbors()
+            highly_ranked_peers_list = ranked_list_of_peers[:mutual]
+            lowly_ranked_peers_list = ranked_list_of_peers[mutual:]
+            selected_peer_set |= set(highly_ranked_peers_list)
+            selected_peer_set |= set(\
+                random.sample(lowly_ranked_peers_list,\
+                                                   min(len(lowly_ranked_peers_list), optimistic)))            
+        return selected_peer_set
+    
+    # This is a candidate design for neighbor recommendation.
+    # The choice is to choose targe_number elements from the base in a totally random manner.
+    def randomRec(self, requester, base, target_number):
+        if not base or not target_number:
+            raise ValueError('Base set is empty or target number is zero.')
+        
+        # if the target number is larger than the set size, output the whole set.
+        return set(random.sample(base, min(target_number, len(base))))
+
 
 '''
 ====================
-Design choices
+Design Space
 ====================
 '''
-# The class Engine includes functions that specify particular design choices.
+# The class Engine describes the design space. By choosing a specific option we refer to a particular design choice.
 # They include our choice on neighbor establishment, order operations and incentives, scoring system, etc.
 # Such choices are viable, and one can change any/some of them to test the performance.
 # Later part of this program is the simulator body structure (which is not supposed to change during test),
@@ -211,20 +335,19 @@ class Engine:
     
     # set up parameters for decision choices
     
-    def __init__(self, batch, topology, incentive, sharing):
+    def __init__(self, parameters, options):
+        
+        (batch, topology, incentive) = parameters
         
         # batch period
         self.batch = batch
         
         # topology related
-        # parameters: maximal/minimal size of neighborhood;
-        # If a neighbor's score is under self.lazy_contri, it is "lazy" in this batch;
-        # If a neighbor has been lazy for self.lazy_length time, it is permanently lazy and gets kicked off.
-        
-        (self.neighbor_max, self.neighbor_min, self.lazy_contri, self.lazy_length) = topology
+        # parameters: maximal/minimal size of neighborhood
+        (self.neighbor_max, self.neighbor_min) = topology
         
         # incentive related
-        # parameters are: length of the score sheet, discount factors (weight to add each element of the queue), reward a-e, penality a-b
+        # parameters are: length of the score sheet, reward a-e, penality a-b
         # reward a-e:
         # a: sharing an order already in my local storage, shared by the same peer
         # b: shairng an order already in my local storage, shared by a different peer
@@ -235,145 +358,97 @@ class Engine:
         # a: sharing an order that I have no interest to accept to the pending table
         # b: sharing an identical and duplicate order within the same batch
         
-        (self.score_length, self.discount, self.ra, self.rb, self.rc, self.rd, self.re, self.pa, self.pb) = incentive
+        (self.score_length, self.ra, self.rb, self.rc, self.rd, self.re, self.pa, self.pb) = incentive
         
-        # sharing related
-        # paramters are: maximal orders to share each batch, prob. of sharing old orders,
-        # # of mutual helping beneficiaries, # of random beneficiaries, age limit of a baby peer.
-        # will explain in details in the sharing function.
+        # options are how the functions are implemented.
         
-        (self.max_share, self.old_share_prob, self.mutual, self.optimistic, self.baby_ending) = sharing
-        
+        (self.preference_option, self.priority_option, self.exteral_option, self.internal_option, self.store_option,\
+         self.share_option, self.score_option, self.beneficiary_option, self.fair_option, self.rec_option) = options
         
     # This function sets preference to a neighbor.
     # This is an optional design. A peer can call this function to manually set a preference value
     # to any neighbor instance. This will represent this peer's attitute to this neighbor (e.g., friend or foe).
     # Parameters: Neighbor is the neighgor instance for this neighbor. Peer is the peer instance for this neighbor.
     # Master is the peer instance for the peer who connects to and records this neighbor. Preference is the master
-    # peer's preference to this neighbor (if any. Can be None).
-    # Current implementation: If this master peer knows the preference he wants to set to this neighbor, set it;
-    # otherwise, set it as None.
+    # peer's preference to this neighbor if he already has a preference, or None by default.
     
-    def neighborSetPreference(self, neighbor, peer, master, preference):
-        if preference is not None:
-            neighbor.preference = preference
+    def neighborSetPreference(self, neighbor, peer, master, preference = None):
+        if self.preference_option[0] == 'Passive':
+            return Candidates().setPreferencePassive(neighbor, peer, master, preference)
         else:
-            neighbor.preference = None
+            raise ValueError('No such option to set preference.')
             
     # This function sets a priority for an orderinfo instance.
     # This is an optinoal design. A peer can call this function to manually set a priority value
     # to any orderinfo instance that is accepted into his pending table or local storage.
     # This value can be utilized for order storing and sharing decisions.
-    # Current implementation: If this peer already knows how to set the priority (by paramater input),
-    # then set it; otherwise, set it as None.
     
     def orderinfoSetPriority(self, orderinfo, master, order, priority):
-        if priority is not None:
-            orderinfo.priority = priority
-        else: # may need to depend on the master node's namespacing, and category of this order
-            orderinfo.priority = None
+        if self.priority_option[0] == 'Passive':
+            return Candidates().setPriorityPassive(orderinfo, master, order, priority)
+        else:
+            raise ValueError('No such option to set priority.')
             
     # This function determines whether to accept an external order into the pending table
     def externalOrderAcceptance(self, receiver, order):
-        return True
+        if self.exteral_option[0] == 'Always':
+            return True
+        else:
+            raise ValueError('No such option to recieve external orders.')
     
     # This function determines whether to accept an internal order into the pending table
     def internalOrderAcceptance(self, receiver, sender, order):
-        return True
+        if self.internal_option[0] == 'Always':
+            return True
+        else:
+            raise ValueError('No such option to receive internal orders.')
     
     # This function is for a peer to determine whether to store each order
     # in the pending table to the local storage, or discard it.
-    # Right now, the implementation is: Set the first orderinfo of each order as "store,"
-    # and the rest ones as "not to store."
     # Need to make sure that for each order, at most one orderinfo instance is stored.
     
     def orderStorage(self, peer):
-        for order, pending_orderinfolist_of_same_id in peer.order_pending_orderinfo_mapping.items():
-            pending_orderinfolist_of_same_id[0].storage_decision = True # first orderinfo is stored
-            for orderinfo in pending_orderinfolist_of_same_id[1:]: # the rest (if any) are not stored
-                orderinfo.storage_decision = False
+        if self.store_option[0] == 'First':
+            return Candidates().storeFirst(peer)
+        else:
+            raise ValueError('No such option to store orders.')
                 
-    # This function determins the set of orders to share for this peer
-    # Right now, the implementation is:
-    # share min(max_share, size_of_new_peers) new peers,
-    # and share min(remaining_quota, size_of_old_peers * prob) old peers.
-    
+    # This function determins the set of orders to share for this peer.
     def ordersToShare(self, peer):
-        new_order_set = peer.new_order_set
-        old_order_set = set(peer.order_orderinfo_mapping) - peer.new_order_set
-        selected_order_set = set()
-                      
-        selected_order_set |= set(random.sample(new_order_set, min(self.max_share, len(new_order_set))))
-        
-        remaining_share_size = max(0, self.max_share - len(new_order_set))
-        probability_selection_size = round(len(old_order_set) * self.old_share_prob)
-        selected_order_set |= set(random.sample(old_order_set, min(remaining_share_size, probability_selection_size)))            
-        return selected_order_set
+        if self.share_option[0] == 'AllNewSelectedOld':
+            return Candidates().shareAllNewSelectedOld(self.share_option, peer)
+        else:
+            raise ValueError('No such option to share orders.')
     
     
     # This function calculates the scores of a given peer, and delete a neighbor if necessary
-    # Current implementation: (1) calculating the current score according to the queue
-    # (2) update the queue by moving one step forward and delete the oldest element, and
-    # (3) delete a neighbor if it has been lazy for a long time.
-    
     def scoringNeighbors(self, peer):
+        if self.score_option[0] == 'Weighted':
+            return Candidates().weightedSum(self.score_option, peer)
+        else:
+            raise ValueError('No such option to calculate scores.')
         
-        for neighboring_peer in list(peer.peer_neighbor_mapping):
-            
-            neighbor = peer.peer_neighbor_mapping[neighboring_peer]
-            # update laziness
-            if neighbor.share_contribution[-1] <=  self.lazy_contri:
-                neighbor.lazy_round += 1
-            else:
-                neighbor.lazy_round = 0  
-            # delete neighbor if necessary
-            if neighbor.lazy_round >= self.lazy_length:
-                peer.delNeighbor(neighboring_peer)
-                continue
-        
-            neighbor.score = sum(a * b for a, b in zip(neighbor.share_contribution, self.discount))
-            
-            # update the contribution queue since it is the end of a calculation circle
-            neighbor.share_contribution.popleft()
-            neighbor.share_contribution.append(0) 
-
-    
     # This function determines the set of neighboring nodes to share the order in this batch.
-    # Right now the strategy is: If I am a new peer and do not know my neighbors well,
-    # share to random ones (# = MUTUAL_HELP + OPTIMISTIC_CHOICES).
-    # Otherwise, share to MUTUAL_HELP highly-reputated neighbors, and
-    # OPTIMISTIC_CHOICES random low-reputated neighbors.
-    
     def neighborToShare(self, time_now, peer):
+        if self.beneficiary_option[0] == 'TitForTat':
+            return Candidates().titForTat(self.beneficiary_option, time_now, peer)
+        else:
+            raise ValueError('No such option to decide beneficairies.')
         
-        selected_peer_set = set() 
-        if (time_now - peer.birthtime <= self.baby_ending): # This is a new peer. random select neighbors
-            selected_peer_set |= set(\
-                random.sample(list(peer.peer_neighbor_mapping),\
-                              min(len(peer.peer_neighbor_mapping), self.mutual + self.optimistic)))
-        else: # This is an old peer
-            ranked_list_of_peers = peer.rankNeighbors()
-            highly_ranked_peers_list = ranked_list_of_peers[:self.mutual]
-            lowly_ranked_peers_list = ranked_list_of_peers[self.mutual:]
-            selected_peer_set |= set(highly_ranked_peers_list)
-            selected_peer_set |= set(\
-                random.sample(lowly_ranked_peers_list,\
-                                                   min(len(lowly_ranked_peers_list), self.optimistic)))            
-        return selected_peer_set
-    
     # This function calculates the fairness index for each peer
     # Right now, it is not implemented.
     def calFairness(self, peer):
-        return 0
+        if self.fair_option[0] == 'Zero':
+            return 0
+        else:
+            raise ValueError('No such option to calculate fairness index.')
     
     # This function selects some peers from the base peer set for the requester to form neighborhoods
-    # Current version: random. No differentiation accross requesters.
     def neighborRec(self, requester, base, target_number):
-        if not base or not target_number:
-            raise ValueError('Base set is empty or target number is zero.')
-        
-        # if the target number is larger than the set size, output the whole set.
-        return set(random.sample(base, min(target_number, len(base))))
+        if self.rec_option[0] == 'Random':
+            return Candidates().randomRec(requester, base, target_number)
+        else:
+            raise ValueError('No such option to recommend neighbors.')
     
  
 '''
@@ -486,7 +561,7 @@ class Peer:
         # note that an order can have multiple orderinfo instances, because it can be forwarded by different neighbors.
         self.order_pending_orderinfo_mapping = {}
         
-        # initiate orders
+        # initiate orderinfos
         for order in init_orders: # inital orders will directly be stored without going through the storage decison.
      
             # if this order is created by this peer, but in the peer initialization,
@@ -1106,7 +1181,7 @@ class Execution:
             spreading_ratio_list = my_pool.map(self.make_run,
                           [(self.scenario, self.engine) for _ in range(self.rounds)])
         
-        print(len(spreading_ratio_list))
+        #print(len(spreading_ratio_list))
         average_order_spreading_ratio = [[] for _ in range(len(spreading_ratio_list[0]))]
         for ratio_table in spreading_ratio_list:
             for ratio_idx, ratio_value in enumerate(ratio_table):
@@ -1132,16 +1207,28 @@ init_par = (10,20) # # of peers, birthtime span
 growth_par = (30,3,0,15,15) # rounds, peer arrival/dept, order arrival/dept, for growth period
 stable_par = (50,2,2,15,15) # same above, for stable period
 
-myscenario = Scenario(order_type_ratios, peer_type_ratios, order_par_list, peer_par_list, init_par, growth_par, stable_par)
+s_parameters = (order_type_ratios, peer_type_ratios, order_par_list, peer_par_list, init_par, growth_par, stable_par)
+s_options = ('Poisson', 'Never')
+myscenario = Scenario(s_parameters, s_options)
 
 batch = 10 # length of a batch period
-topology = (30, 20, 2, 6) # max/min neighbor size, contribution/length of lazy neighbor
-incentive = (3, [1,1,1], 0, 0, 0, 1, 0, 0, -1) # length, discount, reward a-e, penalty a-b
-sharing = (5000, 0.5, 3, 1, 0) # max to share, old share prob, mutual helper, optimistic, baby-ending-time
+topology = (30, 20) # max/min neighbor size
+incentive = (3, 0, 0, 0, 1, 0, 0, -1) # length,reward a-e, penalty a-b
+e_parameters = (batch, topology, incentive)
 
-myengine = Engine(batch, topology, incentive, sharing)
+preference = ('Passive',)
+priority = ('Passive',)
+external = ('Always',)
+internal = ('Always',)
+store = ('First',)
+share = ('AllNewSelectedOld', 5000, 0.5)
+score = ('Weighted', 2, 6, [1,1,1])
+beneficiary = ('TitForTat', 0, 3, 1)
+fair = ('Zero',)
+rec = ('Random',)
+e_options = (preference, priority, external, internal, store, share, score, beneficiary, fair, rec)
 
-#pickle.dumps(Simulator)
+myengine = Engine(e_parameters, e_options)
 
 scenarios = [myscenario]
 engines = [myengine]
