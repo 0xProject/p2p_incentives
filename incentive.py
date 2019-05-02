@@ -3,7 +3,7 @@
 P2P Orderbook simulator
 
 Weijie Wu
-April 23, 2019
+May 2, 2019
 
 ===========================
 
@@ -43,11 +43,19 @@ Classes:
 - Class OrderInfo represents an order instance stored in a peer's local storage or pending table.
     It is physically an order, but with some local information, e.g., who transmitted at what time.
 
-- Class Scenario is our basic assumptions of the system
-- Class Engine is our decision choice
-- Class Performance contains all peformance evaluation parameters and functions.
-- Class Simulator contains all system functions for the simulator to run
-- Class Execution contains functions that run the simulator in multi-processing manner and generates the figure
+- Class Scenario determines our basic assumptions of the system.
+    Functions that implement assumptions are in class ScenarioCandidates.
+    I will delete this class and put functions into a separate module later.
+- Class Engine determines a decision choice.
+    Functions that implement decision choices are in class EngineCandidate.
+    I will delete this class and put functions into a separate module later.
+- Class Performance contains performance measures.
+    Functions that implement performance evaluations are in class PerformanceCandidates.
+    I will delete this class and put functions into a separate module later.
+- Class DataProcessing contains some data processing functions that will be used by functions elsewhere.
+    I will delete this class and put functions into a separate module later.
+- Class Simulator contains all system functions for the simulator to run.
+- Class Execution contains functions that run the simulator in multi-processing manner and generates the result.
 
 ===========================
 
@@ -56,10 +64,10 @@ Design details:
 
 1. Neighborhood relationship:
 
-- Any neighborhood relationships must to be bilateral.
-- A peer will try to maintain the size of neighbors within a certain range
+- Any neighborhood relationship must to be bilateral.
+- A peer will try to maintain the size of its neighbors within a certain range
     (min, max), unless it is impossible.
-- Each time, The simualtor will check if each peer has enough # of neighbors. If not
+- Each round, the simualtor will check that each peer has enough # of neighbors. If not
     (# < min), the simulator function addNewLinksHelper() will be called to add new neighbors.
 - The only way to create new links is calling addNewLinksHelper().
     Procedure is: random selection of peers -> send invitation to the other party -> Accepted?
@@ -74,7 +82,7 @@ Design details:
 2.1 Order arrival: two forms of arrival: internal and external.
     Internal: caused by a neighbor sharing an order. Can happen any time.
     External: caused by an external order arrival. Can also happen any time.
-    If happend, the arrival will call the targeting peer's function receiveOrderInternal or receiveOrderExternal.
+    If it happens, the arrival will call the targeting peer's function receiveOrderInternal or receiveOrderExternal.
 
 2.2 Order acceptance: The functions receiveOrderInternal or receiveOrderExternal can only be called by order sharing
     or external order arrival, at any time. These functions will determine whether or not to put the orders into the pending table.
@@ -93,8 +101,8 @@ Note: Peer init will directly put some orders into the local storage, without go
     
     New neighbor establishment does not call any order-related operations.
     That being said, if I am an old peer but I am newly accepted by some other peer in the system as his neighbor,
-    I need to wait till the end of batch period of the peer who accepted me, to receive his sharing;
-    I will also wait till the end of my batch period, to share with him my orders.
+    I need to wait until the end of batch period of the peer who accepted me, to receive his sharing;
+    I will also wait until the end of my batch period, to share with him my orders.
          
 ===========================
 
@@ -115,7 +123,7 @@ Limitations:
 
 - In blockchain, the status of an order settlement is based on consensus, so it is in an asymptotic sense.
   There might be different beliefs/forks due to latency in P2P, but for now,
-  we assume that there is some global grand truth for an order status.
+  we assume that there is some global grand truth for an order's status.
   This simplification ignores races and may bring inaccuracy.
 
 - Discrete time setting might be less accurate than event driven simulation.
@@ -159,51 +167,79 @@ class Scenario:
         (order_type_ratios, peer_type_ratios, order_par_list, peer_par_list, \
          init_par, growth_par, stable_par) = parameters
 
-        self.order_type_ratios = order_type_ratios # ratio vector for each type of orders
-        self.peer_type_ratios = peer_type_ratios # ratio vector for each type of peers. The last element is the ratio for freeriders.
+        self.order_type_ratios = order_type_ratios # ratios of each type of orders
+        self.peer_type_ratios = peer_type_ratios # ratios for each type of peers. The first element is the ratio for freeriders.
         
-        self.order_parameter_list = list(order_par_list) # each element is (mean, var) of order expiration
-        self.peer_parameter_list = list(peer_par_list) # each element is (mean, var) of the initial orderbook size of this peer
+        self.order_parameter_list = order_par_list # each element is (mean, var) of order expirations of this order type
+        self.peer_parameter_list = peer_par_list # each element is (mean, var) of the initial orderbook size of this peer type
         
-        # init period, init_size is number of peers joining the P2P at the very first beginning,
-        # and the birth time of such peers is randomly distributed over [0,BIRTH_TIME_SPAN]
-        (self.init_size, self.birth_time_span) = init_par
+        # init period, init_size is number of peers joining the P2P at the very beginning,
+        # and the birth time of such peers is randomly distributed over [0,birth_time_span]
+        self.init_size = init_par['num_peers']
+        self.birth_time_span = init_par['birth_time_span']
         
-        # growing period (# of peers increases)
-        # parameters are: # of time rounds for growth period, peer arrival rate,
-        # peer dept rate, order arrival rate, order dept rate
-        self.growth_par = growth_par
-    
-        # stable period (# of peers remains relatively stable)
-        # parameters refer to: # of time rounds for stable period, peer arrival rate,
-        # peer dept rate, order arrival rate, order dept rate
-        # Theoretically, peer arrival rate ~= peer dept rate, order arrival rate ~= order dept rate.
-        self.stable_par = stable_par
+        # growing period (when # of peers increases)
+        # parameters are: # of time rounds for growth period
+        # peer arrival rate, peer dept rate, order arrival rate, order dept rate.
+        # An event (peer/order arrival/departure) happens according to some random process
+        # (e.g., Poisson or Hawkes) that takes the rate as an input parameter(s).
         
-        # unpacking options
-        # options will determine forms of function implementations that describe the system.
-        # option_numEvent is an option on the peer/order's arrival pattern. Now only Poisson is implemented.
-        # option_settle is an option on when order is settled. Now only "never settle" is implementd.
+        '''
+        # please be noted that, the order dept rate refers to the rate that an order is proactively
+        # canceled. This is a poor naming. In reality, an order departs when it is (1) canceled, (2) expired, or (3) settled.
+        # So the real departure rate of an order is larger than the order dept rate we define here.
+        # I remain the name here just to reduce the difference for this PR review. Will probably change the name
+        # to order_cancel in the next version.
+        '''
+        
+        self.growth_rounds = growth_par['rounds']
+        self.growth_rates = [growth_par['peer_arrival'], growth_par['peer_dept'], \
+                             growth_par['order_arrival'], growth_par['order_dept']]
+        
+        # stable period (# of peers and # of orders remain relatively stable)
+        # parameters refer to: # of time rounds, 
+        # peer arrival rate, peer dept rate, order arrival rate, order dept rate.
+        
+        # We should choose the parameters such that peer arrival rate is approximately equal to peer departure rate,
+        # and that order arrival rate is appoximately equal to the total order departure rate
+        # (due to cancellation, settlement, or expiration).
+        
+        self.stable_rounds = stable_par['rounds']
+        self.stable_rates = [stable_par['peer_arrival'], stable_par['peer_dept'], \
+                             stable_par['order_arrival'], stable_par['order_dept']]
+        
+        # unpacking and setting options
+        # options will determine the forms of implementations for functions in this class.
+        # option_numEvent determines event happening (peer/order arrival/dept) pattern.
+        # Poisson and Hawkes processes are implemented.
+        # option_settle determines when an order is settled. Now only "never settle" is implementd.
         (self.option_numEvent, self.option_settle) = options
 
-    # This function generates a sample following a certain event happening pattern.
-    # Input is the expected rate, output is a sample of number of incidents for this time slot.
-    # Current implementation: Poisson process and Hawkes process.
+    # This function generates event happening events according to some pattern.
+    # It reads option_numEvent['method'] to determine the pattern,
+    # takes the expected rate (could be a value or a tuple of values)
+    # and the length of time slots as input, and
+    # outputs the number of incidents in each time slot.
+    # Current pattern implementations: Poisson process and Hawkes process.
 
-    def numEvents(self, event_parameters):
-        if self.option_numEvent == 'Poisson':
-            return numpy.random.poisson(*event_parameters)
-        elif self.option_numEvent == 'Hawkes':
-            return ScenarioCandidates().Hawkes(*event_parameters)
+    def numEvents(self, rate, max_time):
+        if self.option_numEvent['method'] == 'Poisson':
+            return numpy.random.poisson(rate, max_time)
+        elif self.option_numEvent['method'] == 'Hawkes':
+            # note that the rate parameter for Hawkes is a tuple of variables.
+            # They are explained in Hawkes function implementation.
+            return ScenarioCandidates.Hawkes(rate, max_time)
         else:
-            raise ValueError('No sucn option to generate events.')
+            raise ValueError('No such option to generate events: {}'.\
+                             format(self.option_numEvent['method']))
     
-    # This function updates the settle status for orders.
+    # This function updates the is_settled status for orders.
     def orderUpdateSettleStatus(self, order):
-        if self.option_settle == 'Never':
-            pass # never settles an order
+        if self.option_settle['method'] == 'Never':
+            return ScenarioCandidates.settleDummy(order)
         else:
-            raise ValueError('No such option to change settle statues for orders.')
+            raise ValueError('No such option to change settlement status for orders: {}'.\
+                             format(self.option_settle['method']))
 
 '''
 ====================
@@ -211,22 +247,31 @@ Candidates of Scenarios
 ====================
 '''
 
-# This class contains candidates to realize the functions in Scenario
+# This class contains contains all possible realizations for functions in Scenario.
+'''
+Please be noted that this will be changed to individual functions in a module later.
+'''
 
-class ScenarioCandidates():
+class ScenarioCandidates:
     
-    # This is the funciton to generate Hawkes process
+    # This is the funciton to generate Hawkes process.
     # The definition of the arrival rate is: 
-    # \lambda(t) = a + (\lambda_0 - a ) \times e ^(-\delta \times t) + \sum_{T_i < t} \gamma e^{-\delta (t-T_i)}
+    # \lambda(t) = a + (\lambda_0 - a ) \times e ^(-\delta \times t) +
+    # \sum_{T_i < t} \gamma e^{-\delta (t-T_i)}
     
-    # This simulation method was proposed by Dassios and Zhao in a paper entitled 'Exact simulation of Hawkes process
-    # with exponentially decaying intensity,' published in Electron. Commun. Probab. 18 (2013) no. 62, 1-13.
+    # It takes parameters (a, lambda_0, delta, gamma) from rate, and max time slots as input,
+    # and outputs a random realization of event happening counts over time slots [0, max_time].
+    
+    # This simulation method was proposed by Dassios and Zhao in a paper
+    # entitled 'Exact simulation of Hawkes process
+    # with exponentially decaying intensity,' published in Electron.
+    # Commun. Probab. 18 (2013) no. 62, 1-13.
     # It is believed to be running faster than other methods.
     
-    def Hawkes(self, variables, max_time):
+    @staticmethod
+    def Hawkes(rate, max_time):
         
-        (a, lambda_0, delta, gamma) = variables
-
+        (a, lambda_0, delta, gamma) = rate
         # check paramters
         if not (a >= 0 and lambda_0 >= a and delta > 0 and gamma >= 0):
             raise ValueError('Parameter setting is incorrect for the Hawkes process.')
@@ -263,6 +308,14 @@ class ScenarioCandidates():
             num_events[int(t)] += 1
             
         return num_events
+    
+    
+    # The following function determines to change an order's is_settled status or not.
+    # This is a dummy implementation that never changes the status.
+    
+    @staticmethod
+    def settleDummy(order):
+        pass
 
 '''
 ====================
@@ -283,117 +336,152 @@ class Engine:
         # unpacking parameters
         (batch, topology, incentive) = parameters
         
-        # batch period
+        # length of batch period.
+        # Recall that a peer runs its order storing and sharing algorithms only at the end of a batch period.
+        # A batch period contains multiple time rounds.
+        
         self.batch = batch
         
         # topology parameters: maximal/minimal size of neighborhood
-        (self.neighbor_max, self.neighbor_min) = topology
+        
+        self.neighbor_max = topology['max_neighbor_size']
+        self.neighbor_min = topology['min_neighbor_size']
         
         # incentive related parameters: length of the score sheet, reward a-e, penality a-b
         # reward a-e:
         # a: sharing an order already in my local storage, shared by the same peer
-        # b: shairng an order already in my local storage, shared by a different peer
+        # b: sharing an order already in my local storage, shared by a different peer
         # c: sharing an order that I accepted to pending table, but I don't store finally
         # d: sharing an order I decide to store
         # e: for sharing an order I have multiple copies in the pending table and decided to store a copy from someone else
         # penalty a-b:
         # a: sharing an order that I have no interest to accept to the pending table
-        # b: sharing an identical and duplicate order within the same batch
+        # b: sharing an identical and duplicate order within the same batch period
         
-        (self.score_length, self.ra, self.rb, self.rc, self.rd, self.re, self.pa, self.pb) = incentive
+        self.score_length = incentive['length']
+        self.ra = incentive['reward_a']
+        self.rb = incentive['reward_b']
+        self.rc = incentive['reward_c']
+        self.rd = incentive['reward_d']
+        self.re = incentive['reward_e']
+        self.pa = incentive['penalty_a']
+        self.pb = incentive['penalty_b']
         
-        # Unpacking options. They specify a choice on a function impelementation.
-        # Each option parameter is a tuple, with the first element being the name of the option,
-        # followed by parameters specific to this option.
-        # For example, share_option may look like ('TitForTat', 3, 1)
-        # where 3 is # of mutual helpers and 1 is # of optimisitic choice.
-        (self.preference_option, self.priority_option, self.exteral_option, self.internal_option, self.store_option,\
-         self.share_option, self.score_option, self.beneficiary_option, self.fair_option, self.rec_option) = options
+        
+        # Unpacking options. They specify a choice on a function implementation.
+        # Each option parameter is a dictionary. It must contain a key 'method' to specify
+        # which function to call. For example, if beneficiary_option['method'] == 'TitForTat',
+        # then tit-for-tat algorithm is called for neighbor selection.
+        # If a particular funciton realization needs more parameters, their values are specified by
+        # other keys in the dictionary.
+        # In what follows, the methods in this class will check 'method' first to decide
+        # which funtion in EngineCandidates to call, and then pass the rest parameters to the function called.
+        
+        (self.preference_option, self.priority_option, self.external_option,\
+         self.internal_option, self.store_option, self.share_option, \
+         self.score_option, self.beneficiary_option, self.rec_option) = options
         
     # This function helps a peer to set a preference to one of its neighbor.
-    # A preference represents this peer's attitute to this neighbor (e.g., friend or foe).
+    # A preference represents this peer's attitude towards this neighbor (e.g., friend or foe).
     # Parameters: Neighbor is the neighbor instance for this neighbor. Peer is the peer instance for this neighbor.
     # Master is the peer instance who wants to set the preference to the neighbor.
-    # Preference is an optional argument in case the master node already has a value to set.
-    # If he does not, then it is None by default and the function will decide the value to set based on other arguments.
+    # Preference is an optional argument in case the master node already knows the value to set.
+    # If preference is not given, it is None by default and the function will decide the value to set based on other arguments.
     
     def neighborSetPreference(self, neighbor, peer, master, preference = None):
-        if self.preference_option[0] == 'Passive':
-            EngineCandidates().setPreferencePassive(neighbor, peer, master, preference)
+        if self.preference_option['method'] == 'Passive':
+            EngineCandidates.setPreferencePassive(neighbor, peer, master, preference)
         else:
-            raise ValueError('No such option to set preference.')
+            raise ValueError('No such option to set preference: {}'.\
+                             format(self.preference_option['method']))
             
     # This function sets a priority for an orderinfo instance.
     # A peer can call this function to manually set a priority value
-    # to any orderinfo instance that is accepted into his pending table or local storage.
-    # Parameters are similar to the above function.
-    # This value can be utilized for order storing and sharing decisions.
+    # to any orderinfo instance that is accepted into his pending table or stored in the local storage.
+    # Parameters are similar to the above function neighborSetPreference().
+    # The priority value can be utilized for order storing and sharing decisions.
     
     def orderinfoSetPriority(self, orderinfo, order, master, priority = None):
-        if self.priority_option[0] == 'Passive':
-            EngineCandidates().setPriorityPassive(orderinfo, order, master, priority)
+        if self.priority_option['method'] == 'Passive':
+            EngineCandidates.setPriorityPassive(orderinfo, order, master, priority)
         else:
-            raise ValueError('No such option to set priority.')
+            raise ValueError('No such option to set priority: {}'.\
+                             format(self.priority_option['method']))
             
     # This function determines whether to accept an external order into the pending table.
     def externalOrderAcceptance(self, receiver, order):
-        if self.exteral_option[0] == 'Always':
+        if self.external_option['method'] == 'Always':
             return True
         else:
-            raise ValueError('No such option to recieve external orders.')
+            raise ValueError('No such option to recieve external orders: {}'.\
+                             format(self.external_option['method']))
     
     # This function determines whether to accept an internal order into the pending table
     def internalOrderAcceptance(self, receiver, sender, order):
-        if self.internal_option[0] == 'Always':
+        if self.internal_option['method'] == 'Always':
             return True
         else:
-            raise ValueError('No such option to receive internal orders.')
+            raise ValueError('No such option to receive internal orders: {}'.\
+                             format(self.internal_option['method']))
     
     # This function is for a peer to determine whether to store each orderinfo
     # in the pending table to the local storage, or discard it.
     # Need to make sure that for each order, at most one orderinfo instance is stored.
     
     def orderStorage(self, peer):
-        if self.store_option[0] == 'First':
-            EngineCandidates().storeFirst(peer)
+        if self.store_option['method'] == 'First':
+            EngineCandidates.storeFirst(peer)
         else:
-            raise ValueError('No such option to store orders.')
+            raise ValueError('No such option to store orders: {}'.\
+                             format(self.store_option['method']))
                 
-    # This function determins the set of orders to share for this peer.
+    # This function determines the set of orders to share for this peer.
     def ordersToShare(self, peer):
-        if self.share_option[0] == 'AllNewSelectedOld':
-            return EngineCandidates().shareAllNewSelectedOld(self.share_option, peer)
+        if self.share_option['method'] == 'AllNewSelectedOld':
+            return EngineCandidates.shareAllNewSelectedOld\
+                   (self.share_option['max_to_share'], \
+                    self.share_option['old_share_prob'], peer)
         else:
-            raise ValueError('No such option to share orders.')
+            raise ValueError('No such option to share orders: {}'.\
+                             format(self.share_option['method']))
     
-    # This function calculates the scores of a given peer, and delete a neighbor if necessary
-    def scoringNeighbors(self, peer):
-        if self.score_option[0] == 'Weighted':
-            EngineCandidates().weightedSum(self.score_option, peer)
+    # This function calculates the scores of a given peer, and deletes a neighbor if necessary.
+    def scoreNeighbors(self, peer):
+        if self.score_option['method'] == 'Weighted':
+            return EngineCandidates.\
+                   weightedSum(self.score_option['lazy_contribution_threshold'], \
+                               self.score_option['lazy_length_threshold'], \
+                               self.score_option['weights'], peer)
         else:
-            raise ValueError('No such option to calculate scores.')
-        
+            raise ValueError('No such option to calculate scores: {}'.\
+                             format(self.score_option['method']))
+      
     # This function determines the set of neighboring nodes to share the orders in this batch.
-    def neighborToShare(self, time_now, peer):
-        if self.beneficiary_option[0] == 'TitForTat':
-            return EngineCandidates().titForTat(self.beneficiary_option, time_now, peer)
-        else:
-            raise ValueError('No such option to decide beneficairies.')
+    def neighborsToShare(self, time_now, peer):
         
-    # This function calculates the fairness index for each peer
-    # Right now, it is not implemented.
-    def calFairness(self, peer):
-        if self.fair_option[0] == 'Zero':
-            return 0
+        if self.beneficiary_option['method'] == 'TitForTat':
+            neighbors_selected = EngineCandidates.titForTat(self.beneficiary_option['baby_ending_age'],\
+                                        self.beneficiary_option['mutual_helpers'],\
+                                        self.beneficiary_option['optimistic_choices'],\
+                                        time_now, peer)
         else:
-            raise ValueError('No such option to calculate fairness index.')
-    
+            raise ValueError('No such option to decide beneficairies: {}'.\
+                             format(self.beneficiary_option['method']))
+        
+        # update the contribution queue since it is the end of a calculation circle
+        for neighbor in peer.peer_neighbor_mapping.values():
+            neighbor.share_contribution.popleft()
+            neighbor.share_contribution.append(0)
+        
+        return neighbors_selected
+           
     # This function selects some peers from the base peer set for the requester to form neighborhoods
     def neighborRec(self, requester, base, target_number):
-        if self.rec_option[0] == 'Random':
-            return EngineCandidates().randomRec(requester, base, target_number)
+        if self.rec_option['method'] == 'Random':
+            return EngineCandidates.randomRec(requester, base, target_number)
         else:
-            raise ValueError('No such option to recommend neighbors.')
+            raise ValueError('No such option to recommend neighbors: {}'.\
+                             format(self.rec_option['method']))
 
 
 '''
@@ -402,19 +490,24 @@ Candidates of design choices
 ====================
 '''
 # The class Candidates contains all possible realizations of functions in the Engine class.
+'''
+Please be noted that this will be changed to individual functions in a module later.
+'''
 
 class EngineCandidates:
     
-    # This is a candidate design for setting preference for neighbors.
+    # This is a candidate design for setting preference of a neighbor instance.
     # The choice is: set the value as "preference" if preference is not None, or set it as None otherwise.
     
-    def setPreferencePassive(self, neighbor, peer, master, preference):
+    @staticmethod
+    def setPreferencePassive(neighbor, peer, master, preference):
         neighbor.preference = preference
     
-    # This is a candidate design for setting a priority for orderinfo.
+    # This is a candidate design for setting a priority of an orderinfo instance.
     # The choice is: set the value as "priority" if priority is not None, or set it as None otherwise.
     
-    def setPriorityPassive(self, orderinfo, order, master, priority):
+    @staticmethod
+    def setPriorityPassive(orderinfo, order, master, priority):
         orderinfo.priority = priority
     
     # This is a candidate design for storing orders.
@@ -422,19 +515,20 @@ class EngineCandidates:
     # The design needs to make sure to store at most one of such orderinfo instances.
     # The choice is: store the first instance of orderinfo for every order.
     
-    def storeFirst(self, peer):
+    @staticmethod
+    def storeFirst(peer):
         for pending_orderinfolist_of_same_id in peer.order_pending_orderinfo_mapping.values():
             pending_orderinfolist_of_same_id[0].storage_decision = True # first orderinfo is stored
             for orderinfo in pending_orderinfolist_of_same_id[1:]: # the rest (if any) are not stored
                 orderinfo.storage_decision = False        
     
     # This is a candidate design for sharing orders.
-    # The choice is: share min(max_to_share, # of new_peers) of new peers,
-    # and share min(remaining_quota, [# of old peers] * prob) of old peers.
+    # The choice is: share min(max_to_share, # of new_orders) of new orders,
+    # and share min(remaining_quota, [# of old peers] * old_prob) of old orders,
+    # where remaining_quota = max(0, max_to_share minus #_of_new_orders_selected).
     
-    def shareAllNewSelectedOld(self, option, peer):
-        
-        (_, max_to_share, old_prob) = option
+    @staticmethod
+    def shareAllNewSelectedOld(max_to_share, old_prob, peer):
         
         new_order_set = peer.new_order_set
         old_order_set = set(peer.order_orderinfo_mapping) - peer.new_order_set
@@ -444,20 +538,23 @@ class EngineCandidates:
         
         remaining_share_size = max(0, max_to_share - len(new_order_set))
         probability_selection_size = round(len(old_order_set) * old_prob)
-        selected_order_set |= set(random.sample(old_order_set, min(remaining_share_size, probability_selection_size)))            
+        selected_order_set |= set(random.sample(old_order_set, \
+                                                min(remaining_share_size, probability_selection_size)))            
         return selected_order_set
     
     # This is a candidate design for calculating the scores of neighbors of a peer.
-    # The choice is: (1) calculate the current score by a weight sum of all elements in the queue
+    # The choice is: (1) calculate the current score by a weighted sum of all elements in the queue
     # (2) update the queue by moving one step forward and delete the oldest element, and
     # (3) delete a neighbor if it has been lazy for a long time.
- 
-    def weightedSum(self, option, peer):
+    
+    @staticmethod
+    def weightedSum(lazy_contri, lazy_length, discount, peer):
         
         # If a neighbor's score is under self.lazy_contri, it is "lazy" in this batch;
-        # If a neighbor has been lazy for self.lazy_length time, it is permanently lazy and gets kicked off.
-        # discount elements are the weights to add each element of the score queue
-        (_, lazy_contri, lazy_length, discount) = option
+        # If a neighbor has been lazy for self.lazy_length batches,
+        # it is permanently lazy and gets kicked off.
+        # Discount is a list of weights weights for each element of the score queue.
+        # Usually recent elements are of higher weights.
         
         for neighboring_peer in list(peer.peer_neighbor_mapping): # neighboring_peer is the peer instance for a neighbor
             
@@ -473,32 +570,29 @@ class EngineCandidates:
                 continue
         
             neighbor.score = sum(a * b for a, b in zip(neighbor.share_contribution, discount))
-            
-            # update the contribution queue since it is the end of a calculation circle
-            neighbor.share_contribution.popleft()
-            neighbor.share_contribution.append(0)
-    
-    
+
     # This is a candidate design to select beneficiaries from neighbors.
     # The choice is similar to tit-for-tat.
-    # If this is a new peer (age <= baby_ending) and it does not know its neighbors well,
+    # If this is a new peer (age <= baby_ending) so it does not know its neighbors well,
     # it shares to random neighbors (# = mutual + optimistic).
-    # Otherwise, it shares to a number of "mutual" of highly-reputated neighbors, and
-    # a number of "optimistic" of other random neighbors.
-    # In the case where the # of neighbors with non-zero scores is less than "mutual", only
-    # select the neithbors with non-zero scores as highly-reputated neighbors.
-    # The number of other random neighbors is still "optimistic".
+    # Otherwise, it shares to (# = "mutual") highly-reputated neighbors, and
+    # (# = "optimistic") of other random neighbors.
+    # In the case fewer than (# = "mutual") neighbors have positive scores, only
+    # select the neithbors with positive scores as highly-reputated neighbors.
+    # The number of other random neighbors is still "optimistic"
+    # (i.e., the quota for beneficiaries is wasted in such a case).
     
-    def titForTat(self, option, time_now, peer):
-        
-        (_, baby_ending, mutual, optimistic) = option
+    @staticmethod
+    def titForTat(baby_ending, mutual, optimistic, time_now, peer):
         
         selected_peer_set = set() 
-        if (time_now - peer.birthtime <= baby_ending): # This is a new peer. random select neighbors
+        if (time_now - peer.birthtime <= baby_ending): # This is a new peer. Random select neighbors.
             selected_peer_set |= set(\
                 random.sample(list(peer.peer_neighbor_mapping),\
                               min(len(peer.peer_neighbor_mapping), mutual + optimistic)))
         else: # This is an old peer
+            # ranked_list_of_peers is a list of peer instances who are my neighbors
+            # and they are ranked according to their scores that I calculate.
             ranked_list_of_peers = peer.rankNeighbors()
             mutual = min(mutual, len(ranked_list_of_peers))
             while mutual > 0 and peer.peer_neighbor_mapping\
@@ -514,10 +608,11 @@ class EngineCandidates:
         return selected_peer_set
     
     # This is a candidate design for neighbor recommendation.
-    # The choice is to choose targe_number elements from the base in a totally random manner.
+    # The choice is to choose (# = targe_number) elements from the base in a totally random manner.
     # The current implementation does not take requester into consideration.
     
-    def randomRec(self, requester, base, target_number):
+    @staticmethod
+    def randomRec(requester, base, target_number):
         if not base or not target_number:
             raise ValueError('Base set is empty or target number is zero.')
         
@@ -531,83 +626,162 @@ Performance evaluation
 '''
 
 # The following class contains paramters, measures, and methods to carry out peformance evaluation.
+# Functions in this class will call realization from PerformanceCandidates.
 
 class Performance:
     
-    def __init__(self, performance_parameters, measure_options, measures_to_execute):
+    def __init__(self, parameters, options, executions):
 
-        # unpacking pamameters. This is design space.
-        (max_age_to_track, adult_age, statistical_window) = performance_parameters
+        # unpacking and setting pamameters
         
-        # setting paramters
+        # the oldest age of orders to track
+        self.max_age_to_track = parameters['max_age_to_track'] 
         
-        self.max_age_to_track = max_age_to_track # the oldest age of orders to track
-        self.adult_age = adult_age # the age beyond which a peer is considered an Adult. Only adult will be evaluated for satisfaction (because new peers receive limited orders)
+        # the age beyond which a peer is considered an Adult.
+        # Only adults will be evaluated for user satisfaction
+        # (because new peers receive limited orders only).
+        self.adult_age = parameters['adult_age']
         
-        # this is the window length to aggregate orders for statistics.
+        # This is the window length to aggregate orders for statistics.
         # All orders that falls into the same window will be considered in the same era for calculation.
-        # The reason for this window is when order arrival rate is very low, then in many time slots there's no new arrived orders.
-        # So it is better to aggregate the orders in the time horizon for such cases.
-        self.statistical_window = statistical_window
-                
-        # unpacking measure options
-        (spreading_measure_option, satisfaction_measure_option) = measure_options
+        # For example if statistical_window = 10, then orders whose ages are between 0 and 9 will be
+        # put into the same category for statistics.
+        # The reason for this window is when order arrival rate is very low, then in many time slots
+        # there's no new arrived orders. So it is better to aggregate the orders for statistics.
+        self.statistical_window = parameters['statistical_window']
         
-        # setting options. Right now there is only one option.
+        # unpacking and setting options.
         
-        # how to measure the spreading pattern of orders (e.g., spreading ratio, spreading speed, etc.)
-        self.spreading_measure_option = spreading_measure_option
+        # "spreading_option" is how to measure the spreading pattern of orders
+        # (e.g., spreading ratio, spreading speed, etc.)
         
-        # how does a peer feel about its satisfaction based on the orders that it is aware of
-        self.satisfaction_measure_option = satisfaction_measure_option
+        # "satisfaction_option" is how a peer evaluates
+        # its satisfaction based on the orders that it receives.
         
-        # measurement to execute
+        # "fairness_option" is how to evaluate the fairness for a group of peers.
+        # Currenly we have no implementation yet.
+        (self.spreading_option, self.satisfaction_option, self.fairness_option) = options
+        
+        # measurement to execute, i.e., which measurement functions to execute.
         self.measures_to_execute = measures_to_execute
         
-    # The following function returns some measurement for the spreading pattern of orders.
-    # Currently we only implemented spreading ratio.
+    # In what follows we have performance evaluation functions.
+    # In most of these functions they take peers_to_evaluate and orders_to_evaluate as input.
+    # The reason is to add flexibility in considering evaluating over reasonable peers and reasonable
+    # orders only (given that there are possibly free riders and wash trading orders).
+        
+    # The following function returns some measurement on the spreading pattern of orders.
     
-    def orderSpreadingMeasure(self, cur_time, peer_full_set, order_full_set):
-        if self.spreading_measure_option == 'Ratio':
-            return PerformanceCandidates().\
-                   orderSpreadingRatioStat(cur_time, order_full_set, \
-                                           peer_full_set, self.max_age_to_track, self.statistical_window)
+    def orderSpreadingMeasure(self, cur_time, peers_to_evaluate, orders_to_evaluate):
+        
+        if not len(peers_to_evaluate) or not len(orders_to_evaluate):
+            raise ValueError('Invalid to measure the spreading based on no orderd or no peers.')
+        
+        # Currently we only implemented spreading ratio. In future we may also want to investigate
+        # new orders spreading rate, etc.
+        
+        if self.spreading_option['method'] == 'Ratio':
+            return PerformanceCandidates.\
+                   orderSpreadingRatioStat(cur_time, orders_to_evaluate, peers_to_evaluate,\
+                                           self.max_age_to_track, self.statistical_window)
         else:
-            raise ValueError('No such option to evaluate order spreading.')
+            raise ValueError('No such option to evaluate order spreading: {}'.\
+                             format(self.spreading_option['method']))
         
         
-    # The following funciton returns some measurement for user satisfaction.
-    # Currently, we only implemented a neutral evaluation on receiving any orders.
-    # Refer to the comments of peerSatisfaction() function for details.
+    # The following function takes in a set of peers and a set of orders,
+    # calculates every adult peer's satisfaction on the # of orders received.
+    # It returns a (non-fixed length) list of satisfactions of every adult peer.
+    # These values are simply put in a list without specifying which peer they correspond to.
+    # Functions in DataProcessing will perform statistics over these data.
+   
+    def userSatisfactionMeasure(self, cur_time, peers_to_evaluate, orders_to_evaluate):
+   
+        if not len(peers_to_evaluate) or not len(orders_to_evaluate):
+            raise ValueError('Invalid to evalute user satisfaction if there are no peers or no orders.')
+        
+        # A "neutral" implementation refers to that a peer regards each order as equally important.
+        # This is a naive implementation only. Later we will need to consider new orders as more important.
+        
+        if self.satisfaction_option['method'] == 'Neutral':
+            singleCalculation = PerformanceCandidates.singlePeerSatisfactionNeutral
+        else:
+            raise ValueError('No such option to evaluate peer satisfaction: {}'.\
+                             format(self.satisfaction_option['method']))
+        
+        set_of_adult_peers_to_evaluate = set(peer for peer in peers_to_evaluate\
+                                    if cur_time - peer.birthtime >= self.adult_age)
+        
+        satisfaction_list = [singleCalculation(cur_time, peer, self.max_age_to_track,\
+                                               self.statistical_window, orders_to_evaluate)\
+                             for peer in set_of_adult_peers_to_evaluate]
+        
+        return satisfaction_list
     
-    def userSatisfactionMeasure(self, cur_time, set_of_peers_for_evaluation, order_full_set):
-        return PerformanceCandidates().\
-                   peerSatisfaction(self.satisfaction_measure_option, set_of_peers_for_evaluation, self.adult_age, \
-                                cur_time, self.max_age_to_track, self.statistical_window, order_full_set)
+    # The following function measures fairness index for a given set of peers and a
+    # given set of orders. Now we don't have a real implementation.
     
+    def fairnessMeasure(self, peers_to_evaluate, orders_to_evaluate):
+        
+        if not len(peers_to_evaluate):
+            raise ValueError('Invalid to evalute fairness for an empty set of peers.')
+        
+        if self.fairness_option['method'] == 'Dummy':
+            return PerformanceCandidates.fairnessDummy(peers_to_evaluate, orders_to_evaluate)
+        else:
+            raise ValueError('No such option to evaluate fairness: {}'.\
+                             format(self.fairness_option['method']))
     
     # This function runs performance evaluation.
-    # It reads the strings in self.measures_to_execute to decide which evaluation functions to call, and returns
-    # a list of results corresponding to each evaluation function.
-    # If some function is not called, the correponding value is None.
+    # It reads self.measures_to_execute dictionary to decide which evaluation
+    # measures are required to run, and returns a list of results.
+    # If some measure is not run, or it is infeasible to generate any result for that measure,
+    # the correponding value in the return list is None.
     
     def run(self, cur_time, peer_full_set, normal_peer_set, free_rider_set, order_full_set):
-        if 'orderSpreadingMeasure' in self.measures_to_execute:
-            result_order_spreading = self.orderSpreadingMeasure(cur_time, peer_full_set, order_full_set)
+        
+        # Generate order spreading measure for all orders over all peers
+        if self.measures_to_execute['order_spreading_measure']:
+            try:
+                result_order_spreading = self.orderSpreadingMeasure(cur_time, peer_full_set, order_full_set)
+            except:
+                result_order_spreading = None
         else:
             result_order_spreading = None
-            
-        if 'normalUserSatisfactionMeasure' in self.measures_to_execute:
-            result_normal_user_satisfaction = self.userSatisfactionMeasure(cur_time, normal_peer_set, order_full_set)
+        
+        # Generate normal peer satisfaction measure over all orders
+        if self.measures_to_execute['normal_peer_satisfaction_measure']:
+            try:
+                result_normal_peer_satisfaction = self.userSatisfactionMeasure(cur_time, normal_peer_set, order_full_set)
+            except:
+                result_normal_peer_satisfaction = None
         else:
-            result_normal_user_satisfaction = None
-            
-        if 'freeRiderSatisfactionMeasure' in self.measures_to_execute:
-            result_free_rider_satisfaction = self.userSatisfactionMeasure(cur_time, free_rider_set, order_full_set)
+            result_normal_peer_satisfaction = None
+         
+        # Generate free rider satisfaction measure over all orders
+        if self.measures_to_execute['free_rider_satisfaction_measure']:
+            try:
+                result_free_rider_satisfaction = self.userSatisfactionMeasure(cur_time, free_rider_set, order_full_set)
+            except:
+                result_free_rider_satisfaction = None
         else:
             result_free_rider_satisfaction = None
-            
-        result = [result_order_spreading, result_normal_user_satisfaction, result_free_rider_satisfaction]
+        
+        # Generate system fairness measure over all peers and all orders
+        if self.measures_to_execute['fairness']:
+            try:
+                result_fairness = self.fairnessMeasure(peer_full_set, order_full_set)
+            except:
+                result_fairness = None
+        else:
+            result_fairness = None
+         
+        # Organize the results in a list 
+        result = {'order_spreading': result_order_spreading,
+                  'normal_peer_satisfaction': result_normal_peer_satisfaction,
+                  'free_rider_satisfaction': result_free_rider_satisfaction,
+                  'fairness': result_fairness
+                  }
         return result
 
 '''
@@ -616,27 +790,41 @@ Candidates of performance evaluation
 =================================
 '''
 
-class PerformanceCandidates:
-    
+# This class contains possible implementations for performance measurement functions.
+'''
+Please be noted that this will be changed to individual functions in a module later. 
+'''
 
-    # The following function returns the spreading ratios of orders, arranged by their age.
-    # The return value is a list, the index being the order age, and
-    # each value being the spreading ratio of orders of that age.
-    # the spreading ratio is defined as the # of peers holding this
-    # order, over the total # of peers in the system at current time.
-    # The maximal age of orders that we consider, is max_age_to_track.
-    # In addition, we divide the orders into age intervals [n * statistical_interval, (n+1)* statistical_interval), n = 0, 1, ...
-    # and all orders that falls into an interval are calculated on the same base.
-    # if all orders of a particular age (< max age) are all invalid, then value for that entry is 'None'.
+class PerformanceCandidates:
+
     
-    def orderSpreadingRatioStat(self, cur_time, order_full_set, peer_full_set, max_age_to_track, statistical_window):
+    # The following function returns the spreading ratios of orders, arranged by statistical windows.
+    # The return value is a list, the index being the i-th statistical window, and
+    # each value being the spreading ratio of orders of that window.
+    
+    # Statistical window: We divide the orders into age intervals
+    # [n * statistical_interval, (n+1)* statistical_interval), n = 0, 1, ...,
+    # and all orders that falls into an interval are all in this window.
+    
+    # The spreading ratio of an order, is defined as the # of peers holding this
+    # order, over the total # of peers in the peer set.
+    # The spreading ratio of a statistical window, is the average spreading ratio
+    # of all orders in this window.
+    
+    # The maximal age of orders that we consider, is max_age_to_track.
+    
+    # The return value is a list of order spreading ratios, corresponding to each statistical window.
+    # if all orders of a window are all invalid, then value for that entry is 'None'.
+    
+    @staticmethod
+    def orderSpreadingRatioStat(cur_time, order_set, peer_set, max_age_to_track, statistical_window):
         
-        num_active_peers = len(peer_full_set)
-        
+        num_active_peers = len(peer_set)
         order_spreading_ratio = [[] for _ in range(int((max_age_to_track - 1)/statistical_window) + 1)]
         
-        for order in order_full_set:
-            ratio = len(order.holders) / num_active_peers
+        for order in order_set:
+            num_peers_holding_order = len(list(item for item in order.holders if item in peer_set))
+            ratio = num_peers_holding_order / num_active_peers
             age = cur_time - order.birthtime
             if age < max_age_to_track:
                 order_spreading_ratio[int(age/statistical_window)].append(ratio)
@@ -652,37 +840,40 @@ class PerformanceCandidates:
     # each value being the # of orders whose age falls into
     # [k * statistical_window, (k+1) * statistical_window).
     
-    def orderNumStatOnAge(self, cur_time, max_age_to_track, statistical_window, order_full_set):
+    @staticmethod
+    def orderNumStatOnAge(cur_time, max_age_to_track, statistical_window, order_set):
         
         num_orders_in_age_range = [0] * int(((max_age_to_track - 1)/statistical_window) + 1)
-        for order in order_full_set:
+        for order in order_set:
             age = cur_time - order.birthtime
             if age < max_age_to_track:
-                bin_num = int(age / statistical_window)
-                num_orders_in_age_range[bin_num] += 1
+                bin_idx = int(age / statistical_window)
+                num_orders_in_age_range[bin_idx] += 1
         return num_orders_in_age_range
     
-    # The following function is a helper function. It returns the aggregated number of orders that a particular peer
-    # observes, based on statistical window of order ages.
-    
-    def peerInfoObservation(self, peer, cur_time, max_age_to_track, statistical_window):
+    # The following function is a helper function. It returns the aggregated number
+    # of orders in the set order_set, that falls into each statistical window, that a particular peer observes.
+     
+    @staticmethod
+    def peerInfoObservation(peer, cur_time, max_age_to_track, statistical_window, order_set):
         
         num_orders_this_peer_stores = [0] * int(((max_age_to_track - 1)/statistical_window) + 1)
         
         for order in peer.order_orderinfo_mapping:
             age = cur_time - order.birthtime
-            if age < max_age_to_track:
+            if age < max_age_to_track and order in order_set:
                 bin_num = int(age / statistical_window)
                 num_orders_this_peer_stores[bin_num] += 1
                 
         return num_orders_this_peer_stores
 
 
-    # The following function is a helper function. It returns a vector of the ratios of orders it receives, w.r.t. the
-    # total # of orders in the system in this catagory. THe catagory is based on age window. If there is no order in
-    # the system in this window, the value for this entry is None.
+    # The following function is a helper function. It returns a list of the ratios of orders that this peer
+    # receives, each ratio is calculated based on the total # of orders of this window.
+    # If there is no order in this window, the value for this entry is None.
 
-    def singlePeerInfoRatio(self, cur_time, peer, max_age_to_track, statistical_window, order_full_set):
+    @classmethod
+    def singlePeerInfoRatio(cls, cur_time, peer, max_age_to_track, statistical_window, order_set):
         
         def try_division(x, y):
             try:
@@ -691,11 +882,11 @@ class PerformanceCandidates:
                 z = None
             return z
         
-        order_stat_based_on_age = self.orderNumStatOnAge\
-                                  (cur_time, max_age_to_track, statistical_window, order_full_set)
+        order_stat_based_on_age = cls.orderNumStatOnAge\
+                                  (cur_time, max_age_to_track, statistical_window, order_set)
         
-        num_orders_this_peer_stores = self.peerInfoObservation\
-                                      (peer, cur_time, max_age_to_track, statistical_window)
+        num_orders_this_peer_stores = cls.peerInfoObservation\
+                                      (peer, cur_time, max_age_to_track, statistical_window, order_set)
         
         peer_observation_ratio = list(map(try_division, num_orders_this_peer_stores, order_stat_based_on_age))
         
@@ -703,11 +894,16 @@ class PerformanceCandidates:
         
         
     # This function calculates a peer's satisfaction based on his info observation ratios
-    # The neutral implementation is taking average of each element (neutral to every order), or return None of every element is None.
+    # The neutral implementation is taking average of each observation ratio
+    # (neutral to every order), or return None of every element is None.
     
-    def singlePeerSatisfactionNeutral(self, cur_time, peer, max_age_to_track, statistical_window, order_full_set):
+    @classmethod
+    def singlePeerSatisfactionNeutral(cls, cur_time, peer, max_age_to_track,\
+                                      statistical_window, order_set):
         
-        peer_observation_ratio = self.singlePeerInfoRatio(cur_time, peer, max_age_to_track, statistical_window, order_full_set)
+        peer_observation_ratio = cls.singlePeerInfoRatio\
+                                 (cur_time, peer, max_age_to_track, \
+                                  statistical_window, order_set)
         
         try:
             return statistics.mean(item for item in peer_observation_ratio if item is not None)
@@ -715,26 +911,14 @@ class PerformanceCandidates:
             return None # this peer does not have any orders
 
 
-    # The following function calculates the peer experiences based on singlePeerSatisfactionNeutral()
-    # w.r.t. all adult peers in the system. It returns a (non-fixed length) list of adult-peer satisfactions.
-    # Currently we only implemented the option for Neutral (taking average of order receipt rate over all orders) 
+    # This function calculates the fairness index for all peers
+    # Right now, it is not implemented.
     
-    def peerSatisfaction(self, option, set_of_peers_for_evaluation, adult_age, \
-                               cur_time, max_age_to_track, statistical_window, order_full_set):
-        
-        if option == 'Neutral':
-            singleCalculation = self.singlePeerSatisfactionNeutral
-        else:
-            raise ValueError('No such option to evaluate peer satisfaction.')
-        
-        set_of_adult_peers_for_evaluation = set(peer for peer in set_of_peers_for_evaluation\
-                                    if cur_time - peer.birthtime >= adult_age)
-        
-        satisfaction_list = [singleCalculation(cur_time, peer, max_age_to_track, statistical_window, order_full_set)\
-                             for peer in set_of_adult_peers_for_evaluation]
-        
-        return satisfaction_list
-    
+    @staticmethod
+    def fairnessDummy(peer_set, order_set):
+        return 0
+  
+
 
 '''
 =======================================
@@ -742,22 +926,27 @@ Data processing tools
 =======================================
 '''
 # The following class contains data processing tools (e.g., finding the max, min, average, frequency...)
-# for performance evaluation results after running the simulator for multiple times.
+# to work on performance evaluation results, possibly for results of running the simulator multiple times.
+
+'''
+Please be noted that this will be changed to individual functions in a module later. 
+'''
 
 class DataProcessing:
     
     # This function takes a sequence of equal-length lists and find the best and worst lists.
-    # An element in the list is either a non-negative float/int or None.
+    # An element in the list is either a non-negative value or None.
     # the best/worst list is the one who's last entry is the largest/smallest among all lists given.
-    # If any entry is None, it is ignored (not the best nor the worst).
-    # If the last entry of all lists is None, then we look at the second last entry, up till
-    # the first entry. If all entries of all lists are None, raise an exception.
+    # If any entry is None, it is ignored (neither the best nor the worst).
+    # If the last entries of all lists are all None, then we look at the second last entry, etc.,
+    # up till the first entry. If all entries of all lists are None, raise an exception.
     # For example, if list_1 = [0.1, 0.2, 0.3, None], list_2 = [0.29, 0.29, 0.29, None],
     # then list_1 is the best and list_2 is the worst.
-    # For effeciency consideration, this function does not check validity of the argument
+    # For effeciency consideration, this function does not check validity of the argument (same length)
     # since it should have been guaranteed in the function that calls it.
     
-    def findBestWorstLists(self, sequence_of_lists):
+    @staticmethod
+    def findBestWorstLists(sequence_of_lists):
         
         last_effective_idx = -1
         while last_effective_idx >= -len(sequence_of_lists[0]):
@@ -774,14 +963,15 @@ class DataProcessing:
         
         return (best_list, worst_list)
     
-    # The following function takes a sequence of equal-length lists as input, and outputs
-    # a list of the same length.
-    # Each element in each input list is either a float/int or None.
+    # The following function takes a sequence of equal-length lists as input,
+    # and outputs a list of the same length.
+    # Each element in each input list is either a value or None.
     # Each element in the output list is the average of the values in the corresponding place
     # of all input lists, ignoring all None elements.
-    # If all elements in a place of all input lists are None, then the output element is 0.
+    # If all elements in a place of all input lists are None, then the output element in that place is 0.
     
-    def averagingLists(self, sequence_of_lists):
+    @staticmethod
+    def averagingLists(sequence_of_lists):
         
         average_list = [None for _ in range(len(sequence_of_lists[0]))]
         
@@ -796,13 +986,19 @@ class DataProcessing:
         return average_list
     
     # The following function takes a sequence of lists, and a division unit, as input.
-    # Each element in each list is a real value between [0,1).
+    # Each element in each list is a real value over [0,1).
     # It outputs the density distribution of such values. Each list/element is equally weighted.
-    # In other words, one can merge all lists into one long list as the input.
+    # In other words, one can imagine merging all lists into one long list as the input,
+    # and the result is the density of elements in that long list.
     
-    def densityOverAll(self, sequence_of_lists, division_unit = 0.01):
+    @staticmethod
+    def densityOverAll(sequence_of_lists, division_unit = 0.01):
         
         total_points = sum(len(single_list) for single_list in sequence_of_lists)
+        
+        if total_points == 0:
+            raise ValueError('Invalid to calculate density for nothing.')
+        
         largest_index = int(1/division_unit)
         density_list = [0 for _ in range(largest_index + 1)]
         
@@ -828,10 +1024,10 @@ class Order:
     def __init__(self, scenario, seq, birthtime, creator, expiration = float('inf'), category = None):
         
         self.scenario = scenario # assumption. needed for updateSettledStatus().
-        self.seq = seq # sequence number
+        self.seq = seq # sequence number. Not in use now, reserved for possible future use
         self.birthtime = birthtime # will be decided by system clock
         self.creator = creator # the peer who creates this order
-        self.expiration = expiration # maximum time for a peer to be valid, and will expire thereafter.
+        self.expiration = expiration # maximum time for a peer to be valid, and will expire thereafter
         self.category = category # may refer to a trading pair lable or something else
         
         # set of peers who put this order into their local storage.
@@ -841,35 +1037,36 @@ class Order:
         # in order words, these peers are hesitating whether to store the orders.
         self.hesitators = set()
         
-        self.settled = False # this order instance has not been taken and settled
-        self.canceled = False # will change to True when the order departs proactively.
+        self.is_settled = False # this order instance has not been taken and settled
+        self.is_canceled = False # will change to True when the order departs proactively.
         
     # This function updates the settled status for this order
     def updateSettledStatus(self): 
         self.scenario.orderUpdateSettleStatus(self)
         
 
-# An instance of an orderinfo is an order from a peers viewpoint. It contains extra information to an order instance.
-# Note, an order instance can have multiple OrderInfo instances stored by different peers.
-# It contains specifit information about the novelty and property of the order, not included in Order class.
+# An instance of an orderinfo is an order from a peer's viewpoint. It contains extra information to an Order instance.
+# Note, an Order instance can have multiple OrderInfo instances stored by different peers.
+# It contains specific information about the novelty and property of the order, not included in Order.
 
 class OrderInfo:
     
     def __init__(self, engine, order, master, arrival_time, priority = None, prev_owner = None, novelty = 0):
     
-        self.engine = engine # design choice
+        self.engine = engine # design choice. Needed for orderinfoSetPriority()
         self.arrival_time = arrival_time # arrival time of this orderinfo to my pending table
         self.prev_owner = prev_owner # previous owner, default is None (a new order)
-        self.novelty = novelty # how many hops it has travalled. Default is 0. Leave design space for TEC.
+        self.novelty = novelty # How many hops it has travalled. Default is 0. Leave design space for possible extensions in future.
         self.engine.orderinfoSetPriority(master, order, priority) # set up priority
         
         # storage_decision is to record whether this peer decides to put this order into the storage.
         # It seems redundant, but it will be useful in storeOrders function.
         self.storage_decision = False
             
-# Each peer maintains a set of neighbors. Note, a neighbor physically is a peer, but a neighbor instance is not a peer instance;
-# instead, it has specialized information from a peer's viewpoint.
-# For general information about this node, refer to the global mapping table and find the corrosponding peer instance.
+# Each peer maintains a set of neighbors. Note, a neighbor physically is a peer,
+# but a neighbor instance is not a peer instance; instead, it has specialized information
+# from a peer's viewpoint. For information stored in the Peer instance,
+# refer to the mapping table in the Simulator and find the corrosponding Peer instance.
 
 class Neighbor:
     
@@ -883,17 +1080,18 @@ class Neighbor:
         self.engine.neighborSetPreference(peer, master, preference)
         
         # If peer A shares his info to peer B, we say peer A contributes to B.
-        # Such contribution is recorded in peer B's local record, i.e., the neighbor instance for peer A in the local storage of peer B.
-        # Formally, "share_contribution" is a queue to record a length of "contribution_length" of contributions in the previous rounds.
-        # each round is defined as the interval of two contiguous executions of updateNeighborScore function.
+        # Such contribution is recorded in peer B's local record, i.e.,
+        # the neighbor instance for peer A in the local storage of peer B.
+        # Formally, "share_contribution" is a queue to record a length of "score_length"
+        # of contributions, each corresponding to the score in one of the previous batches.
         self.share_contribution = collections.deque()
         for _ in range(engine.score_length):
             self.share_contribution.append(0)
         
         self.score = 0 # the score to evaluate my neighbor.
         
-        # lazy_round is over how many batch periods has this peer be regarded as a lazy neighbor.
-        # A neighbor is regarded as lazy if its score in one batch period is below a certain value.
+        # lazy_round is over how many batches has this peer be regarded as a lazy neighbor.
+        # A neighbor is regarded as lazy if its score in one batch is below a certain value.
         # Default for lazy_round is 0. Increased by 1 if its score is below that certain value, or reset to 0 otherwise.
         self.lazy_round = 0
     
@@ -907,28 +1105,29 @@ class Peer:
         self.local_clock = birthtime
         
         # simple parameter setting
-        self.engine = engine
-        self.seq = seq # sequence number
+        self.engine = engine # design choice
+        self.seq = seq # sequence number. Not in use now, for reserve purpose only.
         self.birthtime = birthtime
         self.init_orderbook_size = len(init_orders)
         self.namespacing = namespacing # A peer's namespacing is its interest in certain trading groups. Currently we don't set it.
         
-        self.peer_type = peer_type # Refers to a peer type (e.g., big/small relayer). Type 0 is free-rider.
+        self.peer_type = peer_type # Refers to a peer type (e.g., big/small relayer). Type 0 is a free-rider.
         
         # This denotes if this peer is a free rider (no contribution to other peers)
+        # This is a redundant variable, for better readability only.
         # A free rider sits in the system, listen to orders, and does nothing else.
         # It does not generate orders by itself.
-        self.freerider = (peer_type == 0) 
+        self.is_freerider = (peer_type == 0) 
         
         self.order_orderinfo_mapping = {} # mapping from the order instance to orderinfo instances that have been formally stored.
         self.peer_neighbor_mapping = {} # mapping from the peer instance to neighbor instance. Note, neighborhood relationship must be bilateral.
         self.new_order_set = set() # set of newly and formally-stored orders that have NEVER been shared out by this peer.
         
-        # the following mapping maintains a table of pending orders, by recording their orderinfo instance.
-        # note that an order can have multiple orderinfo instances, because it can be forwarded by different neighbors.
+        # The following mapping maintains a table of pending orders, by recording their orderinfo instance.
+        # Note that an order can have multiple orderinfo instances, because it can be forwarded by different neighbors.
         self.order_pending_orderinfo_mapping = {}
         
-        if self.freerider and init_orders:
+        if self.is_freerider and init_orders:
             raise ValueError('Free riders should not have their own orders.')
         
         # initiate orderinfos
@@ -951,8 +1150,9 @@ class Peer:
                     
     # This function is called when a request of establishing a neighborhood relationship is
     # called from another peer. This peer, which is requested, will return True for agreement by default,
-    # or False if the cur # of neighbors already reaches the maximal.
-    # Note, this function does not establish neighborhood relationship by itself. It accepts or rejects only.
+    # or False if the current # of neighbors already reaches the maximal.
+    # Note, this function does not establish neighborhood relationship by itself.
+    # It accepts or rejects the request only.
     
     def acceptNeighborRequest(self, requester):
         
@@ -966,7 +1166,7 @@ class Peer:
         
     def addNeighbor(self, peer):
         
-        # if this peer is already a neighbor, error with addNewLinks function.
+        # if this peer is already a neighbor, there is an error with addNewLinks function.
         if peer in self.peer_neighbor_mapping:
             raise ValueError('The addNewLinksHelper() function is requesting me to add my current neighbor.')
                 
@@ -975,9 +1175,9 @@ class Peer:
         self.peer_neighbor_mapping[peer] = new_neighbor
         
     # This function defines what a peer will do if it's notified by someone for cancelling a neighborhood relationship.
-    # It will always accept and deletes that peer from his neighbor.
+    # It will always accept the cancellation, and delete that peer from his neighbor.
     # Note that this is different from a real system that a peer simply drops a neighborhood relationship
-    # without need to being accepted by the other side. This function is for simulation bookkeeping purpose only.
+    # without need of being accepted by the other side. This function is for simulation bookkeeping purpose only.
         
     def acceptNeighborCancellation(self, requester):
         # If I am removed as a neighbor by my neighbor, I will delete him as well.
@@ -985,7 +1185,7 @@ class Peer:
         if requester in self.peer_neighbor_mapping:
             self.delNeighbor(requester, False, False) 
         
-    # this function deletes a neighbor. If remove_order is True, then all orderinfo instances with the
+    # This function deletes a neighbor. If remove_order is True, then all orderinfo instances with the
     # prev_owner being this neighbor will also be deleted (order instances are still there).
     # notification: whether to notify the other party to cancel neighborhood.
     
@@ -1021,14 +1221,14 @@ class Peer:
     # receiveOrderExternal() is called by orderArrival function.
     # OrderInfo will be put into pending table (just to keep consistent with receive_internal,
     # though most likely it will be accepted).
-    # return True if accepted or False otherwise
+    # return True if accepted or False otherwise.
     
     def receiveOrderExternal(self, order):
         
         if order in self.order_pending_orderinfo_mapping:
             raise ValueError('Duplicated external order. This order is in my pending table.')
         if order in self.order_orderinfo_mapping:
-            raise ValueError('Duplicated external order. This order is already in my local storage.')
+            raise ValueError('Duplicated external order. This order is in my local storage.')
 
         if self.engine.externalOrderAcceptance(self, order) is True:
             
@@ -1063,7 +1263,7 @@ class Peer:
             orderinfo = self.order_orderinfo_mapping[order]
             if orderinfo.prev_owner == peer:
                 # I have this order in my local storage.
-                # my neighbor is sending me the same order again.
+                # My neighbor is sending me the same order again.
                 # It may be due to randomness of sharing old orders.
                 neighbor.share_contribution[-1] += self.engine.ra
             else:
@@ -1072,8 +1272,9 @@ class Peer:
                 neighbor.share_contribution[-1] += self.engine.rb
             return False
             
-        # if this order has not been formally stored.
+        # If this order has not been formally stored:
         # Need to write it into the pending table (even if there has been one with the same ID).            
+        
         if novelty_update is True:
             order_novelty = peer.order_orderinfo_mapping[order].novelty + 1
         else:
@@ -1082,22 +1283,22 @@ class Peer:
         # create an orderinfo instance
         new_orderinfo = OrderInfo(self.engine, order, self, self.local_clock, None, peer, order_novelty)
                     
-        # if no such order in the pending list, create an entry for it
+        # If no such order in the pending list, create an entry for it
         if order not in self.order_pending_orderinfo_mapping: # order id not in the pending set 
             self.order_pending_orderinfo_mapping[order] = [new_orderinfo]
             order.hesitators.add(self)
-            # put into the pending table. share reward will be updated when a storing decision is made.
+            # Put into the pending table. Share reward will be updated when a storing decision is made.
             return True
                         
-        # if there is such order in the pending list, check if this order is from the same prev_owner.    
+        # If there is such order in the pending list, check if this order is from the same prev_owner.    
         for existing_orderinfo in self.order_pending_orderinfo_mapping[order]:
             if peer == existing_orderinfo.prev_owner:
-                # this neighbor is sending duplicates to me in a short period of time
+                # This neighbor is sending duplicates to me in a short period of time
                 # Likely to be a malicious one.
                 neighbor.share_contribution[-1] += self.engine.pb
                 return False
        
-        # my neighbor is honest, but he is late in sending me the message.
+        # My neighbor is honest, but he is late in sending me the message.
         # Add it to the pending list anyway since later, his version of the order might be selected.
         self.order_pending_orderinfo_mapping[order].append(new_orderinfo)
         
@@ -1118,38 +1319,38 @@ class Peer:
         
         for order, pending_orderinfolist_of_same_id in self.order_pending_orderinfo_mapping.items():
                       
-            # sort the list of pending orderinfo with the same id, so that if
+            # Sort the list of pending orderinfo with the same id, so that if
             # there is some order to be stored, it will be the first one.
             pending_orderinfolist_of_same_id.sort(key = lambda item: item.storage_decision, reverse = True)
             
-            # update the order instance, e.g., number of pending orders, and remove the hesitator, in advance.
+            # Update the order instance, e.g., number of pending orders, and remove the hesitator, in advance.
             order.hesitators.remove(self)
             
-            # after sorting, for all pending orderinfo with the same id,
+            # After sorting, for all pending orderinfo with the same id,
             # either (1) no one is to be stored, or (2) only the first one is stored
             
             if pending_orderinfolist_of_same_id[0].storage_decision is False: # if nothing is to be stored
                 for pending_orderinfo in pending_orderinfolist_of_same_id:
-                    # find the global instance of the sender, and update it.
+                    # Find the global instance of the sender, and update it.
                     if pending_orderinfo.prev_owner in self.peer_neighbor_mapping: # internal order, sender is still a neighbor
                         self.peer_neighbor_mapping[pending_orderinfo.prev_owner].share_contribution[-1] += self.engine.rc
             
             else: # the first element is to be stored
                 first_pending_orderinfo = pending_orderinfolist_of_same_id[0]
-                # find the global instance for the sender, and update it.
+                # Find the global instance for the sender, and update it.
                 if first_pending_orderinfo.prev_owner in self.peer_neighbor_mapping: # internal order, sender is still neighbor
                     self.peer_neighbor_mapping[first_pending_orderinfo.prev_owner].share_contribution[-1] += self.engine.rd
-                # add the order into the local storage, and update the global order instance
+                # Add the order into the local storage, and update the global order instance
                 self.order_orderinfo_mapping[order] = first_pending_orderinfo
                 self.new_order_set.add(order)
                 order.holders.add(self)
                 
                 
-                # for the rest pending orderinfo in the list, no need to store them, but may need to do other updates
+                # For the rest pending orderinfo in the list, no need to store them, but may need to do other updates
                 for pending_orderinfo in pending_orderinfolist_of_same_id[1:]:
                     
                     if pending_orderinfo.storage_decision is True:
-                        raise ValueError('Should not store multiple orders. Wrong in storage decision process.')
+                        raise ValueError('Should not store multiple orders. Wrong in order store decision process.')
                     
                     if pending_orderinfo.prev_owner in self.peer_neighbor_mapping: # internal order, sender is still neighbor
                         # update the share contribution
@@ -1169,7 +1370,7 @@ class Peer:
             raise RuntimeError('Share order decision should not be called at this time.')
        
         # free riders do not share any order.
-        if self.freerider is True:
+        if self.is_freerider is True:
             self.new_order_set.clear()
             return
         
@@ -1178,16 +1379,16 @@ class Peer:
         # orders to share
         order_to_share_set = self.engine.ordersToShare(self)
         
+        # clear self.new_order_set for future use
+        self.new_order_set.clear()
+        
         # peers to share
-        peer_to_share_set = self.engine.neighborToShare(self.local_clock, self)
+        peer_to_share_set = self.engine.neighborsToShare(self.local_clock, self)
         
         # call receiver node to accept the orders
         for peer in peer_to_share_set:
             for order in order_to_share_set:
                 peer.receiveOrderInternal(self, order)
-            
-        # clear the new order set. Every order becomes old.        
-        self.new_order_set.clear()
 
 
     # This function deletes all orderinfo instances of a particular order.
@@ -1206,17 +1407,11 @@ class Peer:
     # This function ranks neighbors according to their scores. It is called by shareOrders function.
     # It returns a list peers ranked by the scores of their corresponding neighbor instances.
     def rankNeighbors(self):
-        self.engine.scoringNeighbors(self)
+        self.engine.scoreNeighbors(self)
         peer_list = list(self.peer_neighbor_mapping)
         peer_list.sort(key = lambda item: self.peer_neighbor_mapping[item].score, reverse = True)
         return peer_list
     
-    
-    # This function measures the fairness of the incentive scheme.
-    # There is no implemetion for now, and it is called from nowhere.
-    def fairnessIndex(self):
-        return self.engine.calFairness(self)
- 
  
 '''
 ===========================================
@@ -1231,22 +1426,31 @@ class Simulator:
     def __init__(self, scenario, engine, performance):
         
         self.order_full_set = set() # set of orders
+        # list of order sets, each containing all orders of a particular type.
+        self.order_type_set = [set() for _ in range(len(scenario.order_type_ratios))]
+        
         self.peer_full_set = set() # set of peers
-        self.peer_type_set = [set() for _ in range(len(scenario.peer_type_ratios))] # list of set of peers
+        # list of peer sets, each containing all peers of a particular type.
+        self.peer_type_set = [set() for _ in range(len(scenario.peer_type_ratios))] 
         
         self.cur_time = 0 # current system time
         self.latest_order_seq = 0 # sequence number for next order to use
         self.latest_peer_seq = 0 # sequence number for next peer to use
         
-        self.scenario = scenario
-        self.engine = engine
-        self.performance = performance
+        self.scenario = scenario # assumptions
+        self.engine = engine # design choices
+        self.performance = performance # performance evaluation measures
 
     # This is the global initialization function for system status.
     # Construct a number of peers and a number of orders and maintain their references in two sets.
     # Sequence numbers of peers and neighbors begin from 0 and increase by 1 each time.
     # Right now there is no use for the sequence numbers but we keep them for potential future use.
-    # We only consider one type of peers and one type of orders for now.
+    # We only consider one type of orders for now. However, we do consider multiple peer types.
+    '''
+    In current implementation we assume there is only one order type.
+    There is a hard-coded line of creating orders of type 0,
+    where we create the initial orderbooks for initial peers.
+    '''
     
     def globalInit(self):
         
@@ -1255,24 +1459,28 @@ class Simulator:
         
         # determine the peer types
         peer_type_vector = random.choices(range(len(self.scenario.peer_type_ratios)),\
-                                          weights = self.scenario.peer_type_ratios, k = self.scenario.init_size)
+                                          weights = self.scenario.peer_type_ratios, \
+                                          k = self.scenario.init_size)
         
         # first create all peer instances with no neighbors
         
         for peer_type in peer_type_vector:
             
-            # decide the birth time for this peer. Randomlized over [0, birth_time_span] to avoid sequentiality issue.
+            # decide the birth time for this peer.
+            # Randomized over [0, birth_time_span] to avoid sequentiality issue.
             birth_time = random.randint(0, self.scenario.birth_time_span - 1)
             
             # decide the number of orders for this peer
-            num_orders = max(0, round(random.gauss(*self.scenario.peer_parameter_list[peer_type])))
+            num_orders = max(0, round(random.gauss(self.scenario.peer_parameter_list[peer_type]['mean'],\
+                                                   self.scenario.peer_parameter_list[peer_type]['var'])))
 
             # create all order instances, and the initial orderbooks
             cur_order_set = set()
             
             for _ in range(num_orders):
                 # decide the max expiration for this order
-                expiration = max(0, round(random.gauss(*self.scenario.order_parameter_list[0])))
+                expiration = max(0, round(random.gauss(self.scenario.order_parameter_list[0]['mean'],\
+                                                       self.scenario.order_parameter_list[0]['var'])))
                 
                 # create the order. Order's birth time is cur_time, different from peer's birthtime.
                 # Order's creator is set to be None since the peer is not initiated, but will be changed
@@ -1302,7 +1510,11 @@ class Simulator:
             
     # when a new peer arrives, it may already have a set of orders. It only needs to specify the number of initial orders, 
     # and the function will specify the sequence numbers for the peers and orders.
-    # This function deals with normal (not free-riders) peer arrival.
+    '''
+    In current implementation we assume there is only one order type.
+    There is a hard-coded line of creating orders of type 0,
+    where we create the initial orderbook for this peer.
+    '''
     
     def peerArrival(self, peer_type, num_orders): 
         
@@ -1313,10 +1525,12 @@ class Simulator:
         cur_order_set = set()
         order_seq = self.latest_order_seq
         for _ in range(num_orders):
-            expiration = max(0, round(random.gauss(*self.scenario.order_parameter_list[0])))
+            expiration = max(0, round(random.gauss(self.scenario.order_parameter_list[0]['mean'],\
+                                                   self.scenario.order_parameter_list[0]['var'])))
             # Now we initiate the new orders, whose creator should be the new peer.
             # But the new peer has not been initiated, so we set the creator to be None temporarily.
             # We will modify it when the peer is initiated.
+            # This is tricky and informal, but I don't have a better way of doing it right now.
             new_order = Order(self.scenario, order_seq, self.cur_time, None, expiration)
             self.order_full_set.add(new_order)
             cur_order_set.add(new_order)
@@ -1327,7 +1541,7 @@ class Simulator:
         self.peer_full_set.add(new_peer)
         self.peer_type_set[peer_type].add(new_peer)
         
-        # update latest sequence numberes for peer and order
+        # update latest sequence numbers for peer and order
         self.latest_peer_seq += 1
         self.latest_order_seq = order_seq
     
@@ -1347,7 +1561,7 @@ class Simulator:
             if peer in other_peer.peer_neighbor_mapping:
                 other_peer.delNeighbor(peer)
         
-        # update the global peer set
+        # update the peer set of the Simulator
         self.peer_full_set.remove(peer)
         self.peer_type_set[peer.peer_type].remove(peer)
 
@@ -1360,7 +1574,7 @@ class Simulator:
         new_order_seq = self.latest_order_seq
         new_order = Order(self.scenario, new_order_seq, self.cur_time, target_peer, expiration)
         
-        # update global info of this order
+        # update the set of orders for the Simulator
         self.order_full_set.add(new_order)
         self.latest_order_seq += 1
         
@@ -1370,18 +1584,18 @@ class Simulator:
     
     # This function takes a set of orders to depart as input,
     # deletes them, and deletes all other invalid orders
-    # from both the global set and all peers' pending tables and storages.
+    # from both order set of Simulator, and all peers' pending tables and storages.
 
     def updateGlobalOrderbook(self, order_dept_set = None):
         
         if order_dept_set is not None:
             for order in order_dept_set:
-                order.canceled = True
+                order.is_canceled = True
             
         for order in list(self.order_full_set):
             if ((not order.holders) and (not order.hesitators)) \
                or (self.cur_time - order.birthtime >= order.expiration) \
-               or (order.settled is True) or (order.canceled is True):
+               or (order.is_settled is True) or (order.is_canceled is True):
                 for peer in list(order.holders):
                     peer.delOrder(order)
                 for peer in list(order.hesitators):
@@ -1398,28 +1612,28 @@ class Simulator:
     def addNewLinksHelper(self, requester, demand, minimum):
                  
         if demand <= 0 or minimum < 0 or demand < minimum:
-            raise ValueError('Wrong in requested number or range.')
+            raise ValueError('Wrong in requested number(s) or range for adding neighbors.')
         
-        pool = self.peer_full_set - set([requester])
+        candidates_pool = self.peer_full_set - set([requester])
         selection_size = demand
         links_added = 0
         
-        while links_added < minimum and pool:
+        while links_added < minimum and candidates_pool:
             
             links_added_this_round = 0
-            selected_peer_set = myengine.neighborRec(requester, pool, selection_size)
+            selected_peer_set = self.engine.neighborRec(requester, candidates_pool, selection_size)
             for candidate in selected_peer_set: 
-                # if this peer is already the requester's neighbor, ignore.
-                if candidate not in requester.peer_neighbor_mapping:
-                    # check if the candidate is willing to add the requester.
-                    if candidate.acceptNeighborRequest(requester) is True:
-                        # mutual add neighbors
-                        candidate.addNeighbor(requester)
-                        requester.addNeighbor(candidate)
-                        links_added += 1
-                        links_added_this_round += 1
+                # if this peer is already the requester's neighbor, if not,
+                # check if the candidate is willing to add the requester.
+                if candidate not in requester.peer_neighbor_mapping \
+                   and candidate.acceptNeighborRequest(requester):
+                    # mutual add neighbors
+                    candidate.addNeighbor(requester)
+                    requester.addNeighbor(candidate)
+                    links_added += 1
+                    links_added_this_round += 1
                         
-            pool -= selected_peer_set
+            candidates_pool -= selected_peer_set
             selection_size -= links_added_this_round
 
     # This function checks for all peers if they need to add neighbors,
@@ -1443,7 +1657,8 @@ class Simulator:
     def operationsInATimeRound(self, peer_arr_num, peer_dept_num, order_arr_num, order_dept_num):
         
         # peers leave
-        for peer_to_depart in random.sample(self.peer_full_set, min(len(self.peer_full_set), peer_dept_num)):
+        for peer_to_depart in random.sample\
+            (self.peer_full_set, min(len(self.peer_full_set), peer_dept_num)):
             self.peerDeparture(peer_to_depart)
            
         # existing peers adjust clock
@@ -1459,7 +1674,8 @@ class Simulator:
         for peer_type in peer_type_vector:
             
             # assuming there is only one type of peers, so taking [0]. Subject to change later.
-            num_init_orders = max(0, round(random.gauss(*self.scenario.peer_parameter_list[peer_type])))
+            num_init_orders = max(0, round(random.gauss(self.scenario.peer_parameter_list[peer_type]['mean'],\
+                                                        self.scenario.peer_parameter_list[peer_type]['var'])))
             self.peerArrival(peer_type, num_init_orders)
 
         # Now, if the system does not have any peers, stop operations in this round.
@@ -1486,7 +1702,8 @@ class Simulator:
             
         for target_peer in target_peer_list:
             # decide the max expiration for this order. Assuming there is only one type of orders, so taking [0]. Subject to change later.
-            expiration = max(0, round(random.gauss(*self.scenario.order_parameter_list[0])))    
+            expiration = max(0, round(random.gauss(self.scenario.order_parameter_list[0]['mean'],\
+                                                   self.scenario.order_parameter_list[0]['var'])))    
             self.orderArrival(target_peer, expiration)
             
         # existing orders depart, orders settled, and global orderbook updated
@@ -1505,7 +1722,7 @@ class Simulator:
                 peer.shareOrders()
            
     # This is the function that runs the simulator, including the initilization, and growth and stable periods.
-    # It returns the spreading ratios of orders at the end of the simulator.
+    # It returns performance evaluation results.
     
     def run(self):
 
@@ -1524,21 +1741,24 @@ class Simulator:
         # initiate vectors of each event happening count in each time round
         numpy.random.seed() # this is very important since numpy.random is not multiprocessing safe (when we call Hawkes process)
         counts_growth =\
-                    list(map(lambda x: self.scenario.numEvents((x, self.scenario.growth_par[0])), self.scenario.growth_par[1:]))
+                    list(map(lambda x: self.scenario.numEvents(x, self.scenario.growth_rounds),\
+                             self.scenario.growth_rates))
         numpy.random.seed()
         counts_stable =\
-                    list(map(lambda x: self.scenario.numEvents((x, self.scenario.stable_par[0])), self.scenario.stable_par[1:]))
+                    list(map(lambda x: self.scenario.numEvents(x, self.scenario.stable_rounds),\
+                             self.scenario.stable_rates))
         peer_arrival_count, peer_dept_count, order_arrival_count, order_dept_count = \
                             map(lambda x,y: list(x) + list(y), counts_growth, counts_stable)
         
         # growth period and stable period
         self.cur_time = self.scenario.birth_time_span 
-        for i in range(self.scenario.growth_par[0] + self.scenario.stable_par[0]):
-            self.operationsInATimeRound(peer_arrival_count[i], peer_dept_count[i], order_arrival_count[i], order_dept_count[i])
+        for i in range(self.scenario.growth_rounds + self.scenario.stable_rounds):
+            self.operationsInATimeRound(peer_arrival_count[i], peer_dept_count[i],\
+                                        order_arrival_count[i], order_dept_count[i])
             self.cur_time += 1
         
         # performance evaluation
-        
+        # input arguments are: time, peer set, normal peer set, free rider set, order set
         performance_result = self.performance.run(self.cur_time, self.peer_full_set, self.peer_type_set[1],\
                                   self.peer_type_set[0], self.order_full_set)
         
@@ -1553,7 +1773,7 @@ Multiprocessing execution
 
 # This class contains functions that runs the simulator multiple times, using a multiprocessing manner,
 # and finally, average the spreading ratio and output a figure, where x-axis is the age of orders
-# and y-axis is the average spreading ratio of that age over the multipel times of running the simulator.
+# and y-axis is the average spreading ratio of that age over the multiple times of running the simulator.
 # The need of running the simulator multiple times comes from randomness. Due to randomness, each time the
 # simulator is run, the result can be quite different, and the increase of spreading ratio w.r.t age
 # is not smooth. Due to the fact that each time the simulator running is totally independent,
@@ -1574,106 +1794,241 @@ class Execution:
 
     def run(self):
         with Pool(self.multipools) as my_pool:
-            # performance_result_list = list(peformance_results in each run)
             performance_result_list = my_pool.map(self.make_run,
                           [(self.scenario, self.engine, self.performance) for _ in range(self.rounds)])
         
-        # Unpacking and reorganizing the performance evaluation results such that
+        # Unpacking and re-organizing the performance evaluation results such that
         # performance_measure[i] is the list of i-th performance result in all runs.
-        
-        performance_measure = [None for _ in range(len(performance_result_list[0]))]
+        performance_measure = dict()#[None for _ in range(len(performance_result_list[0]))]
  
-        for measure_idx in range(len(performance_result_list[0])):
-            performance_measure[measure_idx] = list(item[measure_idx] for item in performance_result_list)
+        for measure_key in performance_result_list[0].keys():
+            performance_measure[measure_key] = list\
+                    (item[measure_key] for item in \
+                     performance_result_list if item[measure_key] is not None)
             
         # process each performance result
         
         # processing spreading ratio, calculate best, worst, and average spreading ratios
+        spreading_ratio_lists = performance_measure['order_spreading']
+        if spreading_ratio_lists:
+            (best_order_spreading_ratio, worst_order_spreading_ratio)\
+                        = DataProcessing.findBestWorstLists(spreading_ratio_lists)
+            average_order_spreading_ratio = DataProcessing.averagingLists(spreading_ratio_lists)
+            
+            plt.plot(average_order_spreading_ratio)
+            plt.plot(worst_order_spreading_ratio)
+            plt.plot(best_order_spreading_ratio)
+            
+            plt.legend(['average spreading', 'worst spreading', 'best spreading'], loc='upper left')
+            plt.xlabel('age of orders')
+            plt.ylabel('spreading ratio')
+            plt.show()
         
-        spreading_ratio_lists = performance_measure[0]
+        legend_label = []
+        # processing user satisfaction if it exists. Normal peers first.
+        normal_peer_satisfaction_lists = performance_measure['normal_peer_satisfaction']
+        if normal_peer_satisfaction_lists:
+            legend_label.append('normal peer')
+            normal_satistaction_density = DataProcessing.\
+                                          densityOverAll(normal_peer_satisfaction_lists)
+            plt.plot(normal_satistaction_density)
         
-        (best_order_spreading_ratio, worst_order_spreading_ratio)\
-                    = DataProcessing().findBestWorstLists(spreading_ratio_lists)
-        average_order_spreading_ratio = DataProcessing().averagingLists(spreading_ratio_lists)
+        # processing user satisfaction if it exists. Free riders next.
+        free_rider_satisfaction_lists = performance_measure['free_rider_satisfaction']
+        if free_rider_satisfaction_lists:
+            legend_label.append('free rider')
+            freerider_satistaction_density = DataProcessing.\
+                                             densityOverAll(free_rider_satisfaction_lists)
+            plt.plot(freerider_satistaction_density)
         
+        # plot normal peers and free riders satisfactions in one figure.
+        if legend_label != []:
+            plt.legend(legend_label, loc='upper left')
+            plt.xlabel('satisfaction')
+            plt.ylabel('density')
+            plt.show()
         
-        print('spreading ratio is', average_order_spreading_ratio)
-        
-        plt.plot(average_order_spreading_ratio)
-        plt.plot(worst_order_spreading_ratio)
-        plt.plot(best_order_spreading_ratio)
-        
-        plt.legend(['average spreading', 'worst spreading', 'best spreading'], loc='upper left')
-        plt.xlabel('age of orders')
-        plt.ylabel('spreading ratio')
-        plt.show()
-        
-        # processing user satisfaction. Normal peers first.
-        normal_peer_satisfaction_lists = performance_measure[1]
-        normal_satistaction_density = DataProcessing().densityOverAll(normal_peer_satisfaction_lists)
-        print('density of normal peer satisfaction is', normal_satistaction_density)
-        plt.plot(normal_satistaction_density)
-        
-        # processing user satisfaction. Free riders next.
-        free_rider_satisfaction_lists = performance_measure[2]
-        freerider_satistaction_density = DataProcessing().densityOverAll(free_rider_satisfaction_lists)
-        print('density of free rider satisfaction is', freerider_satistaction_density)
-        plt.plot(freerider_satistaction_density)
-        
-        plt.legend(['normal peer', 'free rider'], loc='upper left')
-        plt.xlabel('satisfaction')
-        plt.ylabel('density')
-        plt.show()
-        
+        # processing fairness index if it exists. Now it is dummy.
+        system_fairness = performance_measure['fairness']
+        try:
+            system_fairness_density = DataProcessing.densityOverAll\
+                                      ([[item for item in system_fairness if item is not None]])
+        except:
+            raise RuntimeError('Seems wrong somewhere since there is no result for fairness in any run.')
+        else:
+            plt.plot(system_fairness_density)
+            plt.legend(['fairness density'], loc='upper left')
+            plt.xlabel('fairness')
+            plt.ylabel('density')
+            plt.show()
+               
 '''
 The following is one example of Scenario instance. 
 '''
  
+'''
+parameters
+'''
+
 order_type_ratios = [1] # ratio of orders of each type
-peer_type_ratios = [0.2, 0.8] # ratio of peers of each type
-order_par_list = [(500,0)] # mean and var of order expiration
-peer_par_list = [(0,0), (6,1)] # mean and var of init orderbook size
-init_par = (10,20) # # of peers, birthtime span
-growth_par = (30,3,0,15,15) # rounds, peer arrival/dept, order arrival/dept, for growth period
-stable_par = (50,2,2,15,15) # same above, for stable period
+peer_type_ratios = [0.1, 0.9] # ratio of peers of each type
 
+# In what follows we use dictionary to generate parameters for a scenario instance.
+# One needs to follow the format. No change on the dictionary keys. Change values only.
 
-growth_par_hawkes = (30, (1.5,1.5,1,0.5), (0,0,1,0.5), (7.5,7.5,1,0.5), (7.5,7.5,1,0.5))
-stable_par_hawkes = (50, (1,1,1,0.5), (1,1,1,0.5), (7.5,7.5,1,0.5), (7.5,7.5,1,0.5))
+# The following dictionary specifies an order type (which is the only type we have right now).
+# The paramters are the mean and variance of order expirations.
+
+order_default_type = {
+    'mean': 500,
+    'var': 0
+    }
+
+order_par_list = [order_default_type] # right now, only one order type
+
+# The following dictionaries specify various peer types.
+# The paramters are the mean and variance of the initial orderbook size of the peer.
+
+peer_free_rider = {
+    'mean': 0,
+    'var': 0
+    }
+
+peer_normal = {
+    'mean': 6,
+    'var': 1
+    }
+
+peer_par_list = [peer_free_rider, peer_normal] # right now, only one peer type
+
+# The following dictionary specifies the paramters for the system's initial status.
+
+init_par = {
+    'num_peers': 10,
+    'birth_time_span': 20
+    }
+
+# The following dictionary specifies the paramters for the system's grwoth period
+# when the # of peers keeps increasing.
+
+growth_par = {
+    'rounds': 30,
+    'peer_arrival': 3,
+    'peer_dept': 0,
+    'order_arrival': 15,
+    'order_dept': 15
+    }
+
+# The following dictionary specifies the paramters for the system's stable period
+# when the # of peers keeps stable. 
+
+stable_par = {
+    'rounds': 50,
+    'peer_arrival': 2,
+    'peer_dept': 2,
+    'order_arrival': 15,
+    'order_dept': 15
+    }
 
 s_parameters = (order_type_ratios, peer_type_ratios, order_par_list, \
-                peer_par_list, init_par, growth_par, stable_par,)
-
-s_parameters_hawkes = (order_type_ratios, peer_type_ratios, order_par_list, \
-                peer_par_list, init_par, growth_par_hawkes, stable_par_hawkes)
-
-s_options = ('Poisson', 'Never')
-s_options_hawkes = ('Hawkes', 'Never')
-
-myscenario = Scenario(s_parameters, s_options)
-myscenario_hawkes = Scenario(s_parameters_hawkes, s_options_hawkes)
+                peer_par_list, init_par, growth_par, stable_par)
 
 
 '''
-The following is one example of Engine instance.
+options
+'''
+
+# event arrival pattern
+event_arrival = {
+    'method': 'Poisson'
+    }
+
+# how an order's is_settled status is changed
+change_settle_status = {
+    'method': 'Never'
+    }
+
+s_options = (event_arrival, change_settle_status)
+
+myscenario = Scenario(s_parameters, s_options)
+
+
+'''
+The following is one example of Engine instance. 
 '''
 
 batch = 10 # length of a batch period
-topology = (30, 20) # max/min neighbor size
-incentive = (3, 0, 0, 0, 1, 0, 0, -1) # length,reward a-e, penalty a-b
+
+# This dictionary describes neighbor-related parameters.
+# Similar to creating a Scenario instance, please follow the format and do not change the key.
+# Only value can be changed.
+
+topology = {
+    'max_neighbor_size': 30,
+    'min_neighbor_size': 20}
+
+# This dictionary descrives the incentive score paramters.
+
+incentive = {
+    'length': 3,
+    'reward_a': 0,
+    'reward_b': 0,
+    'reward_c': 0,
+    'reward_d': 1,
+    'reward_e': 0,
+    'penalty_a': 0,
+    'penalty_b': -1}
+
 e_parameters = (batch, topology, incentive)
 
-preference = ('Passive',)
-priority = ('Passive',)
-external = ('Always',)
-internal = ('Always',)
-store = ('First',)
-share = ('AllNewSelectedOld', 5000, 0.5)
-score = ('Weighted', 2, 6, [1,1,1])
-beneficiary = ('TitForTat', 0, 3, 1)
-fair = ('Zero',)
-rec = ('Random',)
-e_options = (preference, priority, external, internal, store, share, score, beneficiary, fair, rec)
+'''
+options
+'''
+
+# Any option choice is a dictionary. It must contain a key "method," to specify which
+# implementation function to call. The rest entries, if any, are the parameters specific to this
+# implementation that will be passed to the function.
+
+preference = {'method': 'Passive'} # set preference for neighbors
+priority = {'method': 'Passive'} # set priority for orders
+external = {'method': 'Always'} # how to determine accepting an external order or not
+internal = {'method': 'Always'} # how to determine accepting an internal order or not
+store = {'method': 'First'} # how to determine storing an order or not
+
+# This dictionary describes how to determine the orders to share with neighbors.
+# 'method' refers to the implementation choice. Now we only implemented 'AllNewSelectedOld'.
+# The rest entries are parameters specific to this implemention choice and will be passed
+# to the implementation function.
+share = {
+    'method': 'AllNewSelectedOld',
+    'max_to_share': 5000,
+    'old_share_prob': 0.5
+    }
+
+# This dictionary describes how to determine neighbor scoring system.
+
+score = {
+    'method': 'Weighted',
+    'lazy_contribution_threshold': 2,
+    'lazy_length_threshold': 6,
+    'weights': [1,1,1] # must be of the same length as incentive['length']
+    }
+
+# This dictionary describes how to determine the neighbors that receive my orders.
+
+beneficiary = {
+    'method': 'TitForTat',
+    'baby_ending_age': 0,
+    'mutual_helpers': 3,
+    'optimistic_choices': 1
+    }
+
+# This dictionary describes neighbor recommendation manner when a peer asks for more neighbors.
+# Right now, we only implemented a random recommendation.
+rec = {'method': 'Random'}
+
+
+e_options = (preference, priority, external, internal, store, share, score, beneficiary, rec)
 
 myengine = Engine(e_parameters, e_options)
 
@@ -1681,13 +2036,33 @@ myengine = Engine(e_parameters, e_options)
 The following is an example of Performance instance.
 '''
 
-max_age_to_track = 50
-statistical_window = 5
-adult_age = 30
+'''
+parameters
+'''
 
-performance_parameters = (max_age_to_track, adult_age, statistical_window, )
-measure_options = ('Ratio', 'Neutral')
-measures_to_execute = ('orderSpreadingMeasure', 'normalUserSatisfactionMeasure', 'freeRiderSatisfactionMeasure')
+performance_parameters = {'max_age_to_track': 50,
+                          'adult_age': 30,
+                          'statistical_window': 5
+                          }
+
+'''
+options
+'''
+
+spreading_option = {'method': 'Ratio'}
+satisfaction_option = {'method': 'Neutral'}
+fairness_option = {'method': 'Dummy'}
+measure_options = (spreading_option, satisfaction_option, fairness_option)
+
+'''
+executions
+'''
+measures_to_execute = {'order_spreading_measure': True,
+                       'normal_peer_satisfaction_measure': True,
+                       'free_rider_satisfaction_measure': True,
+                       'fairness': True
+                       }
+
 myperformance = Performance(performance_parameters, measure_options, measures_to_execute)
 
 scenarios = [myscenario]#, myscenario_hawkes]
@@ -1697,5 +2072,6 @@ performances = [myperformance]
 if __name__ == '__main__':
     for myscenario in scenarios:
         for myengine in engines:
-            Execution(myscenario, myengine, myperformance, 60).run()
+            Execution(myscenario, myengine, myperformance, 20).run()
+
 
