@@ -343,7 +343,6 @@ class Engine:
         self.batch = batch
         
         # topology parameters: maximal/minimal size of neighborhood
-        
         self.neighbor_max = topology['max_neighbor_size']
         self.neighbor_min = topology['min_neighbor_size']
         
@@ -366,7 +365,6 @@ class Engine:
         self.re = incentive['reward_e']
         self.pa = incentive['penalty_a']
         self.pb = incentive['penalty_b']
-        
         
         # Unpacking options. They specify a choice on a function implementation.
         # Each option parameter is a dictionary. It must contain a key 'method' to specify
@@ -546,7 +544,7 @@ class EngineCandidates:
     # The choice is: (1) calculate the current score by a weighted sum of all elements in the queue
     # (2) update the queue by moving one step forward and delete the oldest element, and
     # (3) delete a neighbor if it has been lazy for a long time.
-    
+
     @staticmethod
     def weightedSum(lazy_contri, lazy_length, discount, peer):
         
@@ -1044,7 +1042,7 @@ class Order:
     def updateSettledStatus(self): 
         self.scenario.orderUpdateSettleStatus(self)
         
-
+        
 # An instance of an orderinfo is an order from a peer's viewpoint. It contains extra information to an Order instance.
 # Note, an Order instance can have multiple OrderInfo instances stored by different peers.
 # It contains specific information about the novelty and property of the order, not included in Order.
@@ -1653,6 +1651,8 @@ class Simulator:
     # The following function runs normal operations at a particular time point.
     # It includes peer/order dept/arrival, order status update,
     # and peer's order acceptance, storing, and sharing.
+    # This is a temparaty version. In the next PR, mode will not exist. Please ignore the missing of
+    # explanation of "mode" for now.
 
     def operationsInATimeRound(self, peer_arr_num, peer_dept_num, order_arr_num, order_dept_num):
         
@@ -1863,7 +1863,11 @@ class Execution:
             plt.show()
                
 '''
-The following is one example of Scenario instance. 
+The following is one example of a Scenario instance. 
+'''
+
+'''
+parameters
 '''
  
 '''
