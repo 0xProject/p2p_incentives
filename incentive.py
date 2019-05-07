@@ -164,14 +164,14 @@ class Scenario:
     def __init__(self, parameters, options):
         
         # unpacking parameters
-        (order_type_ratios, peer_type_ratios, order_par_list, peer_par_list, \
+        (order_type_ratios, peer_type_ratios, order_par_dict, peer_par_dict, \
          init_par, growth_par, stable_par) = parameters
 
-        self.order_type_ratios = order_type_ratios # ratios of each type of orders
-        self.peer_type_ratios = peer_type_ratios # ratios for each type of peers. The first element is the ratio for freeriders.
+        self.order_type_ratios = order_type_ratios # ratios of each type of orders, in forms of a dictionary.
+        self.peer_type_ratios = peer_type_ratios # ratios for each type of peers, in forms of a dictionary.
         
-        self.order_parameter_list = order_par_list # each element is (mean, var) of order expirations of this order type
-        self.peer_parameter_list = peer_par_list # each element is (mean, var) of the initial orderbook size of this peer type
+        self.order_parameter_dict = order_par_dict # each value is (mean, var) of order expirations of this order type
+        self.peer_parameter_dict = peer_par_dict # each value is (mean, var) of the initial orderbook size of this peer type
         
         # init period, init_size is number of peers joining the P2P at the very beginning,
         # and the birth time of such peers is randomly distributed over [0,birth_time_span]
@@ -215,7 +215,7 @@ class Scenario:
         # option_settle determines when an order is settled. Now only "never settle" is implementd.
         (self.option_numEvent, self.option_settle) = options
 
-    # This function generates event happening events according to some pattern.
+    # This function generates events according to some pattern.
     # It reads option_numEvent['method'] to determine the pattern,
     # takes the expected rate (could be a value or a tuple of values)
     # and the length of time slots as input, and
@@ -254,10 +254,14 @@ Please be noted that this will be changed to individual functions in a module la
 
 class ScenarioCandidates:
     
-    # This is the funciton to generate Hawkes process.
-    # The definition of the arrival rate is: 
-    # \lambda(t) = a + (\lambda_0 - a ) \times e ^(-\delta \times t) +
-    # \sum_{T_i < t} \gamma e^{-\delta (t-T_i)}
+    # This is the function to generate Hawkes process.
+    # The expected arrival rate lambda(t) at time point t is: 
+    # lambda(t) = a + (lambda_0 - a ) * exp(-delta * t) +
+    # summation of [ gamma * exp(-delta * (t- T_i)) ] for all T_i < t,
+    # where T_i is any time point when an previous event happens.
+    # Other parameters (a, lambda_0, gamma, delta) are input arguments.
+    # If you are not familiar with the definition of "expected arrival rate,"
+    # please refer to the defnition of Poisson process.
     
     # It takes parameters (a, lambda_0, delta, gamma) from rate, and max time slots as input,
     # and outputs a random realization of event happening counts over time slots [0, max_time].
@@ -513,11 +517,21 @@ class EngineCandidates:
     # The design needs to make sure to store at most one of such orderinfo instances.
     # The choice is: store the first instance of orderinfo for every order.
     
+    # Let "order_a" and "order_b" be two order instances. Let "orderinfo_a1" and "orderinfo_a2"
+    # be two orderinfo instances which both refer to order_a. Let "orderinfo_b1" and "orderinfo_b2"
+    # be two orderinfo instances which both refer to order_b. Then peer.order_pending_orderinfo_mapping
+    # will look like:
+    # peer.order_pending_orderinfo_mapping =
+    # { order_a: [orderinfo_a1, orderinfo_a2],
+    #   order_b: [orderinfo_b1, orderinfo_b2] }.
+    # We will use "pending_orderinfolist_for_same_order"
+    # to refer to lists like [orderinfo_a1, orderinfo_a2] or [orderinfo_b1, orderinfo_b2].
+
     @staticmethod
     def storeFirst(peer):
-        for pending_orderinfolist_of_same_id in peer.order_pending_orderinfo_mapping.values():
-            pending_orderinfolist_of_same_id[0].storage_decision = True # first orderinfo is stored
-            for orderinfo in pending_orderinfolist_of_same_id[1:]: # the rest (if any) are not stored
+        for pending_orderinfolist_for_same_order in peer.order_pending_orderinfo_mapping.values():
+            pending_orderinfolist_for_same_order[0].storage_decision = True # first orderinfo is stored
+            for orderinfo in pending_orderinfolist_for_same_order[1:]: # the rest (if any) are not stored
                 orderinfo.storage_decision = False        
     
     # This is a candidate design for sharing orders.
@@ -606,7 +620,7 @@ class EngineCandidates:
         return selected_peer_set
     
     # This is a candidate design for neighbor recommendation.
-    # The choice is to choose (# = targe_number) elements from the base in a totally random manner.
+    # The choice is to choose (# = target_number) elements from the base in a totally random manner.
     # The current implementation does not take requester into consideration.
     
     @staticmethod
@@ -673,7 +687,7 @@ class Performance:
     def orderSpreadingMeasure(self, cur_time, peers_to_evaluate, orders_to_evaluate):
         
         if not len(peers_to_evaluate) or not len(orders_to_evaluate):
-            raise ValueError('Invalid to measure the spreading based on no orderd or no peers.')
+            raise ValueError('Invalid to measure the spreading based on no orders or no peers.')
         
         # Currently we only implemented spreading ratio. In future we may also want to investigate
         # new orders spreading rate, etc.
@@ -969,7 +983,7 @@ class DataProcessing:
     # If all elements in a place of all input lists are None, then the output element in that place is 0.
     
     @staticmethod
-    def averagingLists(sequence_of_lists):
+    def averageLists(sequence_of_lists):
         
         average_list = [None for _ in range(len(sequence_of_lists[0]))]
         
@@ -1026,7 +1040,7 @@ class Order:
         self.birthtime = birthtime # will be decided by system clock
         self.creator = creator # the peer who creates this order
         self.expiration = expiration # maximum time for a peer to be valid, and will expire thereafter
-        self.category = category # may refer to a trading pair lable or something else
+        self.category = category # may refer to a trading pair label or something else
         
         # set of peers who put this order into their local storage.
         self.holders = set()
@@ -1109,13 +1123,13 @@ class Peer:
         self.init_orderbook_size = len(init_orders)
         self.namespacing = namespacing # A peer's namespacing is its interest in certain trading groups. Currently we don't set it.
         
-        self.peer_type = peer_type # Refers to a peer type (e.g., big/small relayer). Type 0 is a free-rider.
+        self.peer_type = peer_type # Refers to a peer type (e.g., big/small relayer). Its value is a string (or None by default).
         
         # This denotes if this peer is a free rider (no contribution to other peers)
         # This is a redundant variable, for better readability only.
-        # A free rider sits in the system, listen to orders, and does nothing else.
+        # A free rider sits in the system, listens to orders, and does nothing else.
         # It does not generate orders by itself.
-        self.is_freerider = (peer_type == 0) 
+        self.is_freerider = (peer_type == 'free-rider') 
         
         self.order_orderinfo_mapping = {} # mapping from the order instance to orderinfo instances that have been formally stored.
         self.peer_neighbor_mapping = {} # mapping from the peer instance to neighbor instance. Note, neighborhood relationship must be bilateral.
@@ -1161,16 +1175,18 @@ class Peer:
     
     # The following function establishes a neighborhood relationship.
     # It can only be called by the Simulator function addNewLinksHelper.
+    # Return False if peer is already my neighbor, or True otherwise. 
         
     def addNeighbor(self, peer):
         
-        # if this peer is already a neighbor, there is an error with addNewLinks function.
         if peer in self.peer_neighbor_mapping:
-            raise ValueError('The addNewLinksHelper() function is requesting me to add my current neighbor.')
+            return False
                 
         # create new neighbor in my local storage
         new_neighbor = Neighbor(self.engine, peer, self, self.local_clock)
         self.peer_neighbor_mapping[peer] = new_neighbor
+        
+        return True
         
     # This function defines what a peer will do if it's notified by someone for cancelling a neighborhood relationship.
     # It will always accept the cancellation, and delete that peer from his neighbor.
@@ -1193,7 +1209,7 @@ class Peer:
             raise ValueError('This peer is not my neighbor. Unable to delete.')
         
         # if remove_order is True, delete all orders whose previous owner is this neighbor
-        if remove_order is True:
+        if remove_order:
             
             for order, orderinfo in self.order_orderinfo_mapping.items():
                 if orderinfo.prev_owner == peer:
@@ -1210,7 +1226,7 @@ class Peer:
                     del self.order_pending_orderinfo_mapping[order]
         
         # if this neighbor is still an active peer, notify him to delete me as well.
-        if notification is True:
+        if notification:
             peer.acceptNeighborCancellation(self)
         
         # delete this neighbor
@@ -1228,7 +1244,7 @@ class Peer:
         if order in self.order_orderinfo_mapping:
             raise ValueError('Duplicated external order. This order is in my local storage.')
 
-        if self.engine.externalOrderAcceptance(self, order) is True:
+        if self.engine.externalOrderAcceptance(self, order):
             
             # create the orderinfo instance and add it into the local mapping table
             new_orderinfo = OrderInfo(self.engine, order, self, self.local_clock)
@@ -1252,7 +1268,7 @@ class Peer:
         
         neighbor = self.peer_neighbor_mapping[peer]
                 
-        if self.engine.internalOrderAcceptance(self, peer, order) is False:
+        if not self.engine.internalOrderAcceptance(self, peer, order):
             # update the contribution of my neighbor for his sharing
             neighbor.share_contribution[-1] += self.engine.pa
             return False
@@ -1273,7 +1289,7 @@ class Peer:
         # If this order has not been formally stored:
         # Need to write it into the pending table (even if there has been one with the same ID).            
         
-        if novelty_update is True:
+        if novelty_update:
             order_novelty = peer.order_orderinfo_mapping[order].novelty + 1
         else:
             order_novelty = peer.order_orderinfo_mapping[order].novelty
@@ -1314,12 +1330,12 @@ class Peer:
         self.engine.orderStorage(self)
                
         # Now store an orderinfo if necessary
-        
-        for order, pending_orderinfolist_of_same_id in self.order_pending_orderinfo_mapping.items():
+               
+        for order, pending_orderinfolist_for_same_order in self.order_pending_orderinfo_mapping.items():
                       
             # Sort the list of pending orderinfo with the same id, so that if
             # there is some order to be stored, it will be the first one.
-            pending_orderinfolist_of_same_id.sort(key = lambda item: item.storage_decision, reverse = True)
+            pending_orderinfolist_for_same_order.sort(key = lambda item: item.storage_decision, reverse = True)
             
             # Update the order instance, e.g., number of pending orders, and remove the hesitator, in advance.
             order.hesitators.remove(self)
@@ -1327,14 +1343,14 @@ class Peer:
             # After sorting, for all pending orderinfo with the same id,
             # either (1) no one is to be stored, or (2) only the first one is stored
             
-            if pending_orderinfolist_of_same_id[0].storage_decision is False: # if nothing is to be stored
-                for pending_orderinfo in pending_orderinfolist_of_same_id:
+            if not pending_orderinfolist_for_same_order[0].storage_decision: # if nothing is to be stored
+                for pending_orderinfo in pending_orderinfolist_for_same_order:
                     # Find the global instance of the sender, and update it.
                     if pending_orderinfo.prev_owner in self.peer_neighbor_mapping: # internal order, sender is still a neighbor
                         self.peer_neighbor_mapping[pending_orderinfo.prev_owner].share_contribution[-1] += self.engine.rc
             
             else: # the first element is to be stored
-                first_pending_orderinfo = pending_orderinfolist_of_same_id[0]
+                first_pending_orderinfo = pending_orderinfolist_for_same_order[0]
                 # Find the global instance for the sender, and update it.
                 if first_pending_orderinfo.prev_owner in self.peer_neighbor_mapping: # internal order, sender is still neighbor
                     self.peer_neighbor_mapping[first_pending_orderinfo.prev_owner].share_contribution[-1] += self.engine.rd
@@ -1345,9 +1361,9 @@ class Peer:
                 
                 
                 # For the rest pending orderinfo in the list, no need to store them, but may need to do other updates
-                for pending_orderinfo in pending_orderinfolist_of_same_id[1:]:
+                for pending_orderinfo in pending_orderinfolist_for_same_order[1:]:
                     
-                    if pending_orderinfo.storage_decision is True:
+                    if pending_orderinfo.storage_decision:
                         raise ValueError('Should not store multiple orders. Wrong in order store decision process.')
                     
                     if pending_orderinfo.prev_owner in self.peer_neighbor_mapping: # internal order, sender is still neighbor
@@ -1368,7 +1384,7 @@ class Peer:
             raise RuntimeError('Share order decision should not be called at this time.')
        
         # free riders do not share any order.
-        if self.is_freerider is True:
+        if self.is_freerider:
             self.new_order_set.clear()
             return
         
@@ -1424,12 +1440,18 @@ class Simulator:
     def __init__(self, scenario, engine, performance):
         
         self.order_full_set = set() # set of orders
-        # list of order sets, each containing all orders of a particular type.
-        self.order_type_set = [set() for _ in range(len(scenario.order_type_ratios))]
+        # mapping from order type to order sets. The value element is a set containing
+        # all orders of a particular type.
+        self.order_type_set_mapping = {}
+        for type_name in scenario.order_type_ratios:
+            self.order_type_set_mapping[type_name] = set()
         
         self.peer_full_set = set() # set of peers
-        # list of peer sets, each containing all peers of a particular type.
-        self.peer_type_set = [set() for _ in range(len(scenario.peer_type_ratios))] 
+        # mapping from peer type to peer sets. The value element is a set containing
+        # all peers of a particular type.
+        self.peer_type_set_mapping = {}
+        for type_name in scenario.peer_type_ratios:
+            self.peer_type_set_mapping[type_name] = set()
         
         self.cur_time = 0 # current system time
         self.latest_order_seq = 0 # sequence number for next order to use
@@ -1446,7 +1468,7 @@ class Simulator:
     # We only consider one type of orders for now. However, we do consider multiple peer types.
     '''
     In current implementation we assume there is only one order type.
-    There is a hard-coded line of creating orders of type 0,
+    There is a hard-coded line of creating orders of type 'default',
     where we create the initial orderbooks for initial peers.
     '''
     
@@ -1456,8 +1478,9 @@ class Simulator:
         peer_seq = self.latest_peer_seq # same as above
         
         # determine the peer types
-        peer_type_vector = random.choices(range(len(self.scenario.peer_type_ratios)),\
-                                          weights = self.scenario.peer_type_ratios, \
+        peer_type_candidates = list(self.scenario.peer_type_ratios)
+        peer_weights = [self.scenario.peer_type_ratios[item] for item in peer_type_candidates]
+        peer_type_vector = random.choices(peer_type_candidates, weights = peer_weights, \
                                           k = self.scenario.init_size)
         
         # first create all peer instances with no neighbors
@@ -1469,22 +1492,23 @@ class Simulator:
             birth_time = random.randint(0, self.scenario.birth_time_span - 1)
             
             # decide the number of orders for this peer
-            num_orders = max(0, round(random.gauss(self.scenario.peer_parameter_list[peer_type]['mean'],\
-                                                   self.scenario.peer_parameter_list[peer_type]['var'])))
+            num_orders = max(0, round(random.gauss(self.scenario.peer_parameter_dict[peer_type]['mean'],\
+                                                   self.scenario.peer_parameter_dict[peer_type]['var'])))
 
             # create all order instances, and the initial orderbooks
             cur_order_set = set()
             
             for _ in range(num_orders):
                 # decide the max expiration for this order
-                expiration = max(0, round(random.gauss(self.scenario.order_parameter_list[0]['mean'],\
-                                                       self.scenario.order_parameter_list[0]['var'])))
+                expiration = max(0, round(random.gauss(self.scenario.order_parameter_dict['default']['mean'],\
+                                                       self.scenario.order_parameter_dict['default']['var'])))
                 
                 # create the order. Order's birth time is cur_time, different from peer's birthtime.
                 # Order's creator is set to be None since the peer is not initiated, but will be changed
                 # in the peer's initiation function.
                 new_order = Order(self.scenario, order_seq, self.cur_time, None, expiration)
                 self.order_full_set.add(new_order)
+                self.order_type_set_mapping['default'].add(new_order)
                 cur_order_set.add(new_order)
                 order_seq += 1
             
@@ -1492,7 +1516,7 @@ class Simulator:
             new_peer = Peer(self.engine, peer_seq, birth_time, cur_order_set, None, peer_type)
             new_peer.local_clock = self.scenario.birth_time_span - 1
             self.peer_full_set.add(new_peer)
-            self.peer_type_set[peer_type].add(new_peer)
+            self.peer_type_set_mapping[peer_type].add(new_peer)
             peer_seq += 1
             
         # update the latest order sequence number and latest peer sequence number
@@ -1510,7 +1534,7 @@ class Simulator:
     # and the function will specify the sequence numbers for the peers and orders.
     '''
     In current implementation we assume there is only one order type.
-    There is a hard-coded line of creating orders of type 0,
+    There is a hard-coded line of creating orders of type 'default',
     where we create the initial orderbook for this peer.
     '''
     
@@ -1523,21 +1547,22 @@ class Simulator:
         cur_order_set = set()
         order_seq = self.latest_order_seq
         for _ in range(num_orders):
-            expiration = max(0, round(random.gauss(self.scenario.order_parameter_list[0]['mean'],\
-                                                   self.scenario.order_parameter_list[0]['var'])))
+            expiration = max(0, round(random.gauss(self.scenario.order_parameter_dict['default']['mean'],\
+                                                   self.scenario.order_parameter_dict['default']['var'])))
             # Now we initiate the new orders, whose creator should be the new peer.
             # But the new peer has not been initiated, so we set the creator to be None temporarily.
             # We will modify it when the peer is initiated.
             # This is tricky and informal, but I don't have a better way of doing it right now.
             new_order = Order(self.scenario, order_seq, self.cur_time, None, expiration)
             self.order_full_set.add(new_order)
+            self.order_type_set_mapping['default'].add(new_order)
             cur_order_set.add(new_order)
             order_seq += 1
         
         # create the new peer, and add it to the table
         new_peer = Peer(self.engine, peer_seq, self.cur_time, cur_order_set, None, peer_type)
         self.peer_full_set.add(new_peer)
-        self.peer_type_set[peer_type].add(new_peer)
+        self.peer_type_set_mapping[peer_type].add(new_peer)
         
         # update latest sequence numbers for peer and order
         self.latest_peer_seq += 1
@@ -1561,7 +1586,7 @@ class Simulator:
         
         # update the peer set of the Simulator
         self.peer_full_set.remove(peer)
-        self.peer_type_set[peer.peer_type].remove(peer)
+        self.peer_type_set_mapping[peer.peer_type].remove(peer)
 
      
     # This function initiates an external order arrival, whose creator is the "target_peer"
@@ -1574,6 +1599,7 @@ class Simulator:
         
         # update the set of orders for the Simulator
         self.order_full_set.add(new_order)
+        self.order_type_set_mapping['default'].add(new_order)
         self.latest_order_seq += 1
         
         # update the order info to the target peer
@@ -1586,19 +1612,20 @@ class Simulator:
 
     def updateGlobalOrderbook(self, order_dept_set = None):
         
-        if order_dept_set is not None:
+        if order_dept_set:
             for order in order_dept_set:
                 order.is_canceled = True
             
         for order in list(self.order_full_set):
             if ((not order.holders) and (not order.hesitators)) \
                or (self.cur_time - order.birthtime >= order.expiration) \
-               or (order.is_settled is True) or (order.is_canceled is True):
+               or order.is_settled or order.is_canceled:
                 for peer in list(order.holders):
                     peer.delOrder(order)
                 for peer in list(order.hesitators):
                     peer.delOrder(order)
                 self.order_full_set.remove(order)
+                self.order_type_set_mapping['default'].remove(order)
                 
         return self.order_full_set       
     
@@ -1626,8 +1653,8 @@ class Simulator:
                 if candidate not in requester.peer_neighbor_mapping \
                    and candidate.acceptNeighborRequest(requester):
                     # mutual add neighbors
-                    candidate.addNeighbor(requester)
-                    requester.addNeighbor(candidate)
+                    if not candidate.addNeighbor(requester) or not requester.addNeighbor(candidate):
+                        raise RuntimeError('Function addNewLinksHelper tries to add some existing neighbor again.')
                     links_added += 1
                     links_added_this_round += 1
                         
@@ -1668,14 +1695,13 @@ class Simulator:
                 raise RuntimeError('Clock system in a mass.')
             
         # new peers come in
-        peer_type_vector = random.choices(range(len(self.scenario.peer_type_ratios)),\
-                                          weights = self.scenario.peer_type_ratios, k = peer_arr_num)
+        peer_type_candidates = list(self.scenario.peer_type_ratios)
+        peer_weights = [self.scenario.peer_type_ratios[item] for item in peer_type_candidates]
+        peer_type_vector = random.choices(peer_type_candidates, weights = peer_weights, k = peer_arr_num)
         
         for peer_type in peer_type_vector:
-            
-            # assuming there is only one type of peers, so taking [0]. Subject to change later.
-            num_init_orders = max(0, round(random.gauss(self.scenario.peer_parameter_list[peer_type]['mean'],\
-                                                        self.scenario.peer_parameter_list[peer_type]['var'])))
+            num_init_orders = max(0, round(random.gauss(self.scenario.peer_parameter_dict[peer_type]['mean'],\
+                                                        self.scenario.peer_parameter_dict[peer_type]['var'])))
             self.peerArrival(peer_type, num_init_orders)
 
         # Now, if the system does not have any peers, stop operations in this round.
@@ -1687,7 +1713,7 @@ class Simulator:
         # if there are only free-riders, then there will be no new order arrival.
         # However, other operations will continue.
         
-        if self.peer_full_set == self.peer_type_set[0]: # all peers are free-riders
+        if self.peer_full_set == self.peer_type_set_mapping['free-rider']: # all peers are free-riders
             order_arr_num = 0
             
         # external orders arrival
@@ -1701,9 +1727,9 @@ class Simulator:
         target_peer_list = random.choices(candidate_peer_list, weights = peer_capacity_weight, k = order_arr_num)
             
         for target_peer in target_peer_list:
-            # decide the max expiration for this order. Assuming there is only one type of orders, so taking [0]. Subject to change later.
-            expiration = max(0, round(random.gauss(self.scenario.order_parameter_list[0]['mean'],\
-                                                   self.scenario.order_parameter_list[0]['var'])))    
+            # decide the max expiration for this order. Assuming there is only one type of orders 'default'. Subject to change later.
+            expiration = max(0, round(random.gauss(self.scenario.order_parameter_dict['default']['mean'],\
+                                                   self.scenario.order_parameter_dict['default']['var'])))    
             self.orderArrival(target_peer, expiration)
             
         # existing orders depart, orders settled, and global orderbook updated
@@ -1730,8 +1756,11 @@ class Simulator:
         self.latest_order_seq = 0 # the next order ID that can be used
         self.latest_peer_seq = 0 # the next peer ID that can be used
         self.peer_full_set.clear() # for each round of simulation, clear everything
-        self.peer_type_set = [set() for _ in range(len(self.scenario.peer_type_ratios))]
+        for item in self.peer_type_set_mapping.values():
+            item.clear()
         self.order_full_set.clear()
+        for item in self.order_type_set_mapping.values():
+            item.clear()
         
         # Initialization, orders are only held by creators
         # Peers do not exchange orders at this moment.
@@ -1759,8 +1788,8 @@ class Simulator:
         
         # performance evaluation
         # input arguments are: time, peer set, normal peer set, free rider set, order set
-        performance_result = self.performance.run(self.cur_time, self.peer_full_set, self.peer_type_set[1],\
-                                  self.peer_type_set[0], self.order_full_set)
+        performance_result = self.performance.run(self.cur_time, self.peer_full_set, self.peer_type_set_mapping['normal'],\
+                                  self.peer_type_set_mapping['free-rider'], self.order_full_set)
         
         return performance_result
         
@@ -1813,7 +1842,7 @@ class Execution:
         if spreading_ratio_lists:
             (best_order_spreading_ratio, worst_order_spreading_ratio)\
                         = DataProcessing.findBestWorstLists(spreading_ratio_lists)
-            average_order_spreading_ratio = DataProcessing.averagingLists(spreading_ratio_lists)
+            average_order_spreading_ratio = DataProcessing.averageLists(spreading_ratio_lists)
             
             plt.plot(average_order_spreading_ratio)
             plt.plot(worst_order_spreading_ratio)
@@ -1865,17 +1894,15 @@ class Execution:
 '''
 The following is one example of a Scenario instance. 
 '''
-
-'''
-parameters
-'''
  
 '''
 parameters
 '''
 
-order_type_ratios = [1] # ratio of orders of each type
-peer_type_ratios = [0.1, 0.9] # ratio of peers of each type
+order_type_ratios = {'default': 1} # ratio of orders of each type
+peer_type_ratios = {'free-rider': 0.1,
+                    'normal': 0.9
+                    } # ratio of peers of each type
 
 # In what follows we use dictionary to generate parameters for a scenario instance.
 # One needs to follow the format. No change on the dictionary keys. Change values only.
@@ -1888,7 +1915,7 @@ order_default_type = {
     'var': 0
     }
 
-order_par_list = [order_default_type] # right now, only one order type
+order_par_dict = {'default': order_default_type} # right now, only one order type
 
 # The following dictionaries specify various peer types.
 # The paramters are the mean and variance of the initial orderbook size of the peer.
@@ -1903,7 +1930,9 @@ peer_normal = {
     'var': 1
     }
 
-peer_par_list = [peer_free_rider, peer_normal] # right now, only one peer type
+peer_par_dict = {'free-rider':peer_free_rider,
+                 'normal': peer_normal
+                 }
 
 # The following dictionary specifies the paramters for the system's initial status.
 
@@ -1934,8 +1963,8 @@ stable_par = {
     'order_dept': 15
     }
 
-s_parameters = (order_type_ratios, peer_type_ratios, order_par_list, \
-                peer_par_list, init_par, growth_par, stable_par)
+s_parameters = (order_type_ratios, peer_type_ratios, order_par_dict, \
+                peer_par_dict, init_par, growth_par, stable_par)
 
 
 '''
