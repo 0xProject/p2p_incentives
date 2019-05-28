@@ -4,18 +4,18 @@ Multiprocessing execution
 ======================
 '''
 
-from simulator import Simulator
-from multiprocessing import Pool
-import matplotlib.pyplot as plt
-import data_processing 
-
-
 # This class contains functions that runs the simulator multiple times, using a multiprocessing manner,
 # and finally, average the performance measures and output corresponding figures.
 # The need of running the simulator multiple times comes from randomness. Due to randomness, each time the
 # simulator is run, the result can be quite different, so figures are not smooth.
 # Due to the fact that each time the simulator running is totally independent,
 # we use multiprocessing to reduce execution time.
+
+from simulator import Simulator
+from multiprocessing import Pool
+import matplotlib.pyplot as plt
+import data_processing 
+
 
 class Execution:
     
