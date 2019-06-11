@@ -5,7 +5,7 @@ June 10, 2019
 
 ## Purpose
 
-This simulator works for 0x mesh.
+This simulator is meant to run simulations for 0x mesh.
 Its initial aim is to facilitate the decision of key design choices in such system.
 It is not constriant by any particular design choice, but works as a platform so that
 any mechanism can be plug into the simulator.
