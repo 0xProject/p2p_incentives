@@ -1,0 +1,24 @@
+version: 2
+jobs:
+  lint:
+    docker:
+      - image: circleci/python
+    steps:
+      - checkout
+      - run: sudo chown -R circleci:circleci /usr/local/bin
+      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.7
+      - restore_cache:
+            key: dependencies-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
+      - run: python -mensurepip
+      - run: pip install .[dev]
+      - save_cache:
+            key: deps9-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
+            paths:
+                - '/usr/local/bin'
+                - '/usr/local/lib/python3.7/site-packages'
+      - run: python setup.py lint
+workflows:
+  version: 2
+  do_everything:
+    jobs:
+      - lint

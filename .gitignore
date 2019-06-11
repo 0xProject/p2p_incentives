@@ -1,0 +1,7 @@
+dist
+build
+__pycache__
+.coverage
+.eggs
+.mypy_cache
+.tox
