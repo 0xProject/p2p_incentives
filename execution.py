@@ -4,10 +4,12 @@ Multiprocessing execution
 ======================
 """
 
-# This class contains functions that runs the simulator multiple times, using a multiprocessing manner,
-# and finally, average the performance measures and output corresponding figures.
-# The need of running the simulator multiple times comes from randomness. Due to randomness, each time the
-# simulator is run, the result can be quite different, so figures are not smooth.
+# This class contains functions that runs the simulator multiple times, using a
+# multiprocessing manner, and finally, average the performance measures and
+# output corresponding figures.
+# The need of running the simulator multiple times comes from randomness. Due
+# to randomness, each time the simulator is run, the result can be quite
+# different, so figures are not smooth.
 # Due to the fact that each time the simulator running is totally independent,
 # we use multiprocessing to reduce execution time.
 
@@ -45,8 +47,9 @@ class Execution:
                 ],
             )
 
-        # Unpacking and re-organizing the performance evaluation results such that
-        # performance_measure[i] is the list of i-th performance result in all runs.
+        # Unpacking and re-organizing the performance evaluation results such
+        # that performance_measure[i] is the list of i-th performance result in
+        # all runs.
         performance_measure = (
             dict()
         )  # [None for _ in range(len(performance_result_list[0]))]
@@ -60,7 +63,8 @@ class Execution:
 
         # process each performance result
 
-        # processing spreading ratio, calculate best, worst, and average spreading ratios
+        # processing spreading ratio, calculate best, worst, and average
+        # spreading ratios
         spreading_ratio_lists = performance_measure["order_spreading"]
         if spreading_ratio_lists:
             (
@@ -122,7 +126,8 @@ class Execution:
                 )
             except:
                 raise RuntimeError(
-                    "Seems wrong somewhere since there is no result for fairness in any run."
+                    "Seems wrong somewhere since there is no result for"
+                    " fairness in any run."
                 )
             else:
                 plt.plot(system_fairness_density)
