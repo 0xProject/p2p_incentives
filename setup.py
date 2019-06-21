@@ -34,7 +34,6 @@ class LintCommand(distutils.command.build_py.build_py):
         """Run linter shell commands."""
         files = " ".join(glob.glob("./*.py"))
         lint_commands = [
-            # Uncomment the other formatting/linting tools.
             # # formatter:
             # ("black --line-length 79 --check --diff " + files).split(),
             # # style guide checker (formerly pep8):
