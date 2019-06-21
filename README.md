@@ -30,8 +30,8 @@ At each time point:
 
 - Class Peer represents peers in the system.
 
-- Class Neighbor represents the neighbors of a particular peer. A neighbor is physically another peer, 
-but with some extra local information.
+- Class Neighbor represents the neighbors of a particular peer. A neighbor is physically another
+peer, but with some extra local information.
 
 - Class Order represents orders in the system.
 - Class OrderInfo represents an order instance stored in a peer's local storage or pending table.
@@ -44,17 +44,19 @@ but with some extra local information.
 - Class Performance contains performance measures.
     Functions that implement performance evaluations are in module performance_candidates.
    
-- Module data_processing contains some data processing functions that will be used by functions elsewhere.
+- Module data_processing contains some data processing functions that will be used by functions
+elsewhere.
 
 - Class Simulator contains all system functions for the simulator to run.
 
-- Class Execution contains functions that run the simulator in multi-processing manner and generates the result.
+- Class Execution contains functions that run the simulator in multi-processing manner and generates
+the result.
 
-- Module example generates an example of the simulator input. It contains all testing points by constructing instances
- for Scenario, Engine, and Performance classes.
+- Module example generates an example of the simulator input. It contains all testing points by
+constructing instances for Scenario, Engine, and Performance classes.
 
-- Module run is the main file that runs the simulator. It gets inputs from Example, and runs the Execution for each 
-input.
+- Module run is the main file that runs the simulator. It gets inputs from Example, and runs the
+Execution for each input.
 
 ## Design details
 
@@ -70,66 +72,75 @@ input.
 		- Procedure is: random selection of peers -> send invitation to the other party -> Accepted?
         	- Y: both sides add neighbors
         	- N: nothing happens.
-        	- Accept or reject: Always accept if # of my neighbor has not reached the pre-set maximal value.
-    - If neighbor departs or it is considered as lazy (score is too low) for a long time, neighborhood is cancelled.
-   		- Procedure is: delete my neighbor -> notify my neighbor (if he's still alive) to delete me too.
+        	- Accept or reject: Always accept if # of my neighbor has not reached the pre-set 
+        	  maximal value.
+    - If neighbor departs or it is considered as lazy (score is too low) for a long time, 
+      neighborhood is cancelled.
+   		- Procedure is: delete my neighbor -> notify my neighbor (if he's still alive) to delete me 
+   		  too.
 
-2. Order flows: arrival -> accept to pending table -> accept to local storage -> share it with others
+2. Order flows: arrival -> accept to pending table -> accept to local storage -> share with others
 
 	- Order arrival: two forms of arrival: internal and external.
 		- Internal: caused by a neighbor sharing an order. Can happen any time.
     	- External: caused by an external order arrival. Can also happen any time.
-    	- If it happens, the arrival will call the targeting peer's function receive_order_internal() or 
-    	receive_order_external().
+    	- If it happens, the arrival will call the targeting peer's function 
+    	receive_order_internal() or receive_order_external().
 
-	- Order acceptance: The functions receiveOrderInternal or receive_order_external() can only be called by order sharing
-    or external order arrival, at any time. These functions will determine whether or not to put the orders into 
-    the pending table.
+	- Order acceptance: The functions receiveOrderInternal or receive_order_external() can only be 
+	called by order sharing or external order arrival, at any time. These functions will 
+	determine whether or not to put the orders into the pending table.
     
-	- Order storing: This function can only be called from the Simulator class proactively. No other function calls it.
-    It runs only at the end of a batch period. It will decide whether to put pending orders into the local storage.
-    Pending table will be cleared.
+	- Order storing: This function can only be called from the Simulator class proactively. 
+	No other function calls it.
+    It runs only at the end of a batch period. It will decide whether to put pending orders into the
+    local storage. Pending table will be cleared.
     
-	- Order sharing: This function can only be called from the Simulator class proactively, following order storing.
+	- Order sharing: This function can only be called from the Simulator class proactively, 
+	following order storing.
     No other function calls it. It runs only at the end of a batch period.
     It will decide whether to share any stored order to any neighbor.
     It will call neighbor ranking function, which will first update neighbor scores.
     
-3. Peer init will directly put some orders into the local storage, without going through pending table.
-    For new peers, the birth time is the end of the 0th batch period, so order sharing will be called at birth.
+3. Peer init will directly put some orders into the local storage, without going through pending 
+table. For new peers, the birth time is the end of the 0th batch period, so order sharing will be
+ called at birth.
     
 4. New neighbor establishment does not call any order-related operations.
-    - That being said, if I am an old peer but I am newly accepted by some other peer in the system as his neighbor,
-    I need to wait until the end of batch period of the peer who accepted me, to receive his sharing;
-    I will also wait until the end of my batch period, to share with him my orders.
+    - That being said, if I am an old peer but I am newly accepted by some other peer in the system 
+    as his neighbor,
+    I need to wait until the end of batch period of the peer who accepted me, to receive his 
+    sharing; I will also wait until the end of my batch period, to share with him my orders.
          
 ## Some Options:
 
-- When an order is transmitted, we have an option "novelty" to indicate how may hops have this order been transmitted.
-  If there is no fee sharing, we can disable this function since orders are not differentiable via hop numbers.
-  If fee sharing is enabled, then enabling this feature will be useful (since some versions of a transmitted order 
-  can fill in a taker fee, some cannot).
+- When an order is transmitted, we have an option "novelty" to indicate how may hops have this order
+ been transmitted.
+  If there is no fee sharing, we can disable this function since orders are not differentiable via 
+  hop numbers.
+  If fee sharing is enabled, then enabling this feature will be useful (since some versions of a 
+  transmitted order can fill in a taker fee, some cannot).
 
 - When a peer A deletes a neighbor B, we have an option for A to delete orders that are transmitted
-    from B (in which case we call B is the order's previous owner). Normally we don't need to enable this feature, 
-    but if this neighbor is malicious, you may want to delete all orders from it.
+    from B (in which case we call B is the order's previous owner). Normally we don't need to enable
+    this feature, but if this neighbor is malicious, you may want to delete all orders from it.
 
 ## Limitations
 
-- In blockchain, the status of an order settlement is based on consensus, so it is in an asymptotic sense.
-  There might be different beliefs/forks due to latency in the mesh network, but for now,
-  we assume that there is some global grand truth for an order's status.
-  This simplification ignores races and may bring inaccuracy.
+- In blockchain, the status of an order settlement is based on consensus, so it is in an asymptotic 
+sense. There might be different beliefs/forks due to latency in the mesh network, but for now, we
+assume that there is some global grand truth for an order's status. This simplification ignores 
+races and may bring inaccuracy.
 
 - Discrete time setting might be less accurate than event driven simulation.
 
 - We do not model communication delay.
 
-- Once there are more replicas of an order in the system, there is a better opportunity for settlement.
-    This is not reflected.
+- Once there are more replicas of an order in the system, there is a better opportunity for 
+settlement. This is not reflected.
 
-- There is no namespacing (i.e., peers have particular interest in some trading pairs and only store/share these orders)
- right now.
+- There is no namespacing (i.e., peers have particular interest in some trading pairs and only 
+store/share these orders) right now.
 
 - Neighborhood topology is totally random.
   

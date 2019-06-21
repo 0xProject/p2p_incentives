@@ -13,7 +13,8 @@ def set_preference_passive(neighbor, _peer, _master, preference):
     The physical meaning is: if the neighbor knows the value to set, then set it as that value;
     otherwise, the default value for preference is None, so simply set it as None.
     :param neighbor: the neighbor instance of the neighbor to be set a preference
-    :param _peer: the peer instance for this neighbor. In the passive implementation we don't need to use it.
+    :param _peer: the peer instance for this neighbor. In the passive implementation we don't
+    need to use it.
     :param _master: the peer instance of the node who wants to set the preference for its neighbor.
     In the passive implementation we don't need to use it.
     :param preference: the pre-set value of the preference. Default is None.
@@ -49,7 +50,8 @@ def store_first(peer):
 
     # Let "order_a" and "order_b" be two order instances. Let "orderinfo_a1" and "orderinfo_a2"
     # be two orderinfo instances which both refer to order_a. Let "orderinfo_b1" and "orderinfo_b2"
-    # be two orderinfo instances which both refer to order_b. Then peer.order_pending_orderinfo_mapping will look like:
+    # be two orderinfo instances which both refer to order_b. Then
+    # peer.order_pending_orderinfo_mapping will look like:
     # peer.order_pending_orderinfo_mapping =
     # { order_a: [orderinfo_a1, orderinfo_a2],
     #   order_b: [orderinfo_b1, orderinfo_b2] }.
@@ -82,7 +84,8 @@ def share_all_new_selected_old(max_to_share, old_prob, peer):
 
     remaining_share_size = max(0, max_to_share - len(new_order_set))
     probability_selection_size = round(len(old_order_set) * old_prob)
-    selected_order_set |= set(random.sample(old_order_set, min(remaining_share_size, probability_selection_size)))
+    selected_order_set |= set(random.sample(old_order_set, min(remaining_share_size,
+                                                               probability_selection_size)))
     return selected_order_set
 
 
@@ -94,17 +97,20 @@ def weighted_sum(lazy_contribution, lazy_length, discount, peer):
     (2) update the queue by moving one step forward and delete the oldest element, and
     (3) delete a neighbor if it has been lazy for a long time.
     If a neighbor's score is under self.lazy_contribution, it is "lazy" in this batch;
-    If a neighbor has been lazy for self.lazy_length batches, it is permanently lazy and gets kicked off.
+    If a neighbor has been lazy for self.lazy_length batches, it is permanently lazy and gets
+    kicked off.
     :param lazy_contribution: see explanation above.
     :param lazy_length: see explanation above.
-    :param discount: a list of weights for each element of the score queue. The score is a weighted sum of the
-    elements in the queue.
+    :param discount: a list of weights for each element of the score queue. The score is a
+    weighted sum of the elements in the queue.
     :param peer: the peer instance of the node that does the calculation.
     :return: None. The score is recorded in neighbor.score
     """
 
-    for neighboring_peer in list(peer.peer_neighbor_mapping):  # neighboring_peer is the peer instance for a neighbor
-        neighbor = peer.peer_neighbor_mapping[neighboring_peer]  # neighbor is the neighbor instance for a neighbor
+    # neighboring_peer is the peer instance for a neighbor
+    # neighbor is the neighbor instance for a neighbor
+    for neighboring_peer in list(peer.peer_neighbor_mapping):
+        neighbor = peer.peer_neighbor_mapping[neighboring_peer]
         # update laziness
         if neighbor.share_contribution[-1] <= lazy_contribution:
             neighbor.lazy_round += 1
@@ -122,13 +128,13 @@ def tit_for_tat(baby_ending, mutual, optimistic, time_now, peer):
     This is a candidate design to select beneficiaries from neighbors.
     It is called by method neighbors_to_share() in class Engine.
     The choice is similar to tit-for-tat in BitTorrent.
-    If this is a new peer (age <= baby_ending) so it does not know its neighbors well,
-    it shares to random neighbors (# = mutual + optimistic).
-    Otherwise, it shares to (# = "mutual") high-reputation neighbors,
-    and (# = "optimistic") of other random neighbors.
-    In the case fewer than (# = "mutual") neighbors have positive scores, only select the neighbors with positive
-    scores as high-reputation neighbors. The number of other random neighbors is still "optimistic"
-    (i.e., the quota for beneficiaries is not fully utilized in such a case).
+    If this is a new peer (age <= baby_ending) so it does not know its neighbors well, it shares
+    to random neighbors (# = mutual + optimistic). Otherwise, it shares to (# = "mutual")
+    high-reputation neighbors, and (# = "optimistic") of other random neighbors.
+    In the case fewer than (# = "mutual") neighbors have positive scores, only select the
+    neighbors with positive scores as high-reputation neighbors. The number of other random
+    neighbors is still "optimistic" (i.e., the quota for beneficiaries is not fully utilized in
+    such a case).
     :param baby_ending: see explanation above.
     :param mutual: see explanation above.
     :param optimistic: see explanation above.
@@ -140,19 +146,22 @@ def tit_for_tat(baby_ending, mutual, optimistic, time_now, peer):
     selected_peer_set = set()
     if time_now - peer.birth_time <= baby_ending:  # This is a new peer. Random select neighbors.
         selected_peer_set |= set(random.sample(list(peer.peer_neighbor_mapping),
-                                               min(len(peer.peer_neighbor_mapping), mutual + optimistic)))
+                                               min(len(peer.peer_neighbor_mapping), mutual +
+                                                   optimistic)))
     else:  # This is an old peer
         # ranked_list_of_peers is a list of peer instances who are my neighbors
         # and they are ranked according to their scores that I calculate.
         ranked_list_of_peers = peer.rank_neighbors()
         mutual = min(mutual, len(ranked_list_of_peers))
-        while mutual > 0 and peer.peer_neighbor_mapping[ranked_list_of_peers[mutual - 1]].score == 0:
+        while mutual > 0 and peer.peer_neighbor_mapping[ranked_list_of_peers[mutual - 1]].score\
+                == 0:
             mutual -= 1
 
         highly_ranked_peers_list = ranked_list_of_peers[:mutual]
         lowly_ranked_peers_list = ranked_list_of_peers[mutual:]
         selected_peer_set |= set(highly_ranked_peers_list)
-        selected_peer_set |= set(random.sample(lowly_ranked_peers_list, min(len(lowly_ranked_peers_list), optimistic)))
+        selected_peer_set |= set(random.sample(lowly_ranked_peers_list, min(len(
+            lowly_ranked_peers_list), optimistic)))
     return selected_peer_set
 
 
@@ -163,7 +172,7 @@ def random_recommendation(_requester, base, target_number):
     The choice is to choose (# = target_number) elements from the base
     (the set of all candidates) in a totally random manner.
     The current implementation does not need to take in the argument of requester.
-    :param _requester: the peer instance of the node who makes the request for neighbor introduction.
+    :param _requester: the peer instance of the node who makes request for neighbor introduction.
     :param base: see above for explanation.
     :param target_number: see above for explanation.
     :return: set of peer instances selected from base.

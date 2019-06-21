@@ -10,11 +10,12 @@ import data_processing
 
 class Execution:
     """
-    This class contains functions that runs the simulator multiple times, using a multiprocessing manner,
-    and finally, average the performance measures and output corresponding figures.
-    The need of running the simulator multiple times comes from randomness. Due to randomness, each time the
-    simulator is run, the result can be quite different, so figures are not smooth.
-    Since each time the simulator running is totally independent, we use multiprocessing to reduce execution time.
+    This class contains functions that runs the simulator multiple times, using a multiprocessing
+    manner, and finally, average the performance measures and output corresponding figures.
+    The need of running the simulator multiple times comes from randomness. Due to randomness,
+    each time the simulator is run, the result can be quite different, so figures are not smooth.
+    Since each time the simulator running is totally independent, we use multiprocessing to reduce
+    execution time.
     """
 
     def __init__(self, scenario, engine, performance, rounds=40, multi_pools=32):
@@ -51,15 +52,17 @@ class Execution:
         # It is fine to have many locals here.
 
         with Pool(self.multi_pools) as my_pool:
-            performance_result_list = my_pool.map(self.make_run, [(self.scenario, self.engine,
-                                                                   self.performance) for _ in range(self.rounds)])
+            performance_result_list = my_pool.map\
+                (self.make_run, [(self.scenario, self.engine, self.performance) for _ in range(
+                    self.rounds)])
 
         # Unpacking and re-organizing the performance evaluation results such that
-        # performance_measure[key] is a list of performance results in all runs for the metric "key."
+        # performance_measure[key] is a list of performance results in all runs for metric "key."
 
         performance_measure = dict()
         for measure_key in performance_result_list[0].keys():
-            performance_measure[measure_key] = list(item[measure_key] for item in performance_result_list
+            performance_measure[measure_key] = list(item[measure_key] for item in
+                                                    performance_result_list
                                                     if item[measure_key] is not None)
 
         # process each performance result
@@ -87,14 +90,16 @@ class Execution:
         normal_peer_satisfaction_lists = performance_measure['normal_peer_satisfaction']
         if normal_peer_satisfaction_lists:
             legend_label.append('normal peer')
-            normal_satisfaction_density = data_processing.calculate_density(normal_peer_satisfaction_lists)
+            normal_satisfaction_density = data_processing.calculate_density(
+                normal_peer_satisfaction_lists)
             plt.plot(normal_satisfaction_density)
 
         # Free riders next.
         free_rider_satisfaction_lists = performance_measure['free_rider_satisfaction']
         if free_rider_satisfaction_lists:
             legend_label.append('free rider')
-            free_rider_satisfaction_density = data_processing.calculate_density(free_rider_satisfaction_lists)
+            free_rider_satisfaction_density = data_processing.calculate_density(
+                free_rider_satisfaction_lists)
             plt.plot(free_rider_satisfaction_density)
 
         # plot normal peers and free riders satisfactions in one figure.
@@ -112,7 +117,8 @@ class Execution:
                 system_fairness_density = data_processing.\
                     calculate_density([[item for item in system_fairness if item is not None]])
             except ValueError:
-                raise RuntimeError('Seems wrong somewhere since there is no result for fairness in any run.')
+                raise RuntimeError('Seems wrong somewhere since there is no result for fairness '
+                                   'in any run.')
             else:
                 plt.plot(system_fairness_density)
                 plt.legend(['fairness density'], loc='upper left')

@@ -16,8 +16,8 @@ class Neighbor:
     """
 
     # pylint: disable=too-few-public-methods
-    # Though neighbor class does not have any public method, it is still fine to use a class instead of namedtuple,
-    # otherwise we won't be able to change the value of the parameters.
+    # Though neighbor class does not have any public method, it is still fine to use a class
+    # instead of namedtuple, otherwise we won't be able to change the value of the parameters.
 
     def __init__(self, engine, peer, master, est_time, preference=None):
         # pylint: disable=too-many-arguments
@@ -41,9 +41,10 @@ class Neighbor:
 
         self.score = 0  # the score to evaluate my neighbor.
 
-        # lazy_round is the number of batch periods over which this peer has be regarded as a lazy neighbor.
-        # A neighbor is regarded as lazy if its score in one batch is below a certain value.
-        # Default for lazy_round is 0. Increased by 1 if its score is below that certain value, or reset to 0 otherwise.
+        # lazy_round is the number of batch periods over which this peer has be regarded as a
+        # lazy neighbor. A neighbor is regarded as lazy if its score in one batch is below a
+        # certain value. Default for lazy_round is 0. Increased by 1 if its score is below that
+        # certain value, or reset to 0 otherwise.
         self.lazy_round = 0
 
 
@@ -62,7 +63,8 @@ class Peer:
 
         # pylint: disable=too-many-arguments
         # It is fine to have seven argument here.
-        # Note: initialization deals with initial orders, but does not establish neighborhood relationships.
+        # Note: initialization deals with initial orders, but does not establish neighborhood
+        # relationships.
 
         self.local_clock = birth_time
 
@@ -71,9 +73,8 @@ class Peer:
         self.seq = seq # sequence number. Not in use now, for reserve purpose only.
         self.birth_time = birth_time
         self.init_orderbook_size = len(init_orders)
-        self.namespacing = namespacing  # A peer's namespacing is its interest in certain trading groups.
-
-        self.peer_type = peer_type # Refers to a peer type (e.g., big/small relayer). Its value is a string (or None).
+        self.namespacing = namespacing  # Namespacing is its interest in certain trading groups.
+        self.peer_type = peer_type  # Refers to a peer type (e.g., big/small relayer).
 
         # This denotes if this peer is a free rider (no contribution to other peers)
         # This is a redundant variable, for better readability only.
@@ -83,21 +84,23 @@ class Peer:
 
         # mapping from the order instance to orderinfo instances that have been formally stored.
         self.order_orderinfo_mapping = {}
-        # mapping from the peer instance to neighbor instance. Note, neighborhood relationship must be bilateral.
+        # mapping from the peer instance to neighbor instance. Note, neighborhood relationship
+        # must be bilateral.
         self.peer_neighbor_mapping = {}
         # set of newly and formally-stored orders that have NEVER been shared out by this peer.
         self.new_order_set = set()
 
-        # The following mapping maintains a table of pending orders, by recording their orderinfo instance.
-        # Note that an order can have multiple orderinfo instances, because it can be forwarded by different neighbors.
+        # The following mapping maintains a table of pending orders, by recording their orderinfo
+        # instance. Note that an order can have multiple orderinfo instances, because it can be
+        # forwarded by different neighbors.
         self.order_pending_orderinfo_mapping = {}
 
         if self.is_free_rider and init_orders:
             raise ValueError('Free riders should not have their own orders.')
 
         # initiate orderinfo instances
-        for order in init_orders:  # initial orders will directly be stored without going through the storage decision.
-
+        # initial orders will directly be stored without going through the storage decision.
+        for order in init_orders:
             # if this order is created by this peer, but in the peer initialization,
             # it was unable to define the creator as this peer since the peer has not been created.
             # there we defined the creator as None, and we will modify here.
@@ -109,16 +112,19 @@ class Peer:
             self.order_orderinfo_mapping[order] = new_orderinfo
             self.new_order_set.add(order)
 
-            new_orderinfo.storage_decision = True  # not sure if this is useful. Just keep it here to keep consistency.
+            # not sure if this is useful. Just keep it here to keep consistency.
+            new_orderinfo.storage_decision = True
             order.holders.add(self)
 
     def should_accept_neighbor_request(self, requester):
         """
-        This method is for a peer instance to determine whether they accept a neighbor establishment request or not.
-        It is called when a request of establishing a neighborhood relationship is
-        called from another peer. This peer, which is requested, will return True for agreement by default,
+        This method is for a peer instance to determine whether they accept a neighbor
+        establishment request or not.
+        It is called when a request of establishing a neighborhood relationship is called from
+        another peer. This peer, which is requested, will return True for agreement by default,
         False if the current # of neighbors already reaches the maximal.
-        :param requester: the peer instance of another node requesting to establish a new neighborhood relationship.
+        :param requester: the peer instance of another node requesting to establish a new
+        neighborhood relationship.
         :return: True if accepted, or False otherwise.
         Note: this method does not establish neighborhood relationship by itself.
         It accepts or rejects the request only.
@@ -146,10 +152,11 @@ class Peer:
 
     def accept_neighbor_cancellation(self, requester):
         """
-        This method defines what a peer will do if it's notified by someone for cancelling a neighborhood relationship.
-        It will always accept the cancellation, and delete that peer from his neighbor.
-        Note that this is different from a real system that a peer simply drops a neighborhood relationship
-        without need of being accepted by the other side. This function is for simulation bookkeeping purpose only.
+        This method defines what a peer will do if it's notified by someone for cancelling a
+        neighborhood relationship. It will always accept the cancellation, and delete that peer
+        from his neighbor. Note that this is different from a real system that a peer simply
+        drops a neighborhood relationship without need of being accepted by the other side. This
+        function is for simulation bookkeeping purpose only.
         :param requester: peer instance of the node requesting to cancel neighborhood.
         :return: None.
         Explanation: If I am removed as a neighbor by my neighbor, I will delete him as well.
@@ -182,7 +189,7 @@ class Peer:
                 for idx, orderinfo in enumerate(orderinfo_list):
                     if orderinfo.prev_owner == peer:
                         del orderinfo_list[idx]
-                if not orderinfo_list:  # no pending orderinfo for this order. need to delete this entry
+                if not orderinfo_list:  # no pending orderinfo. need to delete this entry
                     order.hesitators.remove(self)
                     del self.order_pending_orderinfo_mapping[order]
 
@@ -196,8 +203,8 @@ class Peer:
     def receive_order_external(self, order):
         """
         This method is called by method order_arrival() in class Simulator.
-        An OrderInfo instance will be created and put into pending table
-        (just to keep consistent with method receive_order_internal(), though most likely it will be accepted).
+        An OrderInfo instance will be created and put into pending table (just to keep consistent
+        with method receive_order_internal(), though most likely it will be accepted).
         :param order: the order instance of the order arrived externally.
         :return: None
         """
@@ -211,12 +218,14 @@ class Peer:
             new_orderinfo = OrderInfo(self.engine, order, self, self.local_clock)
             self.order_pending_orderinfo_mapping[order] = [new_orderinfo]
             # update the number of replicas for this order and hesitator of this order
-            order.hesitators.add(self) # a peer is a hesitator of an order if this order is in its pending table
+            # a peer is a hesitator of an order if this order is in its pending table
+            order.hesitators.add(self)
 
     def receive_order_internal(self, peer, order, novelty_update=False):
         """
         The method is called by method share_order() in class Simulator.
-        It will immediately decide whether to put the order from the peer (who is my neighbor) into my pending table.
+        It will immediately decide whether to put the order from the peer (who is my neighbor)
+        into my pending table.
         :param peer: the peer instance of the node who sends the order
         :param order: the order instance.
         :param novelty_update: an binary option. if True, the value of OrderInfo
@@ -237,8 +246,8 @@ class Peer:
         if order in self.order_orderinfo_mapping:  # no need to store again
             orderinfo = self.order_orderinfo_mapping[order]
             if orderinfo.prev_owner == peer:
-                # I have this order in my local storage. My neighbor is sending me the same order again.
-                # It may be due to randomness of sharing old orders.
+                # I have this order in my local storage. My neighbor is sending me the same order
+                # again. It may be due to randomness of sharing old orders.
                 neighbor.share_contribution[-1] += self.engine.reward_a
             else:
                 # I have this order in my local storage, but it was from someone else.
@@ -246,8 +255,8 @@ class Peer:
                 neighbor.share_contribution[-1] += self.engine.reward_b
             return
 
-        # If this order has not been formally stored:
-        # Need to write it into the pending table (even if there has been one with the same sequence number).
+        # If this order has not been formally stored: Need to write it into the pending table (
+        # even if there has been one with the same sequence number).
 
         if novelty_update:
             order_novelty = peer.order_orderinfo_mapping[order].novelty + 1
@@ -255,19 +264,21 @@ class Peer:
             order_novelty = peer.order_orderinfo_mapping[order].novelty
 
         # create an orderinfo instance
-        new_orderinfo = OrderInfo(self.engine, order, self, self.local_clock, None, peer, order_novelty)
+        new_orderinfo = OrderInfo(self.engine, order, self, self.local_clock, None, peer,
+                                  order_novelty)
 
         # If no such order in the pending list, create an entry for it
         if order not in self.order_pending_orderinfo_mapping:  # order not in the pending set
             self.order_pending_orderinfo_mapping[order] = [new_orderinfo]
             order.hesitators.add(self)
-            # Put into the pending table. Share reward will be updated when a storing decision is made.
+            # Put into the pending table. Reward will be updated when storing decision is made.
             return
 
-        # If there is such an order in the pending list, check if this order is from the same prev_owner.
+        # If there is such an order in the pending list, check if it is from the same prev_owner.
         for existing_orderinfo in self.order_pending_orderinfo_mapping[order]:
             if peer == existing_orderinfo.prev_owner:
-                # This neighbor is sending duplicates to me in a short period of time. Likely to be a malicious one.
+                # This neighbor is sending duplicates to me in a short period of time. Likely to
+                # be a malicious one.
                 neighbor.share_contribution[-1] += self.engine.penalty_b
                 return
 
@@ -296,7 +307,8 @@ class Peer:
             # there is some order to be stored, it will be the first one.
             orderinfo_list.sort(key=lambda item: item.storage_decision, reverse=True)
 
-            # Update the order instance, e.g., number of pending orders, and remove the hesitator, in advance.
+            # Update the order instance, e.g., number of pending orders, and remove the
+            # hesitator, in advance.
             order.hesitators.remove(self)
 
             # After sorting, for all pending orderinfo with the same order instance,
@@ -322,10 +334,12 @@ class Peer:
                 self.new_order_set.add(order)
                 order.holders.add(self)
 
-                # For the remaining pending orderinfo in the list, no need to store them, but may need updates
+                # For the remaining pending orderinfo in the list, no need to store them,
+                # but may need updates.
                 for pending_orderinfo in orderinfo_list[1:]:
                     if pending_orderinfo.storage_decision:
-                        raise ValueError('Should not store multiple orders. Wrong in order store decision process.')
+                        raise ValueError('Should not store multiple orders. Wrong in order store '
+                                         'decision process.')
                     # internal order, sender is still neighbor
                     if pending_orderinfo.prev_owner in self.peer_neighbor_mapping:
                         # update the share contribution
@@ -385,8 +399,10 @@ class Peer:
 
     def rank_neighbors(self):
         """
-        This method ranks neighbors according to their scores. It is called by internal method share_orders().
-        :return: a list peer instances ranked by the scores of their corresponding neighbor instances.
+        This method ranks neighbors according to their scores. It is called by internal method
+        share_orders().
+        :return: a list peer instances ranked by the scores of their corresponding neighbor
+        instances.
         """
         self.engine.score_neighbors(self)
         peer_list = list(self.peer_neighbor_mapping)

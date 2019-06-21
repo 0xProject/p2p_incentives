@@ -16,11 +16,13 @@ def order_spreading_ratio_stat(cur_time, order_set, peer_set, max_age_to_track, 
     [n * statistical_interval, (n+1)* statistical_interval), n = 0, 1, ... ,
     and all orders that falls into an interval are all in this window.
     :return: a list of order spreading ratios, corresponding to each statistical window.
-    the index being the i-th statistical window, and each value being the spreading ratio of orders of that window.
-    If all orders of a window are all invalid, then value for that entry is 'None'.
+    the index being the i-th statistical window, and each value being the spreading ratio of
+    orders of that window. If all orders of a window are all invalid, then value for that entry
+    is 'None'.
     The spreading ratio of an order, is defined as the # of peers holding this order,
     over the total # of peers in the peer set.
-    The spreading ratio of a statistical window, is the average spreading ratio of all orders in this window.
+    The spreading ratio of a statistical window, is the average spreading ratio of all orders in
+    this window.
     """
 
     num_active_peers = len(peer_set)
@@ -35,7 +37,7 @@ def order_spreading_ratio_stat(cur_time, order_set, peer_set, max_age_to_track, 
 
     for idx, sublist in enumerate(order_spreading_ratio):
         if sublist:
-            order_spreading_ratio[idx] = statistics.mean(sublist) # sum(item for item in sublist) / len(sublist)
+            order_spreading_ratio[idx] = statistics.mean(sublist)
         else:
             order_spreading_ratio[idx] = None
     return order_spreading_ratio
@@ -85,17 +87,19 @@ def peer_order_stat_on_window(peer, cur_time, max_age_to_track, statistical_wind
     return num_orders_this_peer_stores
 
 
-def single_peer_order_receipt_ratio(cur_time, peer, max_age_to_track, statistical_window, order_set):
+def single_peer_order_receipt_ratio(cur_time, peer, max_age_to_track, statistical_window,
+                                    order_set):
     """
-    This is a helper function. It calculates the ratios of orders that a peer receives, over the set of orders given
-    to this function that fall into this window. If there is no order in this window, the value for this entry is None.
+    This is a helper function. It calculates the ratios of orders that a peer receives, over the
+    set of orders given to this function that fall into this window.
+    If there is no order in this window, the value for this entry is None.
     :param cur_time: same as above function.
     :param peer: same as above function.
     :param max_age_to_track: same as above function.
     :param statistical_window: same as above function.
     :param order_set: same as above function.
-    :return: a list, each element being the ratio of orders that this peer receives over all orders in order_set,
-    for this statistical window.
+    :return: a list, each element being the ratio of orders that this peer receives over all
+    orders in order_set, for this statistical window.
     """
 
     def try_division(numerator, denominator):
@@ -105,15 +109,18 @@ def single_peer_order_receipt_ratio(cur_time, peer, max_age_to_track, statistica
             result = None
         return result
 
-    order_stat_based_on_age = order_num_stat_on_age(cur_time, max_age_to_track, statistical_window, order_set)
+    order_stat_based_on_age = order_num_stat_on_age(cur_time, max_age_to_track,
+                                                    statistical_window, order_set)
     num_orders_this_peer_stores = \
         peer_order_stat_on_window(peer, cur_time, max_age_to_track, statistical_window, order_set)
-    peer_observation_ratio = list(map(try_division, num_orders_this_peer_stores, order_stat_based_on_age))
+    peer_observation_ratio = list(map(try_division, num_orders_this_peer_stores,
+                                      order_stat_based_on_age))
 
     return peer_observation_ratio
 
 
-def single_peer_satisfaction_neutral(cur_time, peer, max_age_to_track, statistical_window, order_set):
+def single_peer_satisfaction_neutral(cur_time, peer, max_age_to_track, statistical_window,
+                                     order_set):
     """
     This function calculates a peer's satisfaction based on his observation ratios.
     The neutral implementation is taking average of each observation ratio
@@ -126,7 +133,8 @@ def single_peer_satisfaction_neutral(cur_time, peer, max_age_to_track, statistic
     :return: A single value for this peer's satisfaction, or None if it did not receive anything.
     """
     peer_observation_ratio = \
-        single_peer_order_receipt_ratio(cur_time, peer, max_age_to_track, statistical_window, order_set)
+        single_peer_order_receipt_ratio(cur_time, peer, max_age_to_track, statistical_window,
+                                        order_set)
     try:
         return statistics.mean(item for item in peer_observation_ratio if item is not None)
     except statistics.StatisticsError:

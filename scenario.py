@@ -22,11 +22,15 @@ class Scenario:
         (order_type_ratios, peer_type_ratios, order_par_dict,
          peer_par_dict, init_par, growth_par, stable_par) = parameters
 
-        self.order_type_ratios = order_type_ratios  # ratios of each type of orders, in forms of a dictionary.
-        self.peer_type_ratios = peer_type_ratios  # ratios for each type of peers, in forms of a dictionary.
+        # ratios of each type of orders, in forms of a dictionary.
+        self.order_type_ratios = order_type_ratios
+        # ratios for each type of peers, in forms of a dictionary.
+        self.peer_type_ratios = peer_type_ratios
 
-        self.order_parameter_dict = order_par_dict  # each value is (mean, var) of order expiration of this order type
-        self.peer_parameter_dict = peer_par_dict  # each value is (mean, var) of the initial orderbook size of this type
+        # each value is (mean, var) of order expiration of this order type
+        self.order_parameter_dict = order_par_dict
+        # each value is (mean, var) of the initial orderbook size of this type
+        self.peer_parameter_dict = peer_par_dict
 
         # init period, init_size is number of peers joining the mesh at the very beginning,
         # and the birth time of such peers is randomly distributed over [0,birth_time_span]
@@ -42,9 +46,9 @@ class Scenario:
                              growth_par['order_arrival'], growth_par['order_cancel']]
 
         # stable period (# of peers and # of orders remain relatively stable)
-        # We should choose the parameters such that peer arrival rate is approximately equal to peer departure rate,
-        # and that order arrival rate is approximately equal to the total order departure rate
-        # (due to cancellation, settlement, or expiration).
+        # We should choose the parameters such that peer arrival rate is approximately equal to
+        # peer departure rate, and that order arrival rate is approximately equal to the total
+        # order departure rate (due to cancellation, settlement, or expiration).
 
         self.stable_rounds = stable_par['rounds']
         self.stable_rates = [stable_par['peer_arrival'], stable_par['peer_dept'],
@@ -59,22 +63,25 @@ class Scenario:
 
     def generate_event_counts_over_time(self, rate, max_time):
         """
-        This method generates events according to some pattern. It reads self.option_number_of_events['method']
-        to determine the pattern, takes the expected rate (could be a value or a tuple of values),
-        & the length of time slots as input, and outputs the number of incidents in each time slot.
+        This method generates events according to some pattern. It reads
+        self.option_number_of_events['method'] to determine the pattern, takes the expected rate
+        (could be a value or a tuple of values), & the length of time slots as input, and outputs
+        the number of incidents in each time slot.
         Current pattern implementations: Poisson process and Hawkes process.
         :param rate: expected rate of event happening. Can be a real value or a tuple of values,
         depending on the method of generating the event.
         :param max_time: maximal time to generate events.
-        :return: A realization of event happening, in terms of # of events happening in each time slot.
+        :return: A realization of event happening, in terms of # of events happening in each slot.
         """
 
         if self.option_number_of_events['method'] == 'Poisson':
             return numpy.random.poisson(rate, max_time)
         if self.option_number_of_events['method'] == 'Hawkes':
-            # Note that the rate parameters for Hawkes are a tuple of variables, explained in hawkes() function.
+            # Note that the rate parameters for Hawkes are a tuple of variables,
+            # explained in hawkes() function.
             return scenario_candidates.hawkes(rate, max_time)
-        raise ValueError('No such option to generate events: {}'.format(self.option_number_of_events['method']))
+        raise ValueError('No such option to generate events: {}'.
+                         format(self.option_number_of_events['method']))
 
     # This function updates the is_settled status for orders.
     def update_orders_settled_status(self, order):

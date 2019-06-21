@@ -21,7 +21,8 @@ def find_best_worst_lists(sequence_of_lists):
     up till the first entry. If all entries of all lists are None, raise an exception.
     For example, if list_1 = [0.1, 0.2, 0.3, None], list_2 = [0.29, 0.29, 0.29, None],
     then list_1 is the best and list_2 is the worst.
-    For efficiency consideration, this function does not check validity of the argument (same length)
+    For efficiency consideration, this function does not check validity of the argument (same
+    length)
     since it should have been guaranteed in the function that calls it.
     """
 
@@ -34,7 +35,8 @@ def find_best_worst_lists(sequence_of_lists):
     if last_effective_idx == -len(sequence_of_lists[0]) - 1:
         raise ValueError('All entries are None. Invalid to compare.')
 
-    it1, it2 = itertools.tee((item for item in sequence_of_lists if item[last_effective_idx] is not None), 2)
+    it1, it2 = itertools.tee((item for item in sequence_of_lists if item[last_effective_idx] is
+                              not None), 2)
     best_list = max(it1, key=lambda x: x[last_effective_idx])
     worst_list = min(it2, key=lambda x: x[last_effective_idx])
 
@@ -44,10 +46,11 @@ def find_best_worst_lists(sequence_of_lists):
 def average_lists(sequence_of_lists):
     """
     This function calculates the position-wise average of all values from all lists.
-    :param sequence_of_lists: a sequence of equal-length lists. Each element in each list is either a value or None
+    :param sequence_of_lists: a sequence of equal-length lists. Each element in each list is
+    either a value or None
     :return: a list of the same length. Each element in the output list is the average of the values
     in the corresponding place of all input lists, ignoring all None elements.
-    If all elements in a place of all input lists are None, then the output element in that place is 0.
+    If all elements in a place of all input lists are None, the output element in that place is 0.
     """
 
     average_list = [None for _ in range(len(sequence_of_lists[0]))]
@@ -66,8 +69,10 @@ def average_lists(sequence_of_lists):
 def calculate_density(sequence_of_lists, division_unit=0.01):
     """
     This function calculates the density of the values of all elements from all input lists.
-    :param sequence_of_lists: a sequence of lists. Each element in each list is a real value over [0,1).
-    :param division_unit: a real value < 1 to divide [0,1] into intervals [n * division_unit, (n+1) * division_unit).
+    :param sequence_of_lists: a sequence of lists. Each element in each list is a real value over
+    [0,1).
+    :param division_unit: a real value < 1 to divide [0,1] into intervals [n * division_unit,
+    (n+1) * division_unit).
     :return: density distribution of all values in all lists over the intervals specified above.
     In other words, one can imagine merging all lists into one long list as the input,
     and the result is the density of elements in that long list.

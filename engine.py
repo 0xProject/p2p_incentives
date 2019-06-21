@@ -8,10 +8,13 @@ import engine_candidates
 class Engine:
 
     """
-    The class Engine describes the design space. By choosing a specific option we refer to a particular design choice.
-    They include our possible choices on neighbor establishment, order operations and incentives, scoring system, etc.
+    The class Engine describes the design space. By choosing a specific option we refer to a
+    particular design choice.
+    They include our possible choices on neighbor establishment, order operations and incentives,
+    scoring system, etc.
     Such choices are viable, and one can change any/some of them to test the performance.
-    Later the Simulator class will call methods from this Engine class for a particular realization of implementation.
+    Later the Simulator class will call methods from this Engine class for a particular
+    realization of implementation.
     """
 
     # pylint: disable=too-many-instance-attributes
@@ -23,7 +26,8 @@ class Engine:
         (batch, topology, incentive) = parameters
 
         # length of a batch period.
-        # Recall that a peer runs its order storing and sharing algorithms only at the end of a batch period.
+        # Recall that a peer runs its order storing and sharing algorithms only at the end of a
+        # batch period.
         # A batch period contains multiple time rounds.
 
         self.batch = batch
@@ -60,10 +64,12 @@ class Engine:
         # If a particular function realization needs more parameters, their values are specified by
         # other keys in the dictionary.
         # In what follows, the methods in this class will check 'method' first to decide
-        # which function in engine_candidates to call, and then pass the rest parameters to the function called.
+        # which function in engine_candidates to call, and then pass the rest parameters to the
+        # function called.
 
         (self.preference_option, self.priority_option, self.external_option, self.internal_option,
-         self.store_option, self.share_option, self.score_option, self.beneficiary_option, self.rec_option) = options
+         self.store_option, self.share_option, self.score_option, self.beneficiary_option,
+         self.rec_option) = options
 
     def set_preference_for_neighbor(self, neighbor, peer, master, preference=None):
         """
@@ -72,7 +78,8 @@ class Engine:
         :param neighbor: the neighbor instance for this neighbor
         :param peer: the peer instance for this neighbor
         :param master: the peer instance who wants to set the preference to the neighbor
-        :param preference: an optional argument in case the master node already knows the value to set.
+        :param preference: an optional argument in case the master node already knows the value
+        to set.
         If preference is not given, it is None by default and the method will decide the
         value to set based on other arguments.
         :return: None
@@ -80,7 +87,8 @@ class Engine:
         if self.preference_option['method'] == 'Passive':
             engine_candidates.set_preference_passive(neighbor, peer, master, preference)
         else:
-            raise ValueError('No such option to set preference: {}'.format(self.preference_option['method']))
+            raise ValueError('No such option to set preference: {}'.format(
+                self.preference_option['method']))
 
     def set_priority_for_orderinfo(self, orderinfo, order, master, priority=None):
         """
@@ -90,7 +98,8 @@ class Engine:
         :param orderinfo: the orderinfo instance of the order to be set a priority
         :param order: the order instance of the order to be set a priority
         :param master: the peer instance who wants to set the priority
-        :param priority: an optional argument in case the master node already knows the value to set.
+        :param priority: an optional argument in case the master node already knows the value to
+        set.
         If priority is not given, it is None by default and the method will decide the
         value to set based on other arguments.
         :return: None
@@ -98,7 +107,8 @@ class Engine:
         if self.priority_option['method'] == 'Passive':
             engine_candidates.set_priority_passive(orderinfo, order, master, priority)
         else:
-            raise ValueError('No such option to set priority: {}'.format(self.priority_option['method']))
+            raise ValueError('No such option to set priority: {}'.
+                             format(self.priority_option['method']))
 
     def should_accept_external_order(self, _receiver, _order):
         """
@@ -107,11 +117,13 @@ class Engine:
         :param _order: the order instance
         :return: True if the node accepts this order, or False otherwise
         Note: right now, we only have a naive implementation that accepts everything, so the input
-        arguments are not useful so they start with an underline. Later, one may need to delete the underline.
+        arguments are not useful so they start with an underline. Later, one may need to delete
+        the underline.
         """
         if self.external_option['method'] == 'Always':
             return True
-        raise ValueError('No such option to receive external orders: {}'.format(self.external_option['method']))
+        raise ValueError('No such option to receive external orders: {}'.format(
+            self.external_option['method']))
 
     def should_accept_internal_order(self, _receiver, _sender, _order):
         """
@@ -124,7 +136,8 @@ class Engine:
         """
         if self.internal_option['method'] == 'Always':
             return True
-        raise ValueError('No such option to receive internal orders: {}'.format(self.internal_option['method']))
+        raise ValueError('No such option to receive internal orders: {}'.format(
+            self.internal_option['method']))
 
     def store_or_discard_orders(self, peer):
         """
@@ -139,7 +152,8 @@ class Engine:
         if self.store_option['method'] == 'First':
             engine_candidates.store_first(peer)
         else:
-            raise ValueError('No such option to store orders: {}'.format(self.store_option['method']))
+            raise ValueError('No such option to store orders: {}'.
+                             format(self.store_option['method']))
 
     def find_orders_to_share(self, peer):
         """
@@ -148,8 +162,9 @@ class Engine:
         :return: the set of orders to share
         """
         if self.share_option['method'] == 'AllNewSelectedOld':
-            return engine_candidates.share_all_new_selected_old(self.share_option['max_to_share'],
-                                                                self.share_option['old_share_prob'], peer)
+            return engine_candidates.\
+                share_all_new_selected_old\
+                (self.share_option['max_to_share'], self.share_option['old_share_prob'], peer)
         raise ValueError('No such option to share orders: {}'.format(self.share_option['method']))
 
     def score_neighbors(self, peer):
@@ -175,12 +190,14 @@ class Engine:
         :return: the set of peer instances of neighboring nodes that are selected as beneficiaries.
         """
         if self.beneficiary_option['method'] == 'TitForTat':
-            neighbors_selected = engine_candidates.tit_for_tat(self.beneficiary_option['baby_ending_age'],
-                                                               self.beneficiary_option['mutual_helpers'],
-                                                               self.beneficiary_option['optimistic_choices'],
-                                                               time_now, peer)
+            neighbors_selected = \
+                engine_candidates.tit_for_tat(self.beneficiary_option['baby_ending_age'],
+                                              self.beneficiary_option['mutual_helpers'],
+                                              self.beneficiary_option['optimistic_choices'],
+                                              time_now, peer)
         else:
-            raise ValueError('No such option to decide beneficiaries: {}'.format(self.beneficiary_option['method']))
+            raise ValueError('No such option to decide beneficiaries: {}'.format(
+                self.beneficiary_option['method']))
 
         # update the contribution queue since it is the end of a calculation circle
         for neighbor in peer.peer_neighbor_mapping.values():
@@ -193,13 +210,15 @@ class Engine:
         """
         This method is run by the Simulator (or conceptually, centralized tracker).
         It is called by the method add_new_links_helper() in Simulator class.
-        Upon request of increasing its neighbors, the tracker selects some peers from the base peer set,
-        for the requesting peer to form neighborhoods.
+        Upon request of increasing its neighbors, the tracker selects some peers from the base
+        peer set, for the requesting peer to form neighborhoods.
         :param requester: the peer instance of the node who requests to increase its neighbor size
         :param base: the set of peer instances of other nodes that can be selected
         :param target_number: the targeted number of return set
-        :return: a set of peer instances that are selected. Size is targeted at target_number, but might be smaller.
+        :return: a set of peer instances that are selected. Size is targeted at target_number,
+        but might be smaller.
         """
         if self.rec_option['method'] == 'Random':
             return engine_candidates.random_recommendation(requester, base, target_number)
-        raise ValueError('No such option to recommend neighbors: {}'.format(self.rec_option['method']))
+        raise ValueError('No such option to recommend neighbors: {}'.
+                         format(self.rec_option['method']))

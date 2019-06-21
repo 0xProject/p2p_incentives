@@ -17,21 +17,23 @@ class Simulator:
     # It is fine for Simulator to have many attributes.
 
     # [TO BE UPDATED]: In current implementation we assume there is only one order type.
-    # There are hard-coded lines of orders of type 'default', subject to future change when there are more than
-    # one type of orders.
+    # There are hard-coded lines of orders of type 'default', subject to future change when there
+    # are more than one type of orders.
 
     def __init__(self, scenario, engine, performance):
 
         self.order_full_set = set()  # set of orders
 
-        # mapping from order type to order sets. The value element is a set containing all orders of a particular type.
+        # mapping from order type to order sets. The value element is a set containing all orders
+        # of a particular type.
         self.order_type_set_mapping = {}
         for type_name in scenario.order_type_ratios:
             self.order_type_set_mapping[type_name] = set()
 
         self.peer_full_set = set()  # set of peers
 
-        # mapping from peer type to peer sets. The value element is a set containing all peers of a particular type.
+        # mapping from peer type to peer sets. The value element is a set containing all peers of
+        # a particular type.
         self.peer_type_set_mapping = {}
         for type_name in scenario.peer_type_ratios:
             self.peer_type_set_mapping[type_name] = set()
@@ -47,45 +49,50 @@ class Simulator:
     def setup(self):
         """
         This method sets up the initial state for one run of the simulator.
-        Construct a number of peers and a number of orders and maintain their references in two sets.
+        Construct a number of peers and orders and maintain their references in two sets.
         Sequence numbers of peers and neighbors begin from 0 and increase by 1 each time.
-        Right now there is no use for the sequence numbers but we keep them for potential future use.
+        Right now there is no use for the sequence numbers but we keep them for potential future use
         We only consider one type of orders for now. However, we do consider multiple peer types.
         :return: None
         """
         # pylint: disable=too-many-locals
         # It is fine to have many local variables here.
 
-        order_seq = self.latest_order_seq  # order sequence number should start from zero, but can be customized
+        # order sequence number should start from zero, but can be customized
+        order_seq = self.latest_order_seq
         peer_seq = self.latest_peer_seq  # same as above
 
         # determine the peer types
         peer_type_candidates = list(self.scenario.peer_type_ratios)
         peer_weights = [self.scenario.peer_type_ratios[item] for item in peer_type_candidates]
-        peer_type_vector = random.choices(peer_type_candidates, weights=peer_weights, k=self.scenario.init_size)
+        peer_type_vector = random.choices\
+            (peer_type_candidates, weights=peer_weights, k=self.scenario.init_size)
 
         # first create all peer instances with no neighbors
 
         for peer_type in peer_type_vector:
 
-            # decide the birth time for this peer. Randomized over [0, birth_time_span] to avoid sequentiality issue.
+            # decide the birth time for this peer. Randomized over [0, birth_time_span] to avoid
+            # sequentiality issue.
             birth_time = random.randint(0, self.scenario.birth_time_span - 1)
 
             # decide the number of orders for this peer
-            num_orders = max(0, round(random.gauss(self.scenario.peer_parameter_dict[peer_type]['mean'],
-                                                   self.scenario.peer_parameter_dict[peer_type]['var'])))
+            num_mean = self.scenario.peer_parameter_dict[peer_type]['mean']
+            num_var = self.scenario.peer_parameter_dict[peer_type]['var']
+            num_orders = max(0, round(random.gauss(num_mean, num_var)))
 
             # create all order instances, and the initial orderbooks
             cur_order_set = set()
 
             for _ in range(num_orders):
                 # decide the max expiration for this order
-                expiration = max(0, round(random.gauss(self.scenario.order_parameter_dict['default']['mean'],
-                                                       self.scenario.order_parameter_dict['default']['var'])))
+                expiration_mean = self.scenario.order_parameter_dict['default']['mean']
+                expiration_var = self.scenario.order_parameter_dict['default']['var']
+                expiration = max(0, round(random.gauss(expiration_mean, expiration_var)))
 
-                # create the order. Order's birth time is cur_time, different from peer's birth time.
-                # Order's creator is set to be None since the peer is not initiated, but will be changed
-                # in the peer's initiation function.
+                # create the order. Order's birth time is cur_time, different from peer's birth
+                # time. Order's creator is set to be None since the peer is not initiated,
+                # but will be changed in the peer's initiation function.
 
                 new_order = Order(self.scenario, order_seq, self.cur_time, None, expiration)
                 self.order_full_set.add(new_order)
@@ -104,8 +111,8 @@ class Simulator:
         self.latest_order_seq = order_seq
         self.latest_peer_seq = peer_seq
 
-        # add neighbors to the peers. Use shuffle function to avoid preference of forming neighbors for
-        # peers with small sequence number.
+        # add neighbors to the peers. Use shuffle function to avoid preference of forming
+        # neighbors for peers with small sequence number.
         peer_list = list(self.peer_full_set)
         random.shuffle(peer_list)
         self.check_adding_neighbor()
@@ -113,8 +120,9 @@ class Simulator:
     def peer_arrival(self, peer_type, num_orders):
         """
         This method deals with peer arrival.
-        When a new peer arrives, it may already have a set of orders. It only needs to specify the number of
-        initial orders, and the function will specify the sequence numbers for the peers and orders.
+        When a new peer arrives, it may already have a set of orders. It only needs to specify
+        the number of initial orders, and the function will specify the sequence numbers for the
+        peers and orders.
         :param peer_type: the type of the newly arrived peer.
         :param num_orders: # of orders that this peer brings to the system initially.
         :return: None
@@ -127,8 +135,9 @@ class Simulator:
         cur_order_set = set()
         order_seq = self.latest_order_seq
         for _ in range(num_orders):
-            expiration = max(0, round(random.gauss(self.scenario.order_parameter_dict['default']['mean'],
-                                                   self.scenario.order_parameter_dict['default']['var'])))
+            expiration_mean = self.scenario.order_parameter_dict['default']['mean']
+            expiration_var = self.scenario.order_parameter_dict['default']['var']
+            expiration = max(0, round(random.gauss(expiration_mean, expiration_var)))
             # Now we initiate the new orders, whose creator should be the new peer.
             # But the new peer has not been initiated, so we set the creator to be None temporarily.
             # We will modify it when the peer is initiated.
@@ -192,8 +201,8 @@ class Simulator:
 
     def update_global_orderbook(self, order_cancel_set=None):
         """
-        This method takes a set of orders to cancel as input, deletes them, and deletes all other invalid orders
-        from both order set of Simulator, and all peers' pending table and storage.
+        This method takes a set of orders to cancel as input, deletes them, and deletes all other
+        invalid orders from both order set of Simulator, and all peers' pending table and storage.
         :param order_cancel_set: a set of orders to be canceled
         :return: Set of valid orders after operation
         """
@@ -217,7 +226,8 @@ class Simulator:
 
     def add_new_links_helper(self, requester, demand, minimum):
         """
-        This is a helper method for the requester peer to add neighbors, and is called only by check_adding_neighbor().
+        This is a helper method for the requester peer to add neighbors, and is called only by
+        check_adding_neighbor().
         It targets at adding a number of "demand" neighbors, but is fine if the final added number
         is in the range [minimum, demand], or stops when all possible links are added.
         This method will call the corresponding peers' functions to add the neighbor, respectively.
@@ -237,14 +247,16 @@ class Simulator:
         while links_added < minimum and candidates_pool:
 
             links_added_this_round = 0
-            selected_peer_set = self.engine.recommend_neighbors(requester, candidates_pool, selection_size)
+            selected_peer_set = self.engine.recommend_neighbors(requester, candidates_pool,
+                                                                selection_size)
             for candidate in selected_peer_set:
                 # if this peer is already the requester's neighbor, if not,
                 # check if the candidate is willing to add the requester.
                 if candidate not in requester.peer_neighbor_mapping \
                         and candidate.should_accept_neighbor_request(requester):
                     # mutual add neighbors
-                    if not candidate.should_add_neighbor(requester) or not requester.should_add_neighbor(candidate):
+                    if not candidate.should_add_neighbor(requester) or not \
+                            requester.should_add_neighbor(candidate):
                         raise RuntimeError('Existing neighbors are being connected.')
                     links_added += 1
                     links_added_this_round += 1
@@ -254,10 +266,11 @@ class Simulator:
 
     def check_adding_neighbor(self):
         """
-        This method checks for all peers if they need to add neighbors, if the number of neighbors is not enough.
-        It calls the method add_new_links_helper().
-        It aims at adding up to neighbor_max neighbors, but is fine if added up to neighbor_min, or all possibilities
-        have been tried. This function needs to be proactively called every time round.
+        This method checks for all peers if they need to add neighbors, if the number of
+        neighbors is not enough. It calls the method add_new_links_helper().
+        It aims at adding up to neighbor_max neighbors, but is fine if added up to neighbor_min,
+        or all possibilities have been tried. This function needs to be proactively called every
+        time round.
         :return: None
         """
         for peer in self.peer_full_set:
@@ -266,10 +279,12 @@ class Simulator:
                 self.add_new_links_helper(peer, self.engine.neighbor_max - cur_neighbor_size,
                                           self.engine.neighbor_min - cur_neighbor_size)
 
-    def operations_in_a_time_round(self, peer_arr_num, peer_dept_num, order_arr_num, order_cancel_num):
+    def operations_in_a_time_round(self, peer_arr_num, peer_dept_num, order_arr_num,
+                                   order_cancel_num):
         """
         This method runs normal operations at a particular time point.
-        It includes peer/order dept/arrival, order status update, and peer's order acceptance, storing, and sharing.
+        It includes peer/order dept/arrival, order status update, and peer's order acceptance,
+        storing, and sharing.
         :param peer_arr_num: # of peers arriving the system
         :param peer_dept_num: # of peers departing the system
         :param order_arr_num: # of orders arriving the system
@@ -281,7 +296,8 @@ class Simulator:
         # It is fine to have many local variables here.
 
         # peers leave
-        for peer_to_depart in random.sample(self.peer_full_set, min(len(self.peer_full_set), peer_dept_num)):
+        for peer_to_depart in random.sample(self.peer_full_set, min(len(self.peer_full_set),
+                                                                    peer_dept_num)):
             self.peer_departure(peer_to_depart)
 
         # existing peers adjust clock
@@ -293,11 +309,13 @@ class Simulator:
         # new peers come in
         peer_type_candidates = list(self.scenario.peer_type_ratios)
         peer_weights = [self.scenario.peer_type_ratios[item] for item in peer_type_candidates]
-        peer_type_vector = random.choices(peer_type_candidates, weights=peer_weights, k=peer_arr_num)
+        peer_type_vector = random.choices(peer_type_candidates, weights=peer_weights,
+                                          k=peer_arr_num)
 
         for peer_type in peer_type_vector:
-            num_init_orders = max(0, round(random.gauss(self.scenario.peer_parameter_dict[peer_type]['mean'],
-                                                        self.scenario.peer_parameter_dict[peer_type]['var'])))
+            num_mean = self.scenario.peer_parameter_dict[peer_type]['mean']
+            num_var = self.scenario.peer_parameter_dict[peer_type]['var']
+            num_init_orders = max(0, round(random.gauss(num_mean, num_var)))
             self.peer_arrival(peer_type, num_init_orders)
 
         # Now, if the system does not have any peers, stop operations in this round.
@@ -309,7 +327,7 @@ class Simulator:
         # if there are only free-riders, then there will be no new order arrival.
         # However, other operations will continue.
 
-        if self.peer_full_set == self.peer_type_set_mapping['free-rider']: # all peers are free-riders
+        if self.peer_full_set == self.peer_type_set_mapping['free-rider']: # all are free-riders
             order_arr_num = 0
 
         # external orders arrival
@@ -320,17 +338,20 @@ class Simulator:
         candidate_peer_list = list(self.peer_full_set)
         peer_capacity_weight = list(item.init_orderbook_size for item in candidate_peer_list)
 
-        target_peer_list = random.choices(candidate_peer_list, weights=peer_capacity_weight, k=order_arr_num)
+        target_peer_list = random.choices(candidate_peer_list, weights=peer_capacity_weight,
+                                          k=order_arr_num)
 
         for target_peer in target_peer_list:
             # decide the max expiration for this order.
             # Assuming there is only one type of orders 'default'. Subject to change later.
-            expiration = max(0, round(random.gauss(self.scenario.order_parameter_dict['default']['mean'],
-                                                   self.scenario.order_parameter_dict['default']['var'])))
+            expiration_mean = self.scenario.order_parameter_dict['default']['mean']
+            expiration_var = self.scenario.order_parameter_dict['default']['var']
+            expiration = max(0, round(random.gauss(expiration_mean, expiration_var)))
             self.order_arrival(target_peer, expiration)
 
         # existing orders canceled, orders settled, and global orderbook updated
-        order_to_cancel = random.sample(self.order_full_set, min(len(self.order_full_set), order_cancel_num))
+        order_to_cancel = random.sample(self.order_full_set, min(len(self.order_full_set),
+                                                                 order_cancel_num))
 
         for order in self.order_full_set:
             order.update_settled_status()
@@ -346,7 +367,8 @@ class Simulator:
 
     def run(self):
         """
-        This is the method that runs the simulator for one time, including setup, and growth and stable periods.
+        This is the method that runs the simulator for one time, including setup, and growth and
+        stable periods.
         :return: Performance evaluation results in terms of a list, each element being the result
         of one particular metric (or None if not applicable).
         """
@@ -367,7 +389,8 @@ class Simulator:
         self.update_global_orderbook()
 
         # initiate vectors of each event happening count in each time round
-        numpy.random.seed()  # This is very important since numpy.random is not multiprocessing safe in Hawkes Process.
+        # This is very important since numpy.random is not multiprocessing safe in Hawkes Process.
+        numpy.random.seed()
         counts_growth = list(map(lambda x: self.scenario.
                                  generate_event_counts_over_time(x, self.scenario.growth_rounds),
                                  self.scenario.growth_rates))
@@ -389,6 +412,7 @@ class Simulator:
         # input arguments are: time, peer set, normal peer set, free rider set, order set
         performance_result = self.performance.run(self.cur_time, self.peer_full_set,
                                                   self.peer_type_set_mapping['normal'],
-                                                  self.peer_type_set_mapping['free-rider'], self.order_full_set)
+                                                  self.peer_type_set_mapping['free-rider'],
+                                                  self.order_full_set)
 
         return performance_result

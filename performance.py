@@ -18,12 +18,12 @@ class Performance:
         # the oldest age of orders to track
         self.max_age_to_track = parameters['max_age_to_track']
 
-        # the age beyond which a peer is considered an Adult.
-        # Only adults will be evaluated for user satisfaction (because new peers receive limited orders only).
+        # The age beyond which a peer is considered an Adult. Only adults will be evaluated for
+        # user satisfaction (because new peers receive limited orders only).
         self.adult_age = parameters['adult_age']
 
-        # This is the window length to aggregate orders for statistics.
-        # All orders that falls into the same window will be considered in the same era for calculation.
+        # This is the window length to aggregate orders for statistics. All orders that falls
+        # into the same window will be considered in the same era for calculation.
         # For example if statistical_window = 10, then orders whose ages are between 0 and 9 will be
         # put into the same category for statistics.
         # The reason for this window is when order arrival rate is very low, then in many time slots
@@ -34,8 +34,10 @@ class Performance:
 
         # "spreading_option" is how to measurement the spreading pattern of order
         # (e.g., spreading ratio, spreading speed).
-        # "satisfaction_option" is how a peer evaluates its satisfaction based on the orders that it receives.
-        # "fairness_option" is how to evaluate the fairness for a group of peers. Currently we have no implementation.
+        # "satisfaction_option" is how a peer evaluates its satisfaction based on the orders that
+        # it receives.
+        # "fairness_option" is how to evaluate the fairness for a group of peers. Currently we
+        # have no implementation.
         (self.spreading_option, self.satisfaction_option, self.fairness_option) = options
 
         # measurement to execute, i.e., which measurement functions to execute.
@@ -43,8 +45,8 @@ class Performance:
 
     # In what follows we have performance evaluation functions.
     # In most of these functions they take peers_to_evaluate and orders_to_evaluate as input.
-    # The reason is to add flexibility in considering evaluating over reasonable peers and reasonable
-    # orders only (given that there are possibly free riders and wash trading orders).
+    # The reason is to add flexibility in considering evaluating over reasonable peers and
+    # reasonable orders only (given that there are possibly free riders and wash trading orders).
 
     def measure_order_spreading(self, cur_time, peers_to_evaluate, orders_to_evaluate):
         """
@@ -63,16 +65,18 @@ class Performance:
         # new orders spreading rate, etc.
 
         if self.spreading_option['method'] == 'Ratio':
-            return performance_candidates.order_spreading_ratio_stat(cur_time, orders_to_evaluate,
-                                                                     peers_to_evaluate, self.max_age_to_track,
-                                                                     self.statistical_window)
-        raise ValueError('No such option to evaluate order spreading: {}'.format(self.spreading_option['method']))
+            return performance_candidates.\
+                order_spreading_ratio_stat(cur_time, orders_to_evaluate, peers_to_evaluate,
+                                           self.max_age_to_track, self.statistical_window)
+        raise ValueError('No such option to evaluate order spreading: {}'.format(
+            self.spreading_option['method']))
 
     def measure_user_satisfaction(self, cur_time, peers_to_evaluate, orders_to_evaluate):
         """
         This method returns some measurement of peer satisfactory.
         The measurement is defined by the function called.
-        Note, the statistics is based on 'adult peers' only whose age is beyond a threshold specified in scenario,
+        Note, the statistics is based on 'adult peers' only whose age is beyond a threshold
+        specified in scenario.
         :param cur_time: same as above.
         :param peers_to_evaluate: same as above.
         :param orders_to_evaluate: same as above.
@@ -81,10 +85,12 @@ class Performance:
         """
 
         if not peers_to_evaluate or not orders_to_evaluate:
-            raise ValueError('Invalid to evaluate user satisfaction if there are no peers or no orders.')
+            raise ValueError('Invalid to evaluate user satisfaction if there are no peers or no '
+                             'orders.')
 
         # A "neutral" implementation refers to that a peer regards each order as equally important.
-        # This is a naive implementation only. Later we will need to consider new orders as more important.
+        # This is a naive implementation only. Later we will need to consider new orders as more
+        # important.
 
         if self.satisfaction_option['method'] == 'Neutral':
             single_calculation = performance_candidates.single_peer_satisfaction_neutral
@@ -115,7 +121,8 @@ class Performance:
 
         if self.fairness_option['method'] == 'Dummy':
             return performance_candidates.fairness_dummy(peers_to_evaluate, orders_to_evaluate)
-        raise ValueError('No such option to evaluate fairness: {}'.format(self.fairness_option['method']))
+        raise ValueError('No such option to evaluate fairness: {}'.
+                         format(self.fairness_option['method']))
 
     def run(self, cur_time, peer_full_set, normal_peer_set, free_rider_set, order_full_set):
 
@@ -138,7 +145,8 @@ class Performance:
         # Generate order spreading measure for all orders over all peers
         if self.measures_to_execute['order_spreading_measure']:
             try:
-                result_order_spreading = self.measure_order_spreading(cur_time, peer_full_set, order_full_set)
+                result_order_spreading = self.measure_order_spreading(cur_time, peer_full_set,
+                                                                      order_full_set)
             except ValueError:
                 result_order_spreading = None
         else:

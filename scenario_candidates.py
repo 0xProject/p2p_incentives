@@ -8,16 +8,19 @@ import math
 
 def hawkes(rate, max_time):
     """
-    This is the function to generate Hawkes process. The expected arrival rate lambda(t) at time point t is:
-    lambda(t) = a + (lambda_0 - a ) * exp(-delta * t) + summation of [ gamma * exp(-delta * (t- T_i)) ] for all T_i < t,
-    where T_i is any time point when an previous event happens, and other parameters (a, lambda_0, gamma, delta)
-    are input arguments. If you are not familiar with the definition of "expected arrival rate,"
-    please refer to the definition of Poisson process.
+    This is the function to generate Hawkes process. The expected arrival rate lambda(t) at time
+    point t is:
+    lambda(t) = a + (lambda_0 - a ) * exp(-delta * t) + summation of [ gamma * exp(-delta * (t-
+    T_i)) ] for all T_i < t,
+    where T_i is any time point when an previous event happens, and other parameters (a,
+    lambda_0, gamma, delta) are input arguments. If you are not familiar with the definition of
+    "expected arrival rate," please refer to the definition of Poisson process.
     It takes parameters (a, lambda_0, delta, gamma) from rate, and max time slots as input,
     and outputs a random realization of event happening counts over time slots [0, max_time].
 
-    This simulation method was proposed by Dassios and Zhao in a paper entitled 'Exact simulation of Hawkes process with
-    exponentially decaying intensity,' published in Electron. Commun. Probab. 18 (2013) no. 62, 1-13.
+    This simulation method was proposed by Dassios and Zhao in a paper entitled 'Exact simulation
+    of Hawkes process with exponentially decaying intensity,' published in Electron. Commun. Probab.
+    18 (2013) no. 62, 1-13.
     It is believed to be running faster than other methods.
     :param rate: see above for explanation.
     :param max_time: maximal time to generate events.
