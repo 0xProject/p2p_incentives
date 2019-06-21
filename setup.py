@@ -6,7 +6,7 @@ import glob
 import subprocess  # nosec
 from shutil import rmtree
 from os import environ, path
-from pathlib import Path
+# from pathlib import Path
 from sys import argv
 
 from distutils.command.clean import clean
@@ -34,7 +34,7 @@ class LintCommand(distutils.command.build_py.build_py):
         """Run linter shell commands."""
         files = " ".join(glob.glob("./*.py"))
         lint_commands = [
-            # TODO: Uncomment the other formatting/linting tools.
+            # Uncomment the other formatting/linting tools.
             # # formatter:
             # ("black --line-length 79 --check --diff " + files).split(),
             # # style guide checker (formerly pep8):
