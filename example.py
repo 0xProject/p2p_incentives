@@ -1,129 +1,117 @@
-'''
-========================
-Generating a test case
-========================
-'''
-# This module contains one test case by generating a point in engine, scenario, and performance
+"""
+This module contains one test case by generating a point in engine, scenario, and performance.
+"""
 
 from engine import Engine
 from scenario import Scenario
 from performance import Performance
 
 
-'''
-The following is one example of a Scenario instance. 
-'''
-'''
-parameters
-'''
+# ======
+# The following is one example of a Scenario instance.
+# parameters
 
-order_type_ratios = {'default': 1} # ratio of orders of each type
-peer_type_ratios = {'free-rider': 0.1,
+ORDER_TYPE_RATIOS = {'default': 1}  # ratio of orders of each type
+PEER_TYPE_RATIOS = {'free-rider': 0.1,
                     'normal': 0.9
-                    } # ratio of peers of each type
+                    }  # ratio of peers of each type
 
 # In what follows we use dictionary to generate parameters for a scenario instance.
 # One needs to follow the format. No change on the dictionary keys. Change values only.
 
 # The following dictionary specifies an order type (which is the only type we have right now).
-# The paramters are the mean and variance of order expirations.
+# The parameters are the mean and variance of order expiration.
 
-order_default_type = {
+ORDER_DEFAULT_TYPE = {
     'mean': 500,
     'var': 0
     }
 
-order_par_dict = {'default': order_default_type} # right now, only one order type
+ORDER_PAR_DICT = {'default': ORDER_DEFAULT_TYPE}  # right now, only one order type
 
 # The following dictionaries specify various peer types.
-# The paramters are the mean and variance of the initial orderbook size of the peer.
+# The parameters are the mean and variance of the initial orderbook size of the peer.
 
-peer_free_rider = {
+PEER_FREE_RIDER = {
     'mean': 0,
     'var': 0
     }
 
-peer_normal = {
+PEER_NORMAL = {
     'mean': 6,
     'var': 1
     }
 
-peer_par_dict = {'free-rider':peer_free_rider,
-                 'normal': peer_normal
+PEER_PAR_DICT = {'free-rider': PEER_FREE_RIDER,
+                 'normal': PEER_NORMAL
                  }
 
-# The following dictionary specifies the paramters for the system's initial status.
+# The following dictionary specifies the parameters for the system's initial status.
 
-init_par = {
+INIT_PAR = {
     'num_peers': 10,
     'birth_time_span': 20
     }
 
-# The following dictionary specifies the paramters for the system's grwoth period
+# The following dictionary specifies the parameters for the system's grwoth period
 # when the # of peers keeps increasing.
 
-growth_par = {
+GROWTH_PAR = {
     'rounds': 30,
     'peer_arrival': 3,
     'peer_dept': 0,
     'order_arrival': 15,
-    'order_dept': 15
+    'order_cancel': 15
     }
 
-# The following dictionary specifies the paramters for the system's stable period
-# when the # of peers keeps stable. 
+# The following dictionary specifies the parameters for the system's stable period
+# when the # of peers keeps stable.
 
-stable_par = {
+STABLE_PAR = {
     'rounds': 50,
     'peer_arrival': 2,
     'peer_dept': 2,
     'order_arrival': 15,
-    'order_dept': 15
+    'order_cancel': 15
     }
 
-s_parameters = (order_type_ratios, peer_type_ratios, order_par_dict, \
-                peer_par_dict, init_par, growth_par, stable_par)
+S_PARAMETERS = (ORDER_TYPE_RATIOS, PEER_TYPE_RATIOS, ORDER_PAR_DICT, PEER_PAR_DICT, INIT_PAR,
+                GROWTH_PAR, STABLE_PAR)
 
-
-'''
-options
-'''
+# options
 
 # event arrival pattern
-event_arrival = {
+EVENT_ARRIVAL = {
     'method': 'Poisson'
     }
 
 # how an order's is_settled status is changed
-change_settle_status = {
+CHANGE_SETTLE_STATUS = {
     'method': 'Never'
     }
 
-s_options = (event_arrival, change_settle_status)
+S_OPTIONS = (EVENT_ARRIVAL, CHANGE_SETTLE_STATUS)
 
-myscenario = Scenario(s_parameters, s_options)
+MY_SCENARIO = Scenario(S_PARAMETERS, S_OPTIONS)
 
 
-'''
-The following is one example of Engine instance.  
-'''
-'''
-parameters
-'''
+# =====
+# The following is one example of Engine instance.
+# parameters
 
-batch = 10 # length of a batch period
+BATCH = 10  # length of a batch period
 
 # This dictionary describes neighbor-related parameters.
 # Similar to creating a Scenario instance, please follow the format and do not change the key.
 # Only value can be changed.
 
-topology = {
+TOPOLOGY = {
     'max_neighbor_size': 30,
     'min_neighbor_size': 20}
 
-# This dictionary descrives the incentive score paramters.
+# This dictionary describes the incentive score parameters.
 
-incentive = {
+INCENTIVE = {
     'length': 3,
     'reward_a': 0,
     'reward_b': 0,
@@ -133,27 +121,26 @@ incentive = {
     'penalty_a': 0,
     'penalty_b': -1}
 
-e_parameters = (batch, topology, incentive)
+E_PARAMETERS = (BATCH, TOPOLOGY, INCENTIVE)
 
-'''
-options
-'''
+# options
 
 # Any option choice is a dictionary. It must contain a key "method," to specify which
 # implementation function to call. The rest entries, if any, are the parameters specific to this
 # implementation that will be passed to the function.
 
-preference = {'method': 'Passive'} # set preference for neighbors
-priority = {'method': 'Passive'} # set priority for orders
-external = {'method': 'Always'} # how to determine accepting an external order or not
-internal = {'method': 'Always'} # how to determine accepting an internal order or not
-store = {'method': 'First'} # how to determine storing an order or not
+PREFERENCE = {'method': 'Passive'}  # set preference for neighbors
+PRIORITY = {'method': 'Passive'}  # set priority for orders
+EXTERNAL = {'method': 'Always'}  # how to determine accepting an external order or not
+INTERNAL = {'method': 'Always'}  # how to determine accepting an internal order or not
+STORE = {'method': 'First'}  # how to determine storing an order or not
 
 # This dictionary describes how to determine the orders to share with neighbors.
-# 'method' refers to the implementation choice. Now we only implemented 'AllNewSelectedOld'.
-# The rest entries are parameters specific to this implemention choice and will be passed
+# 'method' refers to the implementation choice. Now we only implemented 'all_new_selected_old'.
+# The rest entries are parameters specific to this implementation choice and will be passed
 # to the implementation function.
-share = {
+
+SHARE = {
     'method': 'AllNewSelectedOld',
     'max_to_share': 5000,
     'old_share_prob': 0.5
@@ -161,16 +148,16 @@ share = {
 
 # This dictionary describes how to determine neighbor scoring system.
 
-score = {
+SCORE = {
     'method': 'Weighted',
     'lazy_contribution_threshold': 2,
     'lazy_length_threshold': 6,
-    'weights': [1,1,1] # must be of the same length as incentive['length']
+    'weights': [1, 1, 1]  # must be of the same length as incentive['length']
     }
 
 # This dictionary describes how to determine the neighbors that receive my orders.
 
-beneficiary = {
+BENEFICIARY = {
     'method': 'TitForTat',
     'baby_ending_age': 0,
     'mutual_helpers': 3,
@@ -179,49 +166,43 @@ beneficiary = {
 
 # This dictionary describes neighbor recommendation manner when a peer asks for more neighbors.
 # Right now, we only implemented a random recommendation.
-rec = {'method': 'Random'}
+
+REC = {'method': 'Random'}
 
 
-e_options = (preference, priority, external, internal, store, share, score, beneficiary, rec)
+E_OPTIONS = (PREFERENCE, PRIORITY, EXTERNAL, INTERNAL, STORE, SHARE, SCORE, BENEFICIARY, REC)
 
-myengine = Engine(e_parameters, e_options)
+MY_ENGINE = Engine(E_PARAMETERS, E_OPTIONS)
 
-'''
-The following is an example of Performance instance.
-'''
-'''
-parameters
-'''
 
-performance_parameters = {'max_age_to_track': 50,
+# ======
+# The following is an example of Performance instance.
+# parameters
+
+PERFORMANCE_PARAMETERS = {'max_age_to_track': 50,
                           'adult_age': 30,
                           'statistical_window': 5
                           }
 
-'''
-options
-'''
+# options
 
-spreading_option = {'method': 'Ratio'}
-satisfaction_option = {'method': 'Neutral'}
-fairness_option = {'method': 'Dummy'}
-measure_options = (spreading_option, satisfaction_option, fairness_option)
+SPREADING_OPTION = {'method': 'Ratio'}
+SATISFACTION_OPTION = {'method': 'Neutral'}
+FAIRNESS_OPTION = {'method': 'Dummy'}
+MEASURE_OPTIONS = (SPREADING_OPTION, SATISFACTION_OPTION, FAIRNESS_OPTION)
 
-'''
-executions
-'''
-measures_to_execute = {'order_spreading_measure': True,
+# executions
+
+MEASURES_TO_EXECUTE = {'order_spreading_measure': True,
                        'normal_peer_satisfaction_measure': True,
                        'free_rider_satisfaction_measure': True,
                        'fairness': False
                        }
 
-myperformance = Performance(performance_parameters, measure_options, measures_to_execute)
+MY_PERFORMANCE = Performance(PERFORMANCE_PARAMETERS, MEASURE_OPTIONS, MEASURES_TO_EXECUTE)
 
-'''
-Putting the instances into lists
-'''
+# Putting the instances into lists
 
-scenarios = [myscenario]#, myscenario_hawkes]
-engines = [myengine]
-performances = [myperformance]
+SCENARIOS = [MY_SCENARIO]
+ENGINES = [MY_ENGINE]
+PERFORMANCES = [MY_PERFORMANCE]
