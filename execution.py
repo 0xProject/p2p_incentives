@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from simulator import Simulator
 import data_processing
 
+# pylint: disable=cyclic-import
+
 if TYPE_CHECKING:
     from scenario import Scenario
     from engine import Engine

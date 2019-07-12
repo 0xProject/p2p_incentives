@@ -5,6 +5,8 @@ This module contains all possible realizations of functions in the Engine class.
 import random
 from typing import Optional, Set, List, TYPE_CHECKING
 
+# pylint: disable=cyclic-import
+
 if TYPE_CHECKING:
     from node import Peer, Neighbor
     from message import Order, OrderInfo

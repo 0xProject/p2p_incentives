@@ -5,6 +5,8 @@ This module contains the class Performance only.
 from typing import Dict, Any, Tuple, TYPE_CHECKING, Set, List, Optional
 import performance_candidates
 
+# pylint: disable=cyclic-import
+
 if TYPE_CHECKING:
     from message import Order
     from node import Peer

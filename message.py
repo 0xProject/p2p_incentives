@@ -1,7 +1,10 @@
 """
 This module defines Order and OrderInfo classes
 """
+
 from typing import TYPE_CHECKING, Optional, Set
+
+# pylint: disable=cyclic-import
 
 if TYPE_CHECKING:
     from scenario import Scenario

@@ -2,9 +2,12 @@
 This module contains class Scenario only.
 """
 
-from typing import TYPE_CHECKING, Tuple, Dict, List, Any
+from typing import TYPE_CHECKING, Tuple, Dict, List, Union
 import numpy
 import scenario_candidates
+
+# pylint: disable=cyclic-import
+
 if TYPE_CHECKING:
     from message import Order
 
@@ -71,7 +74,8 @@ class Scenario:
         self.option_number_of_events: Dict[str, str] = options[0]
         self.option_settle: Dict[str, str] = options[1]
 
-    def generate_event_counts_over_time(self, rate: Any, max_time: int) -> List[int]:
+    def generate_event_counts_over_time(self, rate: Union[float, Tuple[float, float, float, float]],
+                                        max_time: int) -> List[int]:
         """
         This method generates events according to some pattern. It reads
         self.option_number_of_events['method'] to determine the pattern, takes the expected rate
@@ -94,10 +98,11 @@ class Scenario:
         if self.option_number_of_events['method'] == 'Hawkes':
             # Note that the rate parameters for Hawkes are a tuple of variables,
             # explained in hawkes() function.
-            if not isinstance(rate, tuple):
-                raise TypeError('Type of the rate is incorrect. Tuple[float, float, float] is '
-                                'expected, but it is: ' + str(type(rate)) + '.')
-            return scenario_candidates.hawkes(rate, max_time)
+            if isinstance(rate, tuple):
+                return scenario_candidates.hawkes(rate, max_time)
+            raise TypeError('Type of the rate is incorrect. Tuple[4 floats] is '
+                            'expected, but it is: ' + str(type(rate)) + '.')
+
         raise ValueError('No such option to generate events: {}'.
                          format(self.option_number_of_events['method']))
 

@@ -61,10 +61,11 @@ def average_lists(sequence_of_lists: List[List[Optional[float]]]) -> List[float]
 
     idx: int = 0
     while idx < length_of_list:
-        processing_list = []
+        processing_list: List[float] = []
         for any_list in sequence_of_lists:
-            if any_list[idx] is not None:
-                processing_list.append(any_list[idx])
+            list_item = any_list[idx]
+            if list_item is not None:
+                processing_list.append(list_item)
         try:
             average_list[idx] = statistics.mean(processing_list)
         except statistics.StatisticsError:

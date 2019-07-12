@@ -5,6 +5,8 @@ This module contains the class Engine only.
 from typing import Tuple, Dict, Any, Set, Optional, TYPE_CHECKING
 import engine_candidates
 
+# pylint: disable=cyclic-import
+
 if TYPE_CHECKING:
     from node import Peer, Neighbor
     from message import Order, OrderInfo

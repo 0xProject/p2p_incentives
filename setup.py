@@ -2,6 +2,8 @@
 
 """setuptools module for p2p_incentives package."""
 
+# pylint: disable=cyclic-import
+
 import glob
 import subprocess  # nosec
 from shutil import rmtree

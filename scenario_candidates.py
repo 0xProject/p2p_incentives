@@ -5,6 +5,9 @@ This module contains contains all possible realizations for functions in Scenari
 import random
 import math
 from typing import List, TYPE_CHECKING, Tuple
+
+# pylint: disable=cyclic-import
+
 if TYPE_CHECKING:
     from message import Order
 

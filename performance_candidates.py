@@ -1,10 +1,12 @@
 """
 This module contains possible implementations for performance measurement functions.
 """
-# pylint
 
 import statistics
 from typing import TYPE_CHECKING, Set, List, Optional
+
+
+# pylint: disable=cyclic-import
 
 if TYPE_CHECKING:
     from message import Order

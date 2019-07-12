@@ -8,6 +8,8 @@ import numpy
 from message import Order
 from node import Peer
 
+# pylint: disable=cyclic-import
+
 if TYPE_CHECKING:
     from scenario import Scenario
     from engine import Engine

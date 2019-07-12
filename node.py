@@ -5,8 +5,9 @@ Note that sometimes we use "node" and "peer" interchangeably in the comment.
 
 import collections
 from typing import Optional, Deque, Set, Dict, List, TYPE_CHECKING
-
 from message import OrderInfo, Order
+
+# pylint: disable=cyclic-import
 
 if TYPE_CHECKING:
     from engine import Engine
