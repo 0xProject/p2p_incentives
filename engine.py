@@ -2,7 +2,12 @@
 This module contains the class Engine only.
 """
 
+from typing import Tuple, Dict, Any, Set, Optional, TYPE_CHECKING
 import engine_candidates
+
+if TYPE_CHECKING:
+    from node import Peer, Neighbor
+    from message import Order, OrderInfo
 
 
 class Engine:
@@ -20,7 +25,11 @@ class Engine:
     # pylint: disable=too-many-instance-attributes
     # It is fine to have many instance attributes here.
 
-    def __init__(self, parameters, options):
+    def __init__(self, parameters: Tuple[int, Dict[str, int], Dict[str, float]],
+                 options: Tuple[Dict[str, Any], ...]) -> None:
+
+        # pylint: disable=too-many-locals
+        # Not many locals. Wrong warning due to type hints.
 
         # unpacking parameters
         (batch, topology, incentive) = parameters
@@ -30,11 +39,11 @@ class Engine:
         # batch period.
         # A batch period contains multiple time rounds.
 
-        self.batch = batch
+        self.batch: int = batch
 
         # topology parameters: maximal/minimal size of neighborhood
-        self.neighbor_max = topology['max_neighbor_size']
-        self.neighbor_min = topology['min_neighbor_size']
+        self.neighbor_max: int = topology['max_neighbor_size']
+        self.neighbor_min: int = topology['min_neighbor_size']
 
         # incentive related parameters: length of the score sheet, reward a-e, penalty a-b
         # reward a-e:
@@ -48,14 +57,14 @@ class Engine:
         # a: sharing an order that I have no interest to accept to the pending table
         # b: sharing an identical and duplicate order within the same batch period
 
-        self.score_length = incentive['length']
-        self.reward_a = incentive['reward_a']
-        self.reward_b = incentive['reward_b']
-        self.reward_c = incentive['reward_c']
-        self.reward_d = incentive['reward_d']
-        self.reward_e = incentive['reward_e']
-        self.penalty_a = incentive['penalty_a']
-        self.penalty_b = incentive['penalty_b']
+        self.score_length: int = int(incentive['length'])
+        self.reward_a: float = incentive['reward_a']
+        self.reward_b: float = incentive['reward_b']
+        self.reward_c: float = incentive['reward_c']
+        self.reward_d: float = incentive['reward_d']
+        self.reward_e: float = incentive['reward_e']
+        self.penalty_a: float = incentive['penalty_a']
+        self.penalty_b: float = incentive['penalty_b']
 
         # Unpacking options. They specify a choice on a function implementation.
         # Each option parameter is a dictionary. It must contain a key 'method' to specify
@@ -67,11 +76,21 @@ class Engine:
         # which function in engine_candidates to call, and then pass the rest parameters to the
         # function called.
 
-        (self.preference_option, self.priority_option, self.external_option, self.internal_option,
-         self.store_option, self.share_option, self.score_option, self.beneficiary_option,
-         self.rec_option) = options
+        (preference_option, priority_option, external_option, internal_option, store_option,
+         share_option, score_option, beneficiary_option, rec_option) = options
 
-    def set_preference_for_neighbor(self, neighbor, peer, master, preference=None):
+        self.preference_option: Dict[str, Any] = preference_option
+        self.priority_option: Dict[str, Any] = priority_option
+        self.external_option: Dict[str, Any] = external_option
+        self.internal_option: Dict[str, Any] = internal_option
+        self.store_option: Dict[str, Any] = store_option
+        self.share_option: Dict[str, Any] = share_option
+        self.score_option: Dict[str, Any] = score_option
+        self.beneficiary_option: Dict[str, Any] = beneficiary_option
+        self.rec_option: Dict[str, Any] = rec_option
+
+    def set_preference_for_neighbor(self, neighbor: 'Neighbor', peer: 'Peer',
+                                    master: 'Peer', preference: Optional[int] = None) -> None:
         """
         This method helps a peer to set a preference to one of its neighbor.
         A preference represents this peer's attitude towards this neighbor (e.g., friend or foe).
@@ -90,7 +109,8 @@ class Engine:
             raise ValueError('No such option to set preference: {}'.format(
                 self.preference_option['method']))
 
-    def set_priority_for_orderinfo(self, orderinfo, order, master, priority=None):
+    def set_priority_for_orderinfo(self, orderinfo: 'OrderInfo', order: 'Order',
+                                   master: 'Peer', priority: Optional[int] = None) -> None:
         """
         This method sets a priority for an orderinfo instance.
         A peer can call this function to manually set a priority value to any orderinfo
@@ -110,7 +130,7 @@ class Engine:
             raise ValueError('No such option to set priority: {}'.
                              format(self.priority_option['method']))
 
-    def should_accept_external_order(self, _receiver, _order):
+    def should_accept_external_order(self, _receiver: 'Peer', _order: 'Order') -> bool:
         """
         This method determines whether to accept an external order into the pending table.
         :param _receiver: the peer instance of the node who is supposed to receive this order
@@ -125,7 +145,8 @@ class Engine:
         raise ValueError('No such option to receive external orders: {}'.format(
             self.external_option['method']))
 
-    def should_accept_internal_order(self, _receiver, _sender, _order):
+    def should_accept_internal_order(self, _receiver: 'Peer', _sender: 'Peer',
+                                     _order: 'Order') -> bool:
         """
         This method determines whether to accept an internal order into the pending table.
         :param _receiver: same as the above method
@@ -139,7 +160,7 @@ class Engine:
         raise ValueError('No such option to receive internal orders: {}'.format(
             self.internal_option['method']))
 
-    def store_or_discard_orders(self, peer):
+    def store_or_discard_orders(self, peer: 'Peer') -> None:
         """
         This method is for a peer to determine whether to store each orderinfo
         in the pending table to the local storage, or discard it.
@@ -155,7 +176,7 @@ class Engine:
             raise ValueError('No such option to store orders: {}'.
                              format(self.store_option['method']))
 
-    def find_orders_to_share(self, peer):
+    def find_orders_to_share(self, peer: 'Peer') -> Set['Order']:
         """
         This method determines the set of orders to share for this peer.
         :param peer: the peer to make the decision
@@ -167,7 +188,7 @@ class Engine:
                 (self.share_option['max_to_share'], self.share_option['old_share_prob'], peer)
         raise ValueError('No such option to share orders: {}'.format(self.share_option['method']))
 
-    def score_neighbors(self, peer):
+    def score_neighbors(self, peer: 'Peer') -> None:
         """
         This method calculates the scores of a given peer, and deletes a neighbor if necessary.
         :param peer: the peer whose neighbors are to be scored
@@ -182,7 +203,7 @@ class Engine:
             raise ValueError('No such option to calculate scores: {}'.
                              format(self.score_option['method']))
 
-    def find_neighbors_to_share(self, time_now, peer):
+    def find_neighbors_to_share(self, time_now: int, peer: 'Peer') -> Set['Peer']:
         """
         This method determines the set of neighboring nodes to share the orders in this batch.
         :param time_now: the current time
@@ -190,7 +211,7 @@ class Engine:
         :return: the set of peer instances of neighboring nodes that are selected as beneficiaries.
         """
         if self.beneficiary_option['method'] == 'TitForTat':
-            neighbors_selected = \
+            neighbors_selected: Set['Peer'] = \
                 engine_candidates.tit_for_tat(self.beneficiary_option['baby_ending_age'],
                                               self.beneficiary_option['mutual_helpers'],
                                               self.beneficiary_option['optimistic_choices'],
@@ -206,7 +227,8 @@ class Engine:
 
         return neighbors_selected
 
-    def recommend_neighbors(self, requester, base, target_number):
+    def recommend_neighbors(self, requester: 'Peer', base: Set['Peer'],
+                            target_number: int) -> Set['Peer']:
         """
         This method is run by the Simulator (or conceptually, centralized tracker).
         It is called by the method add_new_links_helper() in Simulator class.

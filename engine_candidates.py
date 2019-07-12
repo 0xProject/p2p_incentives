@@ -3,9 +3,15 @@ This module contains all possible realizations of functions in the Engine class.
 """
 
 import random
+from typing import Optional, Set, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from node import Peer, Neighbor
+    from message import Order, OrderInfo
 
 
-def set_preference_passive(neighbor, _peer, _master, preference):
+def set_preference_passive(neighbor: 'Neighbor', _peer: 'Peer', _master: 'Peer',
+                           preference: Optional[int]) -> None:
     """
     This is a candidate design for setting preference of a neighbor instance.
     It is called by method neighbor_set_preference() in class Engine.
@@ -23,7 +29,8 @@ def set_preference_passive(neighbor, _peer, _master, preference):
     neighbor.preference = preference
 
 
-def set_priority_passive(orderinfo, _order, _master, priority):
+def set_priority_passive(orderinfo: 'OrderInfo', _order: 'Order',
+                         _master: 'Peer', priority: Optional[int]) -> None:
     """
     This is a candidate design for setting a priority of an orderinfo instance.
     It is called by method orderinfo_set_priority() in class Engine.
@@ -37,7 +44,7 @@ def set_priority_passive(orderinfo, _order, _master, priority):
     orderinfo.priority = priority
 
 
-def store_first(peer):
+def store_first(peer: 'Peer') -> None:
     """
     This is a candidate design for storing orders.
     It is called by method order_storage() in class Engine.
@@ -63,7 +70,7 @@ def store_first(peer):
             orderinfo.storage_decision = False
 
 
-def share_all_new_selected_old(max_to_share, old_prob, peer):
+def share_all_new_selected_old(max_to_share: int, old_prob: float, peer: 'Peer')-> Set['Order']:
     """
     This is a candidate design for deciding which orders to share.
     It is called by method orders_to_share() in class Engine.
@@ -76,20 +83,21 @@ def share_all_new_selected_old(max_to_share, old_prob, peer):
     :return: set of order instances selected to share
     """
 
-    new_order_set = peer.new_order_set
-    old_order_set = set(peer.order_orderinfo_mapping) - peer.new_order_set
-    selected_order_set = set()
+    new_order_set: Set['Order'] = peer.new_order_set
+    old_order_set: Set['Order'] = set(peer.order_orderinfo_mapping) - peer.new_order_set
+    selected_order_set: Set['Order'] = set()
 
     selected_order_set |= set(random.sample(new_order_set, min(max_to_share, len(new_order_set))))
 
-    remaining_share_size = max(0, max_to_share - len(new_order_set))
-    probability_selection_size = round(len(old_order_set) * old_prob)
+    remaining_share_size: int = max(0, max_to_share - len(new_order_set))
+    probability_selection_size: int = round(len(old_order_set) * old_prob)
     selected_order_set |= set(random.sample(old_order_set, min(remaining_share_size,
                                                                probability_selection_size)))
     return selected_order_set
 
 
-def weighted_sum(lazy_contribution, lazy_length, discount, peer):
+def weighted_sum(lazy_contribution: int, lazy_length: int,
+                 discount: List[float], peer: 'Peer') -> None:
     """
     This is a candidate design for calculating the scores of neighbors of the peer.
     It is called by method score_neighbors() in class Engine.
@@ -110,7 +118,7 @@ def weighted_sum(lazy_contribution, lazy_length, discount, peer):
     # neighboring_peer is the peer instance for a neighbor
     # neighbor is the neighbor instance for a neighbor
     for neighboring_peer in list(peer.peer_neighbor_mapping):
-        neighbor = peer.peer_neighbor_mapping[neighboring_peer]
+        neighbor: 'Neighbor' = peer.peer_neighbor_mapping[neighboring_peer]
         # update laziness
         if neighbor.share_contribution[-1] <= lazy_contribution:
             neighbor.lazy_round += 1
@@ -123,7 +131,8 @@ def weighted_sum(lazy_contribution, lazy_length, discount, peer):
         neighbor.score = sum(a * b for a, b in zip(neighbor.share_contribution, discount))
 
 
-def tit_for_tat(baby_ending, mutual, optimistic, time_now, peer):
+def tit_for_tat(baby_ending: int, mutual: int, optimistic: int,
+                time_now: int, peer: 'Peer') -> Set['Peer']:
     """
     This is a candidate design to select beneficiaries from neighbors.
     It is called by method neighbors_to_share() in class Engine.
@@ -143,7 +152,7 @@ def tit_for_tat(baby_ending, mutual, optimistic, time_now, peer):
     :return: set of peer instances of the nodes selected as beneficiaries.
     """
 
-    selected_peer_set = set()
+    selected_peer_set: Set['Peer'] = set()
     if time_now - peer.birth_time <= baby_ending:  # This is a new peer. Random select neighbors.
         selected_peer_set |= set(random.sample(list(peer.peer_neighbor_mapping),
                                                min(len(peer.peer_neighbor_mapping), mutual +
@@ -151,21 +160,22 @@ def tit_for_tat(baby_ending, mutual, optimistic, time_now, peer):
     else:  # This is an old peer
         # ranked_list_of_peers is a list of peer instances who are my neighbors
         # and they are ranked according to their scores that I calculate.
-        ranked_list_of_peers = peer.rank_neighbors()
+        ranked_list_of_peers: List['Peer'] = peer.rank_neighbors()
         mutual = min(mutual, len(ranked_list_of_peers))
         while mutual > 0 and peer.peer_neighbor_mapping[ranked_list_of_peers[mutual - 1]].score\
                 == 0:
             mutual -= 1
 
-        highly_ranked_peers_list = ranked_list_of_peers[:mutual]
-        lowly_ranked_peers_list = ranked_list_of_peers[mutual:]
+        highly_ranked_peers_list: List['Peer'] = ranked_list_of_peers[:mutual]
+        lowly_ranked_peers_list: List['Peer'] = ranked_list_of_peers[mutual:]
         selected_peer_set |= set(highly_ranked_peers_list)
         selected_peer_set |= set(random.sample(lowly_ranked_peers_list, min(len(
             lowly_ranked_peers_list), optimistic)))
     return selected_peer_set
 
 
-def random_recommendation(_requester, base, target_number):
+def random_recommendation(_requester: 'Peer', base: Set['Peer'], target_number: int)\
+        -> Set['Peer']:
     """
     This is a candidate design for neighbor recommendation.
     It is called by method neighbor_rec() in class Engine.

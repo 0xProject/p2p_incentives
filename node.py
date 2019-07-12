@@ -4,7 +4,12 @@ Note that sometimes we use "node" and "peer" interchangeably in the comment.
 """
 
 import collections
-from order import OrderInfo
+from typing import Optional, Deque, Set, Dict, List, TYPE_CHECKING
+
+from message import OrderInfo, Order
+
+if TYPE_CHECKING:
+    from engine import Engine
 
 
 class Neighbor:
@@ -19,33 +24,37 @@ class Neighbor:
     # Though neighbor class does not have any public method, it is still fine to use a class
     # instead of namedtuple, otherwise we won't be able to change the value of the parameters.
 
-    def __init__(self, engine, peer, master, est_time, preference=None):
+    def __init__(self, engine: 'Engine', peer: 'Peer', master: 'Peer', est_time: int,
+                 preference: Optional[int] = None) -> None:
         # pylint: disable=too-many-arguments
         # It is fine to have six arguments here.
 
-        self.engine = engine  # design choice
-        self.est_time = est_time  # establishment time
+        self.engine: Engine = engine  # design choice
+        self.est_time: int = est_time  # establishment time
+
+        self.preference: Optional[int] = preference
         # "peer" is the peer instance of this neighbor
+        #
         # "master" is the peer instance of whom that regards me as a neighbor.
         # The following function sets up the master node's preference to this neighbor
-        self.engine.set_preference_for_neighbor(peer, master, preference)
+        self.engine.set_preference_for_neighbor(self, peer, master, preference)
 
         # If peer A shares his info to peer B, we say peer A contributes to B.
         # Such contribution is recorded in peer B's local record, i.e.,
         # the neighbor instance for peer A in the local storage of peer B.
         # Formally, "share_contribution" is a queue to record a length of "score_length"
         # of contributions, each corresponding to the score in one of the previous batches.
-        self.share_contribution = collections.deque()
+        self.share_contribution: Deque[float] = collections.deque()
         for _ in range(engine.score_length):
-            self.share_contribution.append(0)
+            self.share_contribution.append(0.0)
 
-        self.score = 0  # the score to evaluate my neighbor.
+        self.score: float = 0.0  # the score to evaluate my neighbor.
 
         # lazy_round is the number of batch periods over which this peer has be regarded as a
         # lazy neighbor. A neighbor is regarded as lazy if its score in one batch is below a
         # certain value. Default for lazy_round is 0. Increased by 1 if its score is below that
         # certain value, or reset to 0 otherwise.
-        self.lazy_round = 0
+        self.lazy_round: int = 0
 
 
 # Peer class, each peer instance being a node in the mesh.
@@ -59,41 +68,42 @@ class Peer:
     # pylint: disable=too-many-instance-attributes
     # It is fine for class Peer to have many attributes.
 
-    def __init__(self, engine, seq, birth_time, init_orders, namespacing=None, peer_type=None):
+    def __init__(self, engine: 'Engine', seq: int, birth_time: int, init_orders: Set[Order],
+                 namespacing: Optional[int] = None, peer_type: Optional[str] = None) -> None:
 
         # pylint: disable=too-many-arguments
         # It is fine to have seven argument here.
         # Note: initialization deals with initial orders, but does not establish neighborhood
         # relationships.
 
-        self.local_clock = birth_time
+        self.local_clock: int = birth_time
 
         # simple parameter setting
-        self.engine = engine # design choice
-        self.seq = seq # sequence number. Not in use now, for reserve purpose only.
-        self.birth_time = birth_time
-        self.init_orderbook_size = len(init_orders)
-        self.namespacing = namespacing  # Namespacing is its interest in certain trading groups.
-        self.peer_type = peer_type  # Refers to a peer type (e.g., big/small relayer).
+        self.engine: 'Engine' = engine  # design choice
+        self.seq: int = seq  # sequence number. Not in use now, for reserve purpose only.
+        self.birth_time: int = birth_time
+        self.init_orderbook_size: int = len(init_orders)
+        self.namespacing: Optional[int] = namespacing  # interest in certain trading groups
+        self.peer_type: Optional[str] = peer_type  # e.g., big/small relayer
 
         # This denotes if this peer is a free rider (no contribution to other peers)
         # This is a redundant variable, for better readability only.
         # A free rider sits in the system, listens to orders, and does nothing else.
         # It does not generate orders by itself.
-        self.is_free_rider = (peer_type == 'free-rider')
+        self.is_free_rider: bool = (peer_type == 'free-rider')
 
         # mapping from the order instance to orderinfo instances that have been formally stored.
-        self.order_orderinfo_mapping = {}
+        self.order_orderinfo_mapping: Dict[Order, OrderInfo] = {}
         # mapping from the peer instance to neighbor instance. Note, neighborhood relationship
         # must be bilateral.
-        self.peer_neighbor_mapping = {}
+        self.peer_neighbor_mapping: Dict['Peer', Neighbor] = {}
         # set of newly and formally-stored orders that have NEVER been shared out by this peer.
-        self.new_order_set = set()
+        self.new_order_set: Set[Order] = set()
 
         # The following mapping maintains a table of pending orders, by recording their orderinfo
         # instance. Note that an order can have multiple orderinfo instances, because it can be
         # forwarded by different neighbors.
-        self.order_pending_orderinfo_mapping = {}
+        self.order_pending_orderinfo_mapping: Dict[Order, List[OrderInfo]] = {}
 
         if self.is_free_rider and init_orders:
             raise ValueError('Free riders should not have their own orders.')
@@ -107,8 +117,8 @@ class Peer:
             if order.creator is None:
                 order.creator = self
 
-            priority = None # we don't set the priority for now
-            new_orderinfo = OrderInfo(engine, order, self, birth_time, priority)
+            priority: Optional[int] = None  # we don't set the priority for now
+            new_orderinfo: OrderInfo = OrderInfo(engine, order, self, birth_time, priority)
             self.order_orderinfo_mapping[order] = new_orderinfo
             self.new_order_set.add(order)
 
@@ -116,7 +126,7 @@ class Peer:
             new_orderinfo.storage_decision = True
             order.holders.add(self)
 
-    def should_accept_neighbor_request(self, requester):
+    def should_accept_neighbor_request(self, requester: 'Peer') -> bool:
         """
         This method is for a peer instance to determine whether they accept a neighbor
         establishment request or not.
@@ -135,7 +145,7 @@ class Peer:
 
         return len(self.peer_neighbor_mapping) < self.engine.neighbor_min
 
-    def should_add_neighbor(self, peer):
+    def should_add_neighbor(self, peer: 'Peer') -> bool:
         """
         This method establishes a neighborhood relationship.
         Different from other methods that can be called by a peer anywhere in the simulator,
@@ -146,11 +156,11 @@ class Peer:
         if peer in self.peer_neighbor_mapping:
             return False
         # create new neighbor in my local storage
-        new_neighbor = Neighbor(self.engine, peer, self, self.local_clock)
+        new_neighbor: Neighbor = Neighbor(self.engine, peer, self, self.local_clock)
         self.peer_neighbor_mapping[peer] = new_neighbor
         return True
 
-    def accept_neighbor_cancellation(self, requester):
+    def accept_neighbor_cancellation(self, requester: 'Peer') -> None:
         """
         This method defines what a peer will do if it's notified by someone for cancelling a
         neighborhood relationship. It will always accept the cancellation, and delete that peer
@@ -165,7 +175,8 @@ class Peer:
         if requester in self.peer_neighbor_mapping:
             self.del_neighbor(requester, False, False)
 
-    def del_neighbor(self, peer, remove_order=False, notification=True):
+    def del_neighbor(self, peer: 'Peer', remove_order: bool = False,
+                     notification: bool = True) -> None:
         """
         This method deletes a neighbor.
         :param peer: the peer instance of the neighbor to be deleted.
@@ -200,7 +211,7 @@ class Peer:
         # delete this neighbor
         del self.peer_neighbor_mapping[peer]
 
-    def receive_order_external(self, order):
+    def receive_order_external(self, order: Order) -> None:
         """
         This method is called by method order_arrival() in class Simulator.
         An OrderInfo instance will be created and put into pending table (just to keep consistent
@@ -215,13 +226,14 @@ class Peer:
 
         if self.engine.should_accept_external_order(self, order):
             # create the orderinfo instance and add it into the local mapping table
-            new_orderinfo = OrderInfo(self.engine, order, self, self.local_clock)
+            new_orderinfo: OrderInfo = OrderInfo(self.engine, order, self, self.local_clock)
             self.order_pending_orderinfo_mapping[order] = [new_orderinfo]
             # update the number of replicas for this order and hesitator of this order
             # a peer is a hesitator of an order if this order is in its pending table
             order.hesitators.add(self)
 
-    def receive_order_internal(self, peer, order, novelty_update=False):
+    def receive_order_internal(self, peer: 'Peer', order: Order,
+                               novelty_update: bool = False) -> None:
         """
         The method is called by method share_order() in class Simulator.
         It will immediately decide whether to put the order from the peer (who is my neighbor)
@@ -236,7 +248,7 @@ class Peer:
         if self not in peer.peer_neighbor_mapping or peer not in self.peer_neighbor_mapping:
             raise ValueError('Order transmission cannot be performed between non-neighbors.')
 
-        neighbor = self.peer_neighbor_mapping[peer]
+        neighbor: Neighbor = self.peer_neighbor_mapping[peer]
 
         if not self.engine.should_accept_internal_order(self, peer, order):
             # update the contribution of my neighbor for his sharing
@@ -244,7 +256,7 @@ class Peer:
             return
 
         if order in self.order_orderinfo_mapping:  # no need to store again
-            orderinfo = self.order_orderinfo_mapping[order]
+            orderinfo: OrderInfo = self.order_orderinfo_mapping[order]
             if orderinfo.prev_owner == peer:
                 # I have this order in my local storage. My neighbor is sending me the same order
                 # again. It may be due to randomness of sharing old orders.
@@ -264,8 +276,8 @@ class Peer:
             order_novelty = peer.order_orderinfo_mapping[order].novelty
 
         # create an orderinfo instance
-        new_orderinfo = OrderInfo(self.engine, order, self, self.local_clock, None, peer,
-                                  order_novelty)
+        new_orderinfo: OrderInfo = OrderInfo(self.engine, order, self, self.local_clock,
+                                             None, peer, order_novelty)
 
         # If no such order in the pending list, create an entry for it
         if order not in self.order_pending_orderinfo_mapping:  # order not in the pending set
@@ -286,7 +298,7 @@ class Peer:
         # Add it to the pending list anyway since later, his version of the order might be selected.
         self.order_pending_orderinfo_mapping[order].append(new_orderinfo)
 
-    def store_orders(self):
+    def store_orders(self) -> None:
         """
         This method determines which orders to store and which to discard, for all orders
         in the pending table. It is proactively called by each peer at the end of a batch period.
@@ -323,7 +335,7 @@ class Peer:
                             share_contribution[-1] += self.engine.reward_c
 
             else: # the first element is to be stored
-                first_pending_orderinfo = orderinfo_list[0]
+                first_pending_orderinfo: OrderInfo = orderinfo_list[0]
                 # Find the global instance for the sender, and update it.
                 # If it is an internal order and sender is still a neighbor
                 if first_pending_orderinfo.prev_owner in self.peer_neighbor_mapping:
@@ -349,7 +361,7 @@ class Peer:
         # clear the pending mapping table
         self.order_pending_orderinfo_mapping.clear()
 
-    def share_orders(self):
+    def share_orders(self) -> None:
         """
         This method determines which orders to be shared to which neighbors.
         It will call internal order receiving method of the receiver peer.
@@ -368,20 +380,20 @@ class Peer:
         # Otherwise, this function has to go through order by order and neighbor by neighbor.
 
         # orders to share
-        order_to_share_set = self.engine.find_orders_to_share(self)
+        order_to_share_set: Set[Order] = self.engine.find_orders_to_share(self)
 
         # clear self.new_order_set for future use
         self.new_order_set.clear()
 
         # peers to share
-        peer_to_share_set = self.engine.find_neighbors_to_share(self.local_clock, self)
+        peer_to_share_set: Set['Peer'] = self.engine.find_neighbors_to_share(self.local_clock, self)
 
         # call receiver node to accept the orders
         for peer in peer_to_share_set:
             for order in order_to_share_set:
                 peer.receive_order_internal(self, order)
 
-    def del_order(self, order):
+    def del_order(self, order: Order) -> None:
         """
         This method deletes all orderinfo instances of a particular order.
         :param order: the order instance of the order to be deleted.
@@ -397,7 +409,7 @@ class Peer:
             del self.order_orderinfo_mapping[order]
             order.holders.remove(self)
 
-    def rank_neighbors(self):
+    def rank_neighbors(self) -> List['Peer']:
         """
         This method ranks neighbors according to their scores. It is called by internal method
         share_orders().
@@ -405,6 +417,6 @@ class Peer:
         instances.
         """
         self.engine.score_neighbors(self)
-        peer_list = list(self.peer_neighbor_mapping)
+        peer_list: List['Peer'] = list(self.peer_neighbor_mapping)
         peer_list.sort(key=lambda item: self.peer_neighbor_mapping[item].score, reverse=True)
         return peer_list

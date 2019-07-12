@@ -4,11 +4,12 @@ to work on performance evaluation results, and possibly for results of running t
 simulator multiple times.
 """
 
-import itertools
 import statistics
+from typing import List, Iterator, Optional, Tuple
 
 
-def find_best_worst_lists(sequence_of_lists):
+def find_best_worst_lists(sequence_of_lists: List[List[Optional[float]]])\
+        -> Tuple[List[Optional[float]], List[Optional[float]]]:
     """
     This function finds the "best" and "worst" lists from a set of lists. See explanation below.
     :param sequence_of_lists: a sequence of equal-length lists.
@@ -26,7 +27,7 @@ def find_best_worst_lists(sequence_of_lists):
     since it should have been guaranteed in the function that calls it.
     """
 
-    last_effective_idx = -1
+    last_effective_idx: int = -1
     while last_effective_idx >= -len(sequence_of_lists[0]):
         if any(item[last_effective_idx] is not None for item in sequence_of_lists):
             break
@@ -35,15 +36,17 @@ def find_best_worst_lists(sequence_of_lists):
     if last_effective_idx == -len(sequence_of_lists[0]) - 1:
         raise ValueError('All entries are None. Invalid to compare.')
 
-    it1, it2 = itertools.tee((item for item in sequence_of_lists if item[last_effective_idx] is
-                              not None), 2)
+    it1: Iterator = iter((item for item in sequence_of_lists if item[last_effective_idx] is not
+                          None))
     best_list = max(it1, key=lambda x: x[last_effective_idx])
+    it2: Iterator = iter((item for item in sequence_of_lists if item[last_effective_idx] is not
+                          None))
     worst_list = min(it2, key=lambda x: x[last_effective_idx])
 
     return best_list, worst_list
 
 
-def average_lists(sequence_of_lists):
+def average_lists(sequence_of_lists: List[List[Optional[float]]]) -> List[float]:
     """
     This function calculates the position-wise average of all values from all lists.
     :param sequence_of_lists: a sequence of equal-length lists. Each element in each list is
@@ -53,20 +56,26 @@ def average_lists(sequence_of_lists):
     If all elements in a place of all input lists are None, the output element in that place is 0.
     """
 
-    average_list = [None for _ in range(len(sequence_of_lists[0]))]
-    length_of_list = len(average_list)
+    average_list: List[float] = [0.0 for _ in range(len(sequence_of_lists[0]))]
+    length_of_list: int = len(average_list)
 
-    for idx in range(length_of_list):
+    idx: int = 0
+    while idx < length_of_list:
+        processing_list = []
+        for any_list in sequence_of_lists:
+            if any_list[idx] is not None:
+                processing_list.append(any_list[idx])
         try:
-            average_list[idx] = statistics.mean(any_list[idx] for any_list in
-                                                sequence_of_lists if any_list[idx] is not None)
+            average_list[idx] = statistics.mean(processing_list)
         except statistics.StatisticsError:
-            average_list[idx] = 0
+            average_list[idx] = 0.0
+        idx += 1
 
     return average_list
 
 
-def calculate_density(sequence_of_lists, division_unit=0.01):
+def calculate_density(sequence_of_lists: List[List[float]],
+                      division_unit: float = 0.01) -> List[float]:
     """
     This function calculates the density of the values of all elements from all input lists.
     :param sequence_of_lists: a sequence of lists. Each element in each list is a real value over
@@ -78,13 +87,13 @@ def calculate_density(sequence_of_lists, division_unit=0.01):
     and the result is the density of elements in that long list.
     """
 
-    total_points = sum(len(single_list) for single_list in sequence_of_lists)
+    total_points: int = sum(len(single_list) for single_list in sequence_of_lists)
 
     if total_points == 0:
         raise ValueError('Invalid to calculate density for nothing.')
 
-    largest_index = int(1/division_unit)
-    density_list = [0 for _ in range(largest_index + 1)]
+    largest_index: int = int(1/division_unit)
+    density_list: List[float] = [0.0 for _ in range(largest_index + 1)]
 
     for single_list in sequence_of_lists:
         for value in single_list:

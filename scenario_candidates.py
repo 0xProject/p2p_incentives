@@ -4,9 +4,12 @@ This module contains contains all possible realizations for functions in Scenari
 
 import random
 import math
+from typing import List, TYPE_CHECKING, Tuple
+if TYPE_CHECKING:
+    from message import Order
 
 
-def hawkes(rate, max_time):
+def hawkes(rate: Tuple[float, float, float, float], max_time: int) -> List[int]:
     """
     This is the function to generate Hawkes process. The expected arrival rate lambda(t) at time
     point t is:
@@ -39,7 +42,7 @@ def hawkes(rate, max_time):
     if not (lambda_0 >= a >= 0 and delta > 0 and gamma >= 0):
         raise ValueError('Parameter setting is incorrect for the Hawkes process.')
 
-    T = [0]
+    T: List[float] = [0.0]  # this is the list of event happening time.
     lambda_plus = lambda_0
 
     while T[-1] < max_time:
@@ -65,14 +68,14 @@ def hawkes(rate, max_time):
         lambda_minus = (lambda_plus - a)* math.exp(-delta * tau) + a
         lambda_plus = lambda_minus + gamma
 
-    num_events = [0] * max_time
+    num_events: List[int] = [0] * max_time
     for t in T[1:-1]:
         num_events[int(t)] += 1
 
     return num_events
 
 
-def settle_dummy(_order):
+def settle_dummy(_order: 'Order') -> None:
     """
     This function determines to change an order's is_settled status or not.
     This is a dummy implementation that never changes the status.

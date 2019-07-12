@@ -11,7 +11,7 @@ from performance import Performance
 # The following is one example of a Scenario instance.
 # parameters
 
-ORDER_TYPE_RATIOS = {'default': 1}  # ratio of orders of each type
+ORDER_TYPE_RATIOS = {'default': 1.0}  # ratio of orders of each type
 PEER_TYPE_RATIOS = {'free-rider': 0.1,
                     'normal': 0.9
                     }  # ratio of peers of each type
@@ -23,8 +23,8 @@ PEER_TYPE_RATIOS = {'free-rider': 0.1,
 # The parameters are the mean and variance of order expiration.
 
 ORDER_DEFAULT_TYPE = {
-    'mean': 500,
-    'var': 0
+    'mean': 500.0,
+    'var': 0.0
     }
 
 ORDER_PAR_DICT = {'default': ORDER_DEFAULT_TYPE}  # right now, only one order type
@@ -33,13 +33,13 @@ ORDER_PAR_DICT = {'default': ORDER_DEFAULT_TYPE}  # right now, only one order ty
 # The parameters are the mean and variance of the initial orderbook size of the peer.
 
 PEER_FREE_RIDER = {
-    'mean': 0,
-    'var': 0
+    'mean': 0.0,
+    'var': 0.0
     }
 
 PEER_NORMAL = {
-    'mean': 6,
-    'var': 1
+    'mean': 6.0,
+    'var': 1.0
     }
 
 PEER_PAR_DICT = {'free-rider': PEER_FREE_RIDER,
@@ -58,10 +58,10 @@ INIT_PAR = {
 
 GROWTH_PAR = {
     'rounds': 30,
-    'peer_arrival': 3,
-    'peer_dept': 0,
-    'order_arrival': 15,
-    'order_cancel': 15
+    'peer_arrival': 3.0,
+    'peer_dept': 0.0,
+    'order_arrival': 15.0,
+    'order_cancel': 15.0
     }
 
 # The following dictionary specifies the parameters for the system's stable period
@@ -69,10 +69,10 @@ GROWTH_PAR = {
 
 STABLE_PAR = {
     'rounds': 50,
-    'peer_arrival': 2,
-    'peer_dept': 2,
-    'order_arrival': 15,
-    'order_cancel': 15
+    'peer_arrival': 2.0,
+    'peer_dept': 2.0,
+    'order_arrival': 15.0,
+    'order_cancel': 15.0
     }
 
 S_PARAMETERS = (ORDER_TYPE_RATIOS, PEER_TYPE_RATIOS, ORDER_PAR_DICT, PEER_PAR_DICT, INIT_PAR,
@@ -113,13 +113,13 @@ TOPOLOGY = {
 
 INCENTIVE = {
     'length': 3,
-    'reward_a': 0,
-    'reward_b': 0,
-    'reward_c': 0,
-    'reward_d': 1,
-    'reward_e': 0,
-    'penalty_a': 0,
-    'penalty_b': -1}
+    'reward_a': 0.0,
+    'reward_b': 0.0,
+    'reward_c': 0.0,
+    'reward_d': 1.0,
+    'reward_e': 0.0,
+    'penalty_a': 0.0,
+    'penalty_b': -1.0}
 
 E_PARAMETERS = (BATCH, TOPOLOGY, INCENTIVE)
 
@@ -152,7 +152,7 @@ SCORE = {
     'method': 'Weighted',
     'lazy_contribution_threshold': 2,
     'lazy_length_threshold': 6,
-    'weights': [1, 1, 1]  # must be of the same length as incentive['length']
+    'weights': [1.0, 1.0, 1.0]  # must be of the same length as incentive['length']
     }
 
 # This dictionary describes how to determine the neighbors that receive my orders.
