@@ -58,6 +58,8 @@ constructing instances for Scenario, Engine, and Performance classes.
 - Module run is the main file that runs the simulator. It gets inputs from Example, and runs the
 Execution for each input.
 
+- Module data_types defines data types for use of type hints through the entire code base.
+
 ## Design details
 
 
@@ -143,4 +145,3 @@ settlement. This is not reflected.
 store/share these orders) right now.
 
 - Neighborhood topology is totally random.
-  

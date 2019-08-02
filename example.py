@@ -2,91 +2,153 @@
 This module contains one test case by generating a point in engine, scenario, and performance.
 """
 
-from typing import Dict, Tuple, Any, List
+from typing import List
 from engine import Engine
 from scenario import Scenario
 from performance import Performance
+from data_types import (
+    OrderRatio,
+    PeerRatio,
+    Distribution,
+    OrderParameter,
+    PeerParameter,
+    SystemInitialState,
+    SystemEvolution,
+    ScenarioParameters,
+    EventOption,
+    SettleOption,
+    ScenarioOptions,
+    Topology,
+    Incentive,
+    EngineParameters,
+    ExternalOption,
+    InternalOption,
+    PreferenceOption,
+    PriorityOption,
+    StoreOption,
+    AllNewSelectedOld,
+    Weighted,
+    TitForTat,
+    RecommendationOption,
+    EngineOptions,
+    PerformanceParameters,
+    SpreadingOption,
+    SatisfactionOption,
+    FairnessOption,
+    PerformanceOptions,
+    PerformanceExecutions,
+)
 
 
 # ======
 # The following is one example of a Scenario instance.
 # parameters
 
-ORDER_TYPE_RATIOS: Dict[str, float] = {'default': 1.0}  # ratio of orders of each type
-PEER_TYPE_RATIOS: Dict[str, float] = {'free-rider': 0.1,
-                                      'normal': 0.9
-                                      }  # ratio of peers of each type
+# ratio of orders of each type.
+# If an additional type is added, remember to modify OrderRatio and OrderParameter in data_types
 
-# In what follows we use dictionary to generate parameters for a scenario instance.
-# One needs to follow the format. No change on the dictionary keys. Change values only.
+ORDER_TYPE_RATIOS: OrderRatio = OrderRatio(default=1.0)
 
-# The following dictionary specifies an order type (which is the only type we have right now).
-# The parameters are the mean and variance of order expiration.
+# ratio of peers of each type
+# If an additional type is added, remember to modify PeerRatio and PeerParameter in data_types
 
-ORDER_DEFAULT_TYPE: Dict[str, float] = {'mean': 500.0,
-                                        'var': 0.0
-                                        }
+PEER_TYPE_RATIOS: PeerRatio = PeerRatio(free_rider=0.1, normal=0.9)
 
-# right now, only one order type
-ORDER_PAR_DICT: Dict[str, Dict[str, float]] = {'default': ORDER_DEFAULT_TYPE}
+# Order parameter distribution: a namedtuple consisting of the mean and variance of order
+# expiration. An order's real expiration follows a Normal distribution given this mean and variance.
 
-# The following dictionaries specify various peer types.
-# The parameters are the mean and variance of the initial orderbook size of the peer.
+ORDER_DEFAULT: Distribution = Distribution(mean=500.0, var=0.0)
 
-PEER_FREE_RIDER: Dict[str, float] = {'mean': 0.0,
-                                     'var': 0.0
-                                     }
+# Order parameter dictionary: the type OrderParameter a TypedDict, key is the name of order
+# type (str), value is the order parameter distribution.
 
-PEER_NORMAL: Dict[str, float] = {'mean': 6.0,
-                                 'var': 1.0
-                                 }
+ORDER_PAR_DICT: OrderParameter = OrderParameter(default=ORDER_DEFAULT)
 
-PEER_PAR_DICT: Dict[str, Dict[str, float]] = {'free-rider': PEER_FREE_RIDER,
-                                              'normal': PEER_NORMAL
-                                              }
 
-# The following dictionary specifies the parameters for the system's initial status.
+# Peer parameter distribution: a namedtuple consisting of the mean and variance of order
+# expiration. A peer's initial orderbook size follows a Normal distribution given this mean and
+# variance.
 
-INIT_PAR: Dict[str, int] = {'num_peers': 10,
-                            'birth_time_span': 20
-                            }
+PEER_FREE_RIDER: Distribution = Distribution(mean=0.0, var=0.0)
+PEER_NORMAL: Distribution = Distribution(mean=6.0, var=0.0)
 
-# The following dictionary specifies the parameters for the system's grwoth period
+# Peer parameter dictionary: similar as above. In this example we have two types of peers: free
+# riders and normal peers.
+
+PEER_PAR_DICT: PeerParameter = PeerParameter(
+    free_rider=PEER_FREE_RIDER, normal=PEER_NORMAL
+)
+
+# The following namedtuple specifies the parameters for the system's initial status.
+
+NUM_PEERS: int = 10
+BIRTH_TIME_SPAN: int = 20
+INIT_PAR: SystemInitialState = SystemInitialState(
+    num_peers=NUM_PEERS, birth_time_span=BIRTH_TIME_SPAN
+)
+
+# The following namedtuple specifies the parameters for the system's growth period
 # when the # of peers keeps increasing.
 
-GROWTH_PAR: Dict[str, float] = {'rounds': 30,
-                                'peer_arrival': 3.0,
-                                'peer_dept': 0.0,
-                                'order_arrival': 15.0,
-                                'order_cancel': 15.0
-                                }
+GROWTH_ROUND: int = 30
+GROWTH_PEER_ARRIVAL: float = 3.0
+GROWTH_PEER_DEPT: float = 0.0
+GROWTH_ORDER_ARRIVAL: float = 15.0
+GROWTH_ORDER_CANCEL: float = 15.0
+GROWTH_PAR: SystemEvolution = SystemEvolution(
+    rounds=GROWTH_ROUND,
+    peer_arrival=GROWTH_PEER_ARRIVAL,
+    peer_dept=GROWTH_PEER_DEPT,
+    order_arrival=GROWTH_ORDER_ARRIVAL,
+    order_cancel=GROWTH_ORDER_CANCEL,
+)
 
-# The following dictionary specifies the parameters for the system's stable period
+# The following namedtuple specifies the parameters for the system's stable period
 # when the # of peers keeps stable.
 
-STABLE_PAR: Dict[str, float] = {'rounds': 50,
-                                'peer_arrival': 2.0,
-                                'peer_dept': 2.0,
-                                'order_arrival': 15.0,
-                                'order_cancel': 15.0
-                                }
+STABLE_ROUND: int = 50
+STABLE_PEER_ARRIVAL: float = 2.0
+STABLE_PEER_DEPT: float = 2.0
+STABLE_ORDER_ARRIVAL: float = 15.0
+STABLE_ORDER_CANCEL: float = 15.0
+STABLE_PAR: SystemEvolution = SystemEvolution(
+    rounds=STABLE_ROUND,
+    peer_arrival=STABLE_PEER_ARRIVAL,
+    peer_dept=STABLE_PEER_DEPT,
+    order_arrival=STABLE_ORDER_ARRIVAL,
+    order_cancel=STABLE_ORDER_CANCEL,
+)
 
-S_PARAMETERS: Tuple[Dict[str, float], Dict[str, float], Dict[str, Dict[str, float]],
-                    Dict[str, Dict[str, float]], Dict[str, int], Dict[str, float],
-                    Dict[str, float]] \
-    = (ORDER_TYPE_RATIOS, PEER_TYPE_RATIOS, ORDER_PAR_DICT, PEER_PAR_DICT, INIT_PAR, GROWTH_PAR,
-       STABLE_PAR)
+# Create scenario parameters, in type of a namedtuple.
 
-# options
+S_PARAMETERS: ScenarioParameters = ScenarioParameters(
+    order_ratios=ORDER_TYPE_RATIOS,
+    peer_ratios=PEER_TYPE_RATIOS,
+    order_parameters=ORDER_PAR_DICT,
+    peer_parameters=PEER_PAR_DICT,
+    init_state=INIT_PAR,
+    growth_period=GROWTH_PAR,
+    stable_period=STABLE_PAR,
+)
 
-# event arrival pattern
-EVENT_ARRIVAL: Dict[str, str] = {'method': 'Poisson'}
+# options.
 
+# Note that the data types for options, EventOption and SettleOption, are both TypedDict.
+# They both have only one key-value pair where key == "method".
+# If another method is created with additional parameters (e.g., "Hawkes"), then first create a
+# data type for it (e.g., HawkesEventOption) inheriting from the base type (e.g., EventOption),
+# with additional definitions on the parameters.
+# One can refer to the options in Engine for examples of additional parameters.
+
+# event arrival pattern.
+EVENT_ARRIVAL: EventOption = EventOption(method="Poisson")
 # how an order's is_settled status is changed
-CHANGE_SETTLE_STATUS: Dict[str, str] = {'method': 'Never'}
+CHANGE_SETTLE_STATUS: SettleOption = SettleOption(method="Never")
 
-S_OPTIONS: Tuple[Dict[str, str], Dict[str, str]] = (EVENT_ARRIVAL, CHANGE_SETTLE_STATUS)
+# creating scenario options, in type of a namedtuple.
+S_OPTIONS: ScenarioOptions = ScenarioOptions(EVENT_ARRIVAL, CHANGE_SETTLE_STATUS)
 
+# create MY_SCENARIO instance, in type of a namedtuple.
 MY_SCENARIO: Scenario = Scenario(S_PARAMETERS, S_OPTIONS)
 
 
@@ -96,74 +158,102 @@ MY_SCENARIO: Scenario = Scenario(S_PARAMETERS, S_OPTIONS)
 
 BATCH: int = 10  # length of a batch period
 
-# This dictionary describes neighbor-related parameters.
+# This namedtuple describes neighbor-related parameters.
 # Similar to creating a Scenario instance, please follow the format and do not change the key.
 # Only value can be changed.
 
-TOPOLOGY: Dict[str, int] = {'max_neighbor_size': 30,
-                            'min_neighbor_size': 20
-                            }
+MAX_NEIGHBOR_SIZE: int = 30
+MIN_NEIGHBOR_SIZE: int = 20
+TOPOLOGY: Topology = Topology(
+    max_neighbor_size=MAX_NEIGHBOR_SIZE, min_neighbor_size=MIN_NEIGHBOR_SIZE
+)
 
-# This dictionary describes the incentive score parameters.
+# This namedtuple describes the incentive score parameters.
 
-INCENTIVE: Dict[str, float] = {'length': 3,
-                               'reward_a': 0.0,
-                               'reward_b': 0.0,
-                               'reward_c': 0.0,
-                               'reward_d': 1.0,
-                               'reward_e': 0.0,
-                               'penalty_a': 0.0,
-                               'penalty_b': -1.0
-                               }
+LENGTH: int = 3
+REWARD_A: float = 0.0
+REWARD_B: float = 0.0
+REWARD_C: float = 0.0
+REWARD_D: float = 1.0
+REWARD_E: float = 0.0
+PENALTY_A: float = 0.0
+PENALTY_B: float = -1.0
 
-E_PARAMETERS: Tuple[int, Dict[str, int], Dict[str, float]] = (BATCH, TOPOLOGY, INCENTIVE)
+INCENTIVE: Incentive = Incentive(
+    length=LENGTH,
+    reward_a=REWARD_A,
+    reward_b=REWARD_B,
+    reward_c=REWARD_C,
+    reward_d=REWARD_D,
+    reward_e=REWARD_E,
+    penalty_a=PENALTY_A,
+    penalty_b=PENALTY_B,
+)
+
+# creating engine parameters, in type of a namedtuple.
+E_PARAMETERS: EngineParameters = EngineParameters(BATCH, TOPOLOGY, INCENTIVE)
 
 # options
 
-# Any option choice is a dictionary. It must contain a key "method," to specify which
-# implementation function to call. The rest entries, if any, are the parameters specific to this
-# implementation that will be passed to the function.
+# Note that the data types for all the options (e.g., PreferenceOption) are both TypedDict.
+# They all have only one key-value pair where key == "method" which specifies how the function
+# should be really implemented.
+# If a method is created with additional parameters (e.g., "TitForTat"), then first create a
+# data type for it (e.g., TitForTat) inheriting from the base type (e.g., BeneficiaryOption),
+# where "method" = "TitForTat", and with additional definitions on the parameters (e.g.,
+# baby_ending_age: int, mutual_helpers: int, and optimistic_choices: int), so they can be passed
+# to the function implementation.
 
-PREFERENCE: Dict[str, str] = {'method': 'Passive'}  # set preference for neighbors
-PRIORITY: Dict[str, str] = {'method': 'Passive'}  # set priority for orders
-EXTERNAL: Dict[str, str] = {'method': 'Always'}  # accepting an external order or not
-INTERNAL: Dict[str, str] = {'method': 'Always'}  # accepting an internal order or not
-STORE: Dict[str, str] = {'method': 'First'}  # storing an order or not
+# set preference for neighbors
+PREFERENCE: PreferenceOption = PreferenceOption(method="Passive")
 
-# This dictionary describes how to determine the orders to share with neighbors.
-# 'method' refers to the implementation choice. Now we only implemented 'all_new_selected_old'.
-# The rest entries are parameters specific to this implementation choice and will be passed
-# to the implementation function.
+# set priority for orders
+PRIORITY: PriorityOption = PriorityOption(method="Passive")
 
-SHARE: Dict[str, Any] = {'method': 'AllNewSelectedOld',
-                         'max_to_share': 5000,
-                         'old_share_prob': 0.5}
+# accepting an external order or not
+EXTERNAL: ExternalOption = ExternalOption(method="Always")
 
-# This dictionary describes how to determine neighbor scoring system.
+# accepting an internal order or not
+INTERNAL: InternalOption = InternalOption(method="Always")
 
-SCORE: Dict[str, Any] = {'method': 'Weighted',
-                         'lazy_contribution_threshold': 2,
-                         'lazy_length_threshold': 6,
-                         'weights': [1.0, 1.0, 1.0]  # must be of the same length as incentive
-                         }
+# storing an order or not
+STORE: StoreOption = StoreOption(method="First")
 
-# This dictionary describes how to determine the neighbors that receive my orders.
+# This TypedDict describes how to determine the orders to share with neighbors.
+# Now we only implemented 'all_new_selected_old'.
 
-BENEFICIARY: Dict[str, Any] = {'method': 'TitForTat',
-                               'baby_ending_age': 0,
-                               'mutual_helpers': 3,
-                               'optimistic_choices': 1
-                               }
+SHARE: AllNewSelectedOld = AllNewSelectedOld(
+    method="AllNewSelectedOld", max_to_share=5000, old_share_prob=0.5
+)
 
-# This dictionary describes neighbor recommendation manner when a peer asks for more neighbors.
+# This TypedDict describes how to determine neighbor scoring system.
+
+SCORE: Weighted = Weighted(
+    method="Weighted",
+    lazy_contribution_threshold=2,
+    lazy_length_threshold=6,
+    weights=[1.0, 1.0, 1.0],
+)  # must be of the same length as incentive
+
+
+# This TypedDict describes how to determine the neighbors that receive my orders.
+
+BENEFICIARY: TitForTat = TitForTat(
+    method="TitForTat", baby_ending_age=0, mutual_helpers=3, optimistic_choices=1
+)
+
+# how to recommendation neighbors when a peer asks for more.
 # Right now, we only implemented a random recommendation.
 
-REC: Dict[str, Any] = {'method': 'Random'}
+REC: RecommendationOption = RecommendationOption(method="Random")
 
+# creating engine option, in type of a namedtuple
 
-E_OPTIONS: Tuple[Dict[str, Any], ...] = (PREFERENCE, PRIORITY, EXTERNAL, INTERNAL, STORE, SHARE,
-                                         SCORE, BENEFICIARY, REC)
+E_OPTIONS: EngineOptions = EngineOptions(
+    PREFERENCE, PRIORITY, EXTERNAL, INTERNAL, STORE, SHARE, SCORE, BENEFICIARY, REC
+)
 
+# creating MY_ENGINE, an instance of Engine, in type pf a namedtuple.
 MY_ENGINE: Engine = Engine(E_PARAMETERS, E_OPTIONS)
 
 
@@ -171,29 +261,54 @@ MY_ENGINE: Engine = Engine(E_PARAMETERS, E_OPTIONS)
 # The following is an example of Performance instance.
 # parameters
 
-PERFORMANCE_PARAMETERS: Dict[str, int] = {'max_age_to_track': 50,
-                                          'adult_age': 30,
-                                          'statistical_window': 5
-                                          }
+MAX_AGE_TO_TRACK: int = 50
+ADULT_AGE: int = 30
+STATISTICAL_WINDOW: int = 5
+
+# creating performance parameters, in type of a namedtuple.
+
+PERFORMANCE_PARAMETERS: PerformanceParameters = PerformanceParameters(
+    max_age_to_track=MAX_AGE_TO_TRACK,
+    adult_age=ADULT_AGE,
+    statistical_window=STATISTICAL_WINDOW,
+)
 
 # options
 
-SPREADING_OPTION: Dict[str, str] = {'method': 'Ratio'}
-SATISFACTION_OPTION: Dict[str, str] = {'method': 'Neutral'}
-FAIRNESS_OPTION: Dict[str, str] = {'method': 'Dummy'}
-MEASURE_OPTIONS: Tuple[Dict[str, str], ...] = (SPREADING_OPTION, SATISFACTION_OPTION,
-                                               FAIRNESS_OPTION)
+SPREADING_OPTION: SpreadingOption = SpreadingOption(method="Ratio")
 
-# executions
+SATISFACTION_OPTION: SatisfactionOption = SatisfactionOption(method="Neutral")
 
-MEASURES_TO_EXECUTE: Dict[str, bool] = {'order_spreading_measure': True,
-                                        'normal_peer_satisfaction_measure': True,
-                                        'free_rider_satisfaction_measure': True,
-                                        'fairness': False
-                                        }
+FAIRNESS_OPTION: FairnessOption = FairnessOption(method="Dummy")
 
-MY_PERFORMANCE: Performance = \
-    Performance(PERFORMANCE_PARAMETERS, MEASURE_OPTIONS, MEASURES_TO_EXECUTE)
+# creating performance options, in type of a namedtuple.
+
+MEASURE_OPTIONS: PerformanceOptions = PerformanceOptions(
+    SPREADING_OPTION, SATISFACTION_OPTION, FAIRNESS_OPTION
+)
+
+# executions, in type of a namedtuple.
+# If one wants to add more execution possibilities, modify the definition of
+# PerformanceExecutions (in type of a namedtuple) first in data_types module.
+
+ORDER_SPREADING: bool = True
+NORMAL_PEER_SATISFACTION: bool = True
+FREE_RIDER_SATISFACTION: bool = True
+SYSTEM_FAIRNESS: bool = False
+
+
+MEASURES_TO_EXECUTE: PerformanceExecutions = PerformanceExecutions(
+    order_spreading_measure=ORDER_SPREADING,
+    normal_peer_satisfaction_measure=NORMAL_PEER_SATISFACTION,
+    free_rider_satisfaction_measure=FREE_RIDER_SATISFACTION,
+    system_fairness=SYSTEM_FAIRNESS,
+)
+
+# create MY_PERFORMANCE instance, in type of a namedtuple.
+
+MY_PERFORMANCE: Performance = Performance(
+    PERFORMANCE_PARAMETERS, MEASURE_OPTIONS, MEASURES_TO_EXECUTE
+)
 
 # Putting the instances into lists
 

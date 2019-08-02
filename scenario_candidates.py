@@ -4,15 +4,15 @@ This module contains contains all possible realizations for functions in Scenari
 
 import random
 import math
-from typing import List, TYPE_CHECKING, Tuple
+from typing import List, TYPE_CHECKING
+from data_types import HawkesArrivalRate
 
-# pylint: disable=cyclic-import
 
 if TYPE_CHECKING:
     from message import Order
 
 
-def hawkes(rate: Tuple[float, float, float, float], max_time: int) -> List[int]:
+def hawkes(rate: HawkesArrivalRate, max_time: int) -> List[int]:
     """
     This is the function to generate Hawkes process. The expected arrival rate lambda(t) at time
     point t is:
@@ -34,16 +34,17 @@ def hawkes(rate: Tuple[float, float, float, float], max_time: int) -> List[int]:
     """
 
     # pylint: disable=invalid-name
-    # pylint: disable=too-many-locals
     # Inside this function, variable names are kept the same as the original paper.
     # Fine to violate naming regulations merely inside this function.
-    # Fine to have many local variables as well.
 
-    (a, lambda_0, delta, gamma) = rate
+    a: float = rate.a
+    lambda_0: float = rate.lambda_0
+    delta: float = rate.delta
+    gamma: float = rate.gamma
 
     # check parameters
     if not (lambda_0 >= a >= 0 and delta > 0 and gamma >= 0):
-        raise ValueError('Parameter setting is incorrect for the Hawkes process.')
+        raise ValueError("Parameter setting is incorrect for the Hawkes process.")
 
     T: List[float] = [0.0]  # this is the list of event happening time.
     lambda_plus = lambda_0
@@ -51,24 +52,24 @@ def hawkes(rate: Tuple[float, float, float, float], max_time: int) -> List[int]:
     while T[-1] < max_time:
         u0 = random.random()
         try:
-            s0 = - 1/a * math.log(u0)
+            s0 = -1 / a * math.log(u0)
         except ZeroDivisionError:
-            s0 = float('inf')
+            s0 = float("inf")
         u1 = random.random()
         try:
             d = 1 + delta * math.log(u1) / (lambda_plus - a)
         except ZeroDivisionError:
-            d = float('-inf')
+            d = float("-inf")
         if d > 0:
             try:
                 s1 = (-1 / delta) * math.log(d)
             except ZeroDivisionError:
-                s1 = float('inf')
+                s1 = float("inf")
             tau = min(s0, s1)
         else:
             tau = s0
         T.append(T[-1] + tau)
-        lambda_minus = (lambda_plus - a)* math.exp(-delta * tau) + a
+        lambda_minus = (lambda_plus - a) * math.exp(-delta * tau) + a
         lambda_plus = lambda_minus + gamma
 
     num_events: List[int] = [0] * max_time
@@ -78,7 +79,7 @@ def hawkes(rate: Tuple[float, float, float, float], max_time: int) -> List[int]:
     return num_events
 
 
-def settle_dummy(_order: 'Order') -> None:
+def settle_dummy(_order: "Order") -> None:
     """
     This function determines to change an order's is_settled status or not.
     This is a dummy implementation that never changes the status.

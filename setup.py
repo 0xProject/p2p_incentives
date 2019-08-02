@@ -2,16 +2,17 @@
 
 """setuptools module for p2p_incentives package."""
 
-# pylint: disable=cyclic-import
-
 import glob
 import subprocess  # nosec
 from shutil import rmtree
 from os import environ, path
+
 # from pathlib import Path
 from sys import argv
 
-from distutils.command.clean import clean
+# Added a comment below since mypy doesn't know there's a clean in distutils.command.clean
+from distutils.command.clean import clean  # type: ignore
+
 import distutils.command.build_py
 from setuptools import find_packages, setup
 from setuptools.command.test import test as TestCommand
@@ -37,13 +38,13 @@ class LintCommand(distutils.command.build_py.build_py):
         files = " ".join(glob.glob("./*.py"))
         lint_commands = [
             # # formatter:
-            # ("black --line-length 79 --check --diff " + files).split(),
+            ("black --line-length 88 --check --diff " + files).split(),
             # # style guide checker (formerly pep8):
             # ("pycodestyle " + files).split(),
             # # docstring style checker:
             # ("pydocstyle " + files).split(),
-            # # static type checker:
-            # ("mypy " + files).split(),
+            # static type checker:
+            ("mypy --ignore-missing-imports " + files).split(),
             # # security issue checker:
             # ("bandit -r " + files).split(),
             # general linter:
@@ -53,14 +54,10 @@ class LintCommand(distutils.command.build_py.build_py):
         ]
 
         # tell mypy where to find interface stubs for 3rd party libs
-        environ["MYPYPATH"] = path.join(
-            path.dirname(path.realpath(argv[0])), "stubs"
-        )
+        environ["MYPYPATH"] = path.join(path.dirname(path.realpath(argv[0])), "stubs")
 
         for lint_command in lint_commands:
-            print(
-                "Running lint command `", " ".join(lint_command).strip(), "`"
-            )
+            print("Running lint command `", " ".join(lint_command).strip(), "`")
             subprocess.check_call(lint_command)  # nosec
 
 
@@ -117,9 +114,7 @@ setup(
     python_requires=">=3.6, <4",
     package_dir={"": "."},
     license="Apache 2.0",
-    keywords=(
-        "ethereum cryptocurrency 0x decentralized blockchain dex exchange"
-    ),
+    keywords=("ethereum cryptocurrency 0x decentralized blockchain dex exchange"),
     packages=find_packages("."),
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
