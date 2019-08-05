@@ -147,19 +147,18 @@ def calculate_density(
     """
     This function calculates the density of the values of all elements from all input lists.
     :param sequence_of_lists: a list of list of floats. Each float is a value over [0,1].
-    :param division_unit: a real value < 1 to divide [0,1) into intervals [n * division_unit,
-    (n+1) * division_unit).
+    :param division_unit: a real value < 1 to divide [0,1] into intervals [n * division_unit,
+    (n+1) * division_unit). The last interval might be shorter than the rest ones.
     :return: density distribution of all values in all sub-lists over the intervals specified above.
     In other words, one can imagine merging all sub-lists into one long list as the input,
     and the result is the density of elements in that long list.
 
     For example, if we have
-    <<< list_1 = [0.25, 0.67, 0.83]
-    <<< list_2 = [0.26, 0.91]
-    <<< division_unit = 0.10
-    <<< calculate_density([list_1, list_2], division_unit)
-    It should return:
-    [0, 0, 0.4, 0, 0, 0, 0.2, 0, 0.1, 0.1]
+    >>> list_1 = [0.25, 0.67, 0.83]
+    >>> list_2 = [0.26, 0.91]
+    >>> division_unit = 0.10
+    >>> calculate_density([list_1, list_2], division_unit)
+    [0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.2, 0.0, 0.2, 0.2, 0.0]
 
     """
 
