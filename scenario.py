@@ -52,25 +52,25 @@ class Scenario:
         self.init_size: int = parameters.init_state.num_peers
         self.birth_time_span: int = parameters.init_state.birth_time_span
 
-        # growing period (when # of peers increases)
+        # growing period (when number of peers increases)
         # An event (peer/order arrival/cancellation) happens according to some random process
         # (e.g., Poisson or Hawkes) that takes the rate as an input parameter(s).
 
         self.growth_rounds: int = parameters.growth_period.rounds
-        self.growth_rates: List[float] = [
+        self.growth_rates: List[EventArrivalRate] = [
             parameters.growth_period.peer_arrival,
             parameters.growth_period.peer_dept,
             parameters.growth_period.order_arrival,
             parameters.growth_period.order_cancel,
         ]
 
-        # stable period (# of peers and # of orders remain relatively stable)
+        # stable period (number of peers and number of orders remain relatively stable)
         # We should choose the parameters such that peer arrival rate is approximately equal to
         # peer departure rate, and that order arrival rate is approximately equal to the total
         # order departure rate (due to cancellation, settlement, or expiration).
 
         self.stable_rounds: int = parameters.stable_period.rounds
-        self.stable_rates: List[float] = [
+        self.stable_rates: List[EventArrivalRate] = [
             parameters.stable_period.peer_arrival,
             parameters.stable_period.peer_dept,
             parameters.stable_period.order_arrival,
@@ -97,7 +97,8 @@ class Scenario:
         :param rate: expected rate of event happening. The type of this input depends on the
         method of generating the event.
         :param max_time: maximal time to generate events.
-        :return: A realization of event happening, in terms of # of events happening in each slot.
+        :return: A realization of event happening, in terms of number of events happening in each
+        slot.
         """
 
         # Slightly modified the following code section (Poisson), just to keep it consistent with
@@ -125,9 +126,7 @@ class Scenario:
             )
 
         raise ValueError(
-            "No such option to generate events: {}".format(
-                self.option_number_of_events["method"]
-            )
+            f"No such option to generate events: {self.option_number_of_events['method']}"
         )
 
     # This function updates the is_settled status for orders.
@@ -142,7 +141,6 @@ class Scenario:
             scenario_candidates.settle_dummy(order)
         else:
             raise ValueError(
-                "No such option to change settlement status for orders: {}".format(
-                    self.option_settle["method"]
-                )
+                f"No such option to change settlement status for orders: "
+                f"{self.option_settle['method']}"
             )

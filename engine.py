@@ -48,32 +48,22 @@ class Engine:
         # Recall that a peer runs its order storing and sharing algorithms only at the end of a
         # batch period. A batch period contains multiple time rounds.
 
-        self.batch: int = parameters.batch_parameter
+        self.batch: int = parameters.batch_length
 
         # topology parameters: maximal/minimal size of neighborhood
-        self.neighbor_max: int = parameters.topology_parameters.max_neighbor_size
-        self.neighbor_min: int = parameters.topology_parameters.min_neighbor_size
+        self.neighbor_max: int = parameters.topology.max_neighbor_size
+        self.neighbor_min: int = parameters.topology.min_neighbor_size
 
-        # incentive related parameters: length of the score sheet, reward a-e, penalty a-b
-        # reward a-e:
-        # a: sharing an order already in my local storage, shared by the same peer
-        # b: sharing an order already in my local storage, shared by a different peer
-        # c: sharing an order that I accepted to pending table, but I don't store finally
-        # d: sharing an order I decide to store
-        # e: for sharing an order I have multiple copies in the pending table and decided
-        #    to store a copy from someone else
-        # penalty a-b:
-        # a: sharing an order that I have no interest to accept to the pending table
-        # b: sharing an identical and duplicate order within the same batch period
+        # please refer to class Incentive definition in date_types module for their explanation.
 
-        self.score_length: int = parameters.incentive_parameters.length
-        self.reward_a: float = parameters.incentive_parameters.reward_a
-        self.reward_b: float = parameters.incentive_parameters.reward_b
-        self.reward_c: float = parameters.incentive_parameters.reward_c
-        self.reward_d: float = parameters.incentive_parameters.reward_d
-        self.reward_e: float = parameters.incentive_parameters.reward_e
-        self.penalty_a: float = parameters.incentive_parameters.penalty_a
-        self.penalty_b: float = parameters.incentive_parameters.penalty_b
+        self.score_length: int = parameters.incentive.score_sheet_length
+        self.reward_a: float = parameters.incentive.reward_a
+        self.reward_b: float = parameters.incentive.reward_b
+        self.reward_c: float = parameters.incentive.reward_c
+        self.reward_d: float = parameters.incentive.reward_d
+        self.reward_e: float = parameters.incentive.reward_e
+        self.penalty_a: float = parameters.incentive.penalty_a
+        self.penalty_b: float = parameters.incentive.penalty_b
 
         # Unpacking options. They specify a choice on a function implementation.
         # Each option argument is of type TypedDict. It must contain a key 'method' to specify
@@ -87,15 +77,15 @@ class Engine:
         # which function in engine_candidates to call, and then pass the rest parameters to the
         # function called.
 
-        self.preference_option: PreferenceOption = options.preference_option
-        self.priority_option: PriorityOption = options.priority_option
-        self.external_option: ExternalOption = options.external_option
-        self.internal_option: InternalOption = options.internal_option
-        self.store_option: StoreOption = options.store_option
-        self.share_option: ShareOption = options.share_option
-        self.score_option: ScoreOption = options.score_option
-        self.beneficiary_option: BeneficiaryOption = options.beneficiary_option
-        self.rec_option: RecommendationOption = options.rec_option
+        self.preference_option: PreferenceOption = options.preference
+        self.priority_option: PriorityOption = options.priority
+        self.external_option: ExternalOption = options.external
+        self.internal_option: InternalOption = options.internal
+        self.store_option: StoreOption = options.store
+        self.share_option: ShareOption = options.share
+        self.score_option: ScoreOption = options.score
+        self.beneficiary_option: BeneficiaryOption = options.beneficiary
+        self.rec_option: RecommendationOption = options.rec
 
     def set_preference_for_neighbor(
         self,
@@ -111,17 +101,15 @@ class Engine:
         :param peer: the peer instance for this neighbor
         :param master: the peer instance who wants to set the preference to the neighbor
         :param preference: an optional argument in case the master node already knows the value
-        to set. If preference is not given, it is None by default and the method will decide the
-        value to set based on other arguments.
+        to set. If preference is not given, the method will decide the value to set based on
+        other arguments.
         :return: None
         """
         if self.preference_option["method"] == "Passive":
             engine_candidates.set_preference_passive(neighbor, peer, master, preference)
         else:
             raise ValueError(
-                "No such option to set preference: {}".format(
-                    self.preference_option["method"]
-                )
+                f"No such option to set preference: {self.preference_option['method']}"
             )
 
     def set_priority_for_orderinfo(
@@ -140,17 +128,14 @@ class Engine:
         :param master: the peer instance who wants to set the priority
         :param priority: an optional argument in case the master node already knows the value to
         set.
-        If priority is not given, it is None by default and the method will decide the
-        value to set based on other arguments.
+        If priority is not given, the method will decide the value to set based on other arguments.
         :return: None
         """
         if self.priority_option["method"] == "Passive":
             engine_candidates.set_priority_passive(orderinfo, order, master, priority)
         else:
             raise ValueError(
-                "No such option to set priority: {}".format(
-                    self.priority_option["method"]
-                )
+                f"No such option to set priority: {self.priority_option['method']}"
             )
 
     def should_accept_external_order(self, _receiver: "Peer", _order: "Order") -> bool:
@@ -166,9 +151,7 @@ class Engine:
         if self.external_option["method"] == "Always":
             return True
         raise ValueError(
-            "No such option to receive external orders: {}".format(
-                self.external_option["method"]
-            )
+            f"No such option to receive external orders: {self.external_option['method']}"
         )
 
     def should_accept_internal_order(
@@ -185,9 +168,7 @@ class Engine:
         if self.internal_option["method"] == "Always":
             return True
         raise ValueError(
-            "No such option to receive internal orders: {}".format(
-                self.internal_option["method"]
-            )
+            f"No such option to receive internal orders: {self.internal_option['method']}"
         )
 
     def store_or_discard_orders(self, peer: "Peer") -> None:
@@ -204,7 +185,7 @@ class Engine:
             engine_candidates.store_first(peer)
         else:
             raise ValueError(
-                "No such option to store orders: {}".format(self.store_option["method"])
+                f"No such option to store orders: {self.store_option['method']}"
             )
 
     def find_orders_to_share(self, peer: "Peer") -> Set["Order"]:
@@ -233,7 +214,7 @@ class Engine:
                 my_share_option["max_to_share"], my_share_option["old_share_prob"], peer
             )
         raise ValueError(
-            "No such option to share orders: {}".format(self.share_option["method"])
+            f"No such option to share orders: {self.share_option['method']}"
         )
 
     def score_neighbors(self, peer: "Peer") -> None:
@@ -253,9 +234,7 @@ class Engine:
             )
         else:
             raise ValueError(
-                "No such option to calculate scores: {}".format(
-                    self.score_option["method"]
-                )
+                f"No such option to calculate scores: {self.score_option['method']}"
             )
 
     def find_neighbors_to_share(self, time_now: int, peer: "Peer") -> Set["Peer"]:
@@ -277,9 +256,7 @@ class Engine:
             )
         else:
             raise ValueError(
-                "No such option to decide beneficiaries: {}".format(
-                    self.beneficiary_option["method"]
-                )
+                f"No such option to decide beneficiaries: {self.beneficiary_option['method']}"
             )
 
         # update the contribution queue since it is the end of a calculation circle
@@ -308,7 +285,5 @@ class Engine:
                 requester, base, target_number
             )
         raise ValueError(
-            "No such option to recommend neighbors: {}".format(
-                self.rec_option["method"]
-            )
+            f"No such option to recommend neighbors: {self.rec_option['method']}"
         )

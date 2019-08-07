@@ -141,7 +141,7 @@ class Simulator:
                 # time. Order's creator is set to be None since the peer is not initiated,
                 # but will be changed in the peer's initiation function.
 
-                new_order: Order = Order(
+                new_order = Order(
                     self.scenario, order_seq, self.cur_time, None, expiration
                 )
                 self.order_full_set.add(new_order)
@@ -150,7 +150,7 @@ class Simulator:
                 order_seq += 1
 
             # create the peer instance. Neighbor set is empty.
-            new_peer: Peer = Peer(
+            new_peer = Peer(
                 self.engine, peer_seq, birth_time, cur_order_set, None, peer_type
             )
             new_peer.local_clock = self.scenario.birth_time_span - 1
@@ -175,7 +175,7 @@ class Simulator:
         the number of initial orders, and the function will specify the sequence numbers for the
         peers and orders.
         :param peer_type: the type of the newly arrived peer.
-        :param num_orders: # of orders that this peer brings to the system initially.
+        :param num_orders: number of orders that this peer brings to the system initially.
         :return: None
         """
 
@@ -195,16 +195,14 @@ class Simulator:
             # But the new peer has not been initiated, so we set the creator to be None temporarily.
             # We will modify it when the peer is initiated.
             # This is tricky and informal, but I don't have a better way of doing it right now.
-            new_order: Order = Order(
-                self.scenario, order_seq, self.cur_time, None, expiration
-            )
+            new_order = Order(self.scenario, order_seq, self.cur_time, None, expiration)
             self.order_full_set.add(new_order)
             self.order_type_set_mapping["default"].add(new_order)
             cur_order_set.add(new_order)
             order_seq += 1
 
         # create the new peer, and add it to the table
-        new_peer: Peer = Peer(
+        new_peer = Peer(
             self.engine, peer_seq, self.cur_time, cur_order_set, None, peer_type
         )
         self.peer_full_set.add(new_peer)
@@ -251,7 +249,7 @@ class Simulator:
 
         # create a new order
         new_order_seq: int = self.latest_order_seq
-        new_order: Order = Order(
+        new_order = Order(
             self.scenario, new_order_seq, self.cur_time, target_peer, expiration
         )
 
@@ -298,8 +296,8 @@ class Simulator:
         is in the range [minimum, demand], or stops when all possible links are added.
         This method will call the corresponding peers' functions to add the neighbor, respectively.
         :param requester: peer instance of the node requesting more neighbors
-        :param demand: max # of neighbors to be added
-        :param minimum: min # of neighbors to be added
+        :param demand: max number of neighbors to be added
+        :param minimum: min number of neighbors to be added
         :return: None
         """
 
@@ -365,10 +363,10 @@ class Simulator:
         This method runs normal operations at a particular time point.
         It includes peer/order dept/arrival, order status update, and peer's order acceptance,
         storing, and sharing.
-        :param peer_arr_num: # of peers arriving the system
-        :param peer_dept_num: # of peers departing the system
-        :param order_arr_num: # of orders arriving the system
-        :param order_cancel_num: # of orders which are canceled
+        :param peer_arr_num: number of peers arriving the system
+        :param peer_dept_num: number of peers departing the system
+        :param order_arr_num: number of orders arriving the system
+        :param order_cancel_num: number of orders which are canceled
         :return: None
         """
 

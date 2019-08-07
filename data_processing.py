@@ -24,7 +24,7 @@ def find_best_worst_lists(sequence_of_lists: List[SpreadingRatio]) -> BestAndWor
     Let us explain a bit more on the physical meaning of this concept. In our simulator context,
     we divide orders into various intervals according to their ages. For example, we have 10, 20,
     15, and 5 orders whose ages are in ranges [0,5), [5, 10), [10, 15) and [15, 20),
-    respectively. Each order's spreading ratio is defined as the # of peers who received this
+    respectively. Each order's spreading ratio is defined as the number of peers who received this
     order, divided by the total number of peers in consideration. By taking the average of all
     individual order's spreading ratios within each range, we record this value in the
     corresponding venue of a list, and this list is the "average spreading ratio" of orders,

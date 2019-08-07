@@ -32,8 +32,8 @@ def order_spreading_ratio_stat(
     the index being the i-th statistical window, and each value being the spreading ratio of
     orders of that window. If all orders of a window are all invalid, then value for that entry
     is 'None'.
-    The spreading ratio of an order, is defined as the # of peers holding this order,
-    over the total # of peers in the peer set.
+    The spreading ratio of an order, is defined as the number of peers holding this order,
+    over the total number of peers in the peer set.
     The spreading ratio of a statistical window, is the average spreading ratio of all orders in
     this window.
     """
@@ -70,12 +70,12 @@ def order_num_stat_on_age(
     order_set: Set["Order"],
 ) -> List[int]:
     """
-    This is a helper function. It calculates the # of orders in each window.
+    This is a helper function. It calculates the number of orders in each window.
     :param cur_time: same as above function.
     :param max_age_to_track: same as above function.
     :param statistical_window: same as above function.
     :param order_set: same as above function.
-    :return: a list, each element being the # of orders whose age falls into
+    :return: a list, each element being the number of orders whose age falls into
     [k * statistical_window, (k+1) * statistical_window).
     """
 
@@ -105,8 +105,8 @@ def peer_order_stat_on_window(
     :param max_age_to_track: same as above function.
     :param statistical_window: same as above function.
     :param order_set: same as above function.
-    :return: a list, each element being the # of orders observed by this peer that fall into the
-    corresponding statistical window.
+    :return: a list, each element being the number of orders observed by this peer that fall into
+    the corresponding statistical window.
     """
 
     num_orders_this_peer_stores: List[int] = [0] * int(

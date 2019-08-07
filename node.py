@@ -124,7 +124,7 @@ class Peer:
                 order.creator = self
 
             priority: Priority = None  # we don't set the priority for now
-            new_orderinfo: OrderInfo = OrderInfo(
+            new_orderinfo = OrderInfo(
                 engine=engine,
                 order=order,
                 master=self,
@@ -144,7 +144,7 @@ class Peer:
         establishment request or not.
         It is called when a request of establishing a neighborhood relationship is called from
         another peer. This peer, which is requested, will return True for agreement by default,
-        False if the current # of neighbors already reaches the maximal.
+        False if the current number of neighbors already reaches the maximal.
         :param requester: the peer instance of another node requesting to establish a new
         neighborhood relationship.
         :return: True if accepted, or False otherwise.
@@ -168,7 +168,7 @@ class Peer:
         if peer in self.peer_neighbor_mapping:
             return False
         # create new neighbor in my local storage
-        new_neighbor: Neighbor = Neighbor(
+        new_neighbor = Neighbor(
             engine=self.engine, peer=peer, master=self, est_time=self.local_clock
         )
         self.peer_neighbor_mapping[peer] = new_neighbor
@@ -211,7 +211,7 @@ class Peer:
                     self.new_order_set.discard(order)
                     del self.order_orderinfo_mapping[order]
 
-            for (order, orderinfo_list) in self.order_pending_orderinfo_mapping.items():
+            for order, orderinfo_list in self.order_pending_orderinfo_mapping.items():
                 for idx, orderinfo in enumerate(orderinfo_list):
                     if orderinfo.prev_owner == peer:
                         del orderinfo_list[idx]
@@ -247,7 +247,7 @@ class Peer:
 
         if self.engine.should_accept_external_order(self, order):
             # create the orderinfo instance and add it into the local mapping table
-            new_orderinfo: OrderInfo = OrderInfo(
+            new_orderinfo = OrderInfo(
                 engine=self.engine,
                 order=order,
                 master=self,

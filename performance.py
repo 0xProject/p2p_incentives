@@ -109,9 +109,7 @@ class Performance:
                 self.statistical_window,
             )
         raise ValueError(
-            "No such option to evaluate order spreading: {}".format(
-                self.spreading_option["method"]
-            )
+            f"No such option to evaluate order spreading: {self.spreading_option['method']}"
         )
 
     def measure_user_satisfaction(
@@ -148,9 +146,8 @@ class Performance:
             single_calculation = performance_candidates.single_peer_satisfaction_neutral
         else:
             raise ValueError(
-                "No such option to evaluate peer satisfaction: {}".format(
-                    self.satisfaction_option["method"]
-                )
+                f"No such option to evaluate peer satisfaction: "
+                f"{self.satisfaction_option['method']}"
             )
 
         set_of_adult_peers_to_evaluate: Set["Peer"] = set(
@@ -193,9 +190,7 @@ class Performance:
                 peers_to_evaluate, orders_to_evaluate
             )
         raise ValueError(
-            "No such option to evaluate fairness: {}".format(
-                self.fairness_option["method"]
-            )
+            f"No such option to evaluate fairness: {self.fairness_option['method']}"
         )
 
     def run(
@@ -227,7 +222,7 @@ class Performance:
         # they are not related to type check. Will address them in the next PR.
 
         result_order_spreading: Optional[OrderSpreading] = None
-        if self.measures_to_execute.order_spreading_measure:
+        if self.measures_to_execute.order_spreading:
             try:
                 result_order_spreading = self.measure_order_spreading(
                     cur_time, peer_full_set, order_full_set
@@ -238,7 +233,7 @@ class Performance:
         # Generate normal peer satisfaction measure over all orders
 
         result_normal_peer_satisfaction: Optional[UserSatisfaction] = None
-        if self.measures_to_execute.normal_peer_satisfaction_measure:
+        if self.measures_to_execute.normal_peer_satisfaction:
             try:
                 result_normal_peer_satisfaction = self.measure_user_satisfaction(
                     cur_time, normal_peer_set, order_full_set
@@ -249,7 +244,7 @@ class Performance:
         # Generate free rider satisfaction measure over all orders
 
         result_free_rider_satisfaction: Optional[UserSatisfaction] = None
-        if self.measures_to_execute.free_rider_satisfaction_measure:
+        if self.measures_to_execute.free_rider_satisfaction:
             try:
                 result_free_rider_satisfaction = self.measure_user_satisfaction(
                     cur_time, free_rider_set, order_full_set
@@ -267,10 +262,9 @@ class Performance:
                 pass
 
         # Organize the results in a list
-        result: SingleRunPerformanceResult = SingleRunPerformanceResult(
+        return SingleRunPerformanceResult(
             order_spreading=result_order_spreading,
             normal_peer_satisfaction=result_normal_peer_satisfaction,
             free_rider_satisfaction=result_free_rider_satisfaction,
             fairness=result_fairness,
         )
-        return result

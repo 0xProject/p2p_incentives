@@ -47,55 +47,51 @@ from data_types import (
 # ratio of orders of each type.
 # If an additional type is added, remember to modify OrderRatio and OrderParameter in data_types
 
-ORDER_TYPE_RATIOS: OrderRatio = OrderRatio(default=1.0)
+ORDER_TYPE_RATIOS = OrderRatio(default=1.0)
 
 # ratio of peers of each type
 # If an additional type is added, remember to modify PeerRatio and PeerParameter in data_types
 
-PEER_TYPE_RATIOS: PeerRatio = PeerRatio(free_rider=0.1, normal=0.9)
+PEER_TYPE_RATIOS = PeerRatio(free_rider=0.1, normal=0.9)
 
 # Order parameter distribution: a namedtuple consisting of the mean and variance of order
 # expiration. An order's real expiration follows a Normal distribution given this mean and variance.
 
-ORDER_DEFAULT: Distribution = Distribution(mean=500.0, var=0.0)
+ORDER_DEFAULT = Distribution(mean=500.0, var=0.0)
 
 # Order parameter dictionary: the type OrderParameter a TypedDict, key is the name of order
 # type (str), value is the order parameter distribution.
 
-ORDER_PAR_DICT: OrderParameter = OrderParameter(default=ORDER_DEFAULT)
+ORDER_PAR_DICT = OrderParameter(default=ORDER_DEFAULT)
 
 
 # Peer parameter distribution: a namedtuple consisting of the mean and variance of order
 # expiration. A peer's initial orderbook size follows a Normal distribution given this mean and
 # variance.
 
-PEER_FREE_RIDER: Distribution = Distribution(mean=0.0, var=0.0)
-PEER_NORMAL: Distribution = Distribution(mean=6.0, var=0.0)
+PEER_FREE_RIDER = Distribution(mean=0.0, var=0.0)
+PEER_NORMAL = Distribution(mean=6.0, var=0.0)
 
 # Peer parameter dictionary: similar as above. In this example we have two types of peers: free
 # riders and normal peers.
 
-PEER_PAR_DICT: PeerParameter = PeerParameter(
-    free_rider=PEER_FREE_RIDER, normal=PEER_NORMAL
-)
+PEER_PAR_DICT = PeerParameter(free_rider=PEER_FREE_RIDER, normal=PEER_NORMAL)
 
 # The following namedtuple specifies the parameters for the system's initial status.
 
 NUM_PEERS: int = 10
 BIRTH_TIME_SPAN: int = 20
-INIT_PAR: SystemInitialState = SystemInitialState(
-    num_peers=NUM_PEERS, birth_time_span=BIRTH_TIME_SPAN
-)
+INIT_PAR = SystemInitialState(num_peers=NUM_PEERS, birth_time_span=BIRTH_TIME_SPAN)
 
 # The following namedtuple specifies the parameters for the system's growth period
-# when the # of peers keeps increasing.
+# when the number of peers keeps increasing.
 
 GROWTH_ROUND: int = 30
 GROWTH_PEER_ARRIVAL: float = 3.0
 GROWTH_PEER_DEPT: float = 0.0
 GROWTH_ORDER_ARRIVAL: float = 15.0
 GROWTH_ORDER_CANCEL: float = 15.0
-GROWTH_PAR: SystemEvolution = SystemEvolution(
+GROWTH_PAR = SystemEvolution(
     rounds=GROWTH_ROUND,
     peer_arrival=GROWTH_PEER_ARRIVAL,
     peer_dept=GROWTH_PEER_DEPT,
@@ -104,14 +100,14 @@ GROWTH_PAR: SystemEvolution = SystemEvolution(
 )
 
 # The following namedtuple specifies the parameters for the system's stable period
-# when the # of peers keeps stable.
+# when the number of peers keeps stable.
 
 STABLE_ROUND: int = 50
 STABLE_PEER_ARRIVAL: float = 2.0
 STABLE_PEER_DEPT: float = 2.0
 STABLE_ORDER_ARRIVAL: float = 15.0
 STABLE_ORDER_CANCEL: float = 15.0
-STABLE_PAR: SystemEvolution = SystemEvolution(
+STABLE_PAR = SystemEvolution(
     rounds=STABLE_ROUND,
     peer_arrival=STABLE_PEER_ARRIVAL,
     peer_dept=STABLE_PEER_DEPT,
@@ -121,7 +117,7 @@ STABLE_PAR: SystemEvolution = SystemEvolution(
 
 # Create scenario parameters, in type of a namedtuple.
 
-S_PARAMETERS: ScenarioParameters = ScenarioParameters(
+S_PARAMETERS = ScenarioParameters(
     order_ratios=ORDER_TYPE_RATIOS,
     peer_ratios=PEER_TYPE_RATIOS,
     order_parameters=ORDER_PAR_DICT,
@@ -141,15 +137,15 @@ S_PARAMETERS: ScenarioParameters = ScenarioParameters(
 # One can refer to the options in Engine for examples of additional parameters.
 
 # event arrival pattern.
-EVENT_ARRIVAL: EventOption = EventOption(method="Poisson")
+EVENT_ARRIVAL = EventOption(method="Poisson")
 # how an order's is_settled status is changed
-CHANGE_SETTLE_STATUS: SettleOption = SettleOption(method="Never")
+CHANGE_SETTLE_STATUS = SettleOption(method="Never")
 
 # creating scenario options, in type of a namedtuple.
-S_OPTIONS: ScenarioOptions = ScenarioOptions(EVENT_ARRIVAL, CHANGE_SETTLE_STATUS)
+S_OPTIONS = ScenarioOptions(EVENT_ARRIVAL, CHANGE_SETTLE_STATUS)
 
 # create MY_SCENARIO instance, in type of a namedtuple.
-MY_SCENARIO: Scenario = Scenario(S_PARAMETERS, S_OPTIONS)
+MY_SCENARIO = Scenario(S_PARAMETERS, S_OPTIONS)
 
 
 # =====
@@ -164,11 +160,13 @@ BATCH: int = 10  # length of a batch period
 
 MAX_NEIGHBOR_SIZE: int = 30
 MIN_NEIGHBOR_SIZE: int = 20
-TOPOLOGY: Topology = Topology(
+TOPOLOGY = Topology(
     max_neighbor_size=MAX_NEIGHBOR_SIZE, min_neighbor_size=MIN_NEIGHBOR_SIZE
 )
 
 # This namedtuple describes the incentive score parameters.
+# The physical meaning of parameters like reward_a, ... reward_e are in the definition of the data
+# types in date_types.py.
 
 LENGTH: int = 3
 REWARD_A: float = 0.0
@@ -179,8 +177,8 @@ REWARD_E: float = 0.0
 PENALTY_A: float = 0.0
 PENALTY_B: float = -1.0
 
-INCENTIVE: Incentive = Incentive(
-    length=LENGTH,
+INCENTIVE = Incentive(
+    score_sheet_length=LENGTH,
     reward_a=REWARD_A,
     reward_b=REWARD_B,
     reward_c=REWARD_C,
@@ -191,7 +189,7 @@ INCENTIVE: Incentive = Incentive(
 )
 
 # creating engine parameters, in type of a namedtuple.
-E_PARAMETERS: EngineParameters = EngineParameters(BATCH, TOPOLOGY, INCENTIVE)
+E_PARAMETERS = EngineParameters(BATCH, TOPOLOGY, INCENTIVE)
 
 # options
 
@@ -205,30 +203,30 @@ E_PARAMETERS: EngineParameters = EngineParameters(BATCH, TOPOLOGY, INCENTIVE)
 # to the function implementation.
 
 # set preference for neighbors
-PREFERENCE: PreferenceOption = PreferenceOption(method="Passive")
+PREFERENCE = PreferenceOption(method="Passive")
 
 # set priority for orders
-PRIORITY: PriorityOption = PriorityOption(method="Passive")
+PRIORITY = PriorityOption(method="Passive")
 
 # accepting an external order or not
-EXTERNAL: ExternalOption = ExternalOption(method="Always")
+EXTERNAL = ExternalOption(method="Always")
 
 # accepting an internal order or not
-INTERNAL: InternalOption = InternalOption(method="Always")
+INTERNAL = InternalOption(method="Always")
 
 # storing an order or not
-STORE: StoreOption = StoreOption(method="First")
+STORE = StoreOption(method="First")
 
 # This TypedDict describes how to determine the orders to share with neighbors.
 # Now we only implemented 'all_new_selected_old'.
 
-SHARE: AllNewSelectedOld = AllNewSelectedOld(
+SHARE = AllNewSelectedOld(
     method="AllNewSelectedOld", max_to_share=5000, old_share_prob=0.5
 )
 
 # This TypedDict describes how to determine neighbor scoring system.
 
-SCORE: Weighted = Weighted(
+SCORE = Weighted(
     method="Weighted",
     lazy_contribution_threshold=2,
     lazy_length_threshold=6,
@@ -238,23 +236,23 @@ SCORE: Weighted = Weighted(
 
 # This TypedDict describes how to determine the neighbors that receive my orders.
 
-BENEFICIARY: TitForTat = TitForTat(
+BENEFICIARY = TitForTat(
     method="TitForTat", baby_ending_age=0, mutual_helpers=3, optimistic_choices=1
 )
 
 # how to recommendation neighbors when a peer asks for more.
 # Right now, we only implemented a random recommendation.
 
-REC: RecommendationOption = RecommendationOption(method="Random")
+REC = RecommendationOption(method="Random")
 
 # creating engine option, in type of a namedtuple
 
-E_OPTIONS: EngineOptions = EngineOptions(
+E_OPTIONS = EngineOptions(
     PREFERENCE, PRIORITY, EXTERNAL, INTERNAL, STORE, SHARE, SCORE, BENEFICIARY, REC
 )
 
 # creating MY_ENGINE, an instance of Engine, in type pf a namedtuple.
-MY_ENGINE: Engine = Engine(E_PARAMETERS, E_OPTIONS)
+MY_ENGINE = Engine(E_PARAMETERS, E_OPTIONS)
 
 
 # ======
@@ -267,7 +265,7 @@ STATISTICAL_WINDOW: int = 5
 
 # creating performance parameters, in type of a namedtuple.
 
-PERFORMANCE_PARAMETERS: PerformanceParameters = PerformanceParameters(
+PERFORMANCE_PARAMETERS = PerformanceParameters(
     max_age_to_track=MAX_AGE_TO_TRACK,
     adult_age=ADULT_AGE,
     statistical_window=STATISTICAL_WINDOW,
@@ -275,17 +273,15 @@ PERFORMANCE_PARAMETERS: PerformanceParameters = PerformanceParameters(
 
 # options
 
-SPREADING_OPTION: SpreadingOption = SpreadingOption(method="Ratio")
+SPREADING = SpreadingOption(method="Ratio")
 
-SATISFACTION_OPTION: SatisfactionOption = SatisfactionOption(method="Neutral")
+SATISFACTION = SatisfactionOption(method="Neutral")
 
-FAIRNESS_OPTION: FairnessOption = FairnessOption(method="Dummy")
+FAIRNESS = FairnessOption(method="Dummy")
 
 # creating performance options, in type of a namedtuple.
 
-MEASURE_OPTIONS: PerformanceOptions = PerformanceOptions(
-    SPREADING_OPTION, SATISFACTION_OPTION, FAIRNESS_OPTION
-)
+MEASURE_OPTIONS = PerformanceOptions(SPREADING, SATISFACTION, FAIRNESS)
 
 # executions, in type of a namedtuple.
 # If one wants to add more execution possibilities, modify the definition of
@@ -297,16 +293,16 @@ FREE_RIDER_SATISFACTION: bool = True
 SYSTEM_FAIRNESS: bool = False
 
 
-MEASURES_TO_EXECUTE: PerformanceExecutions = PerformanceExecutions(
-    order_spreading_measure=ORDER_SPREADING,
-    normal_peer_satisfaction_measure=NORMAL_PEER_SATISFACTION,
-    free_rider_satisfaction_measure=FREE_RIDER_SATISFACTION,
+MEASURES_TO_EXECUTE = PerformanceExecutions(
+    order_spreading=ORDER_SPREADING,
+    normal_peer_satisfaction=NORMAL_PEER_SATISFACTION,
+    free_rider_satisfaction=FREE_RIDER_SATISFACTION,
     system_fairness=SYSTEM_FAIRNESS,
 )
 
 # create MY_PERFORMANCE instance, in type of a namedtuple.
 
-MY_PERFORMANCE: Performance = Performance(
+MY_PERFORMANCE = Performance(
     PERFORMANCE_PARAMETERS, MEASURE_OPTIONS, MEASURES_TO_EXECUTE
 )
 

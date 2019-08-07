@@ -30,7 +30,8 @@ def hawkes(rate: HawkesArrivalRate, max_time: int) -> List[int]:
     It is believed to be running faster than other methods.
     :param rate: see above for explanation.
     :param max_time: maximal time to generate events.
-    :return: One realization, in terms of a list, each element being # of events in each time slot.
+    :return: One realization, in terms of a list, each element being number of events in each time
+    slot.
     """
 
     # pylint: disable=invalid-name

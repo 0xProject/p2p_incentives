@@ -83,7 +83,7 @@ class Execution:
         # Unpacking and re-organizing the performance evaluation results such that
         # performance_measure[key] is a list of performance results in all runs for metric "key."
 
-        performance_measure: MultiRunPerformanceResult = MultiRunPerformanceResult(
+        performance_measure = MultiRunPerformanceResult(
             order_spreading=[],
             normal_peer_satisfaction=[],
             free_rider_satisfaction=[],

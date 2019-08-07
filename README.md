@@ -12,7 +12,7 @@ any mechanism can be plug into the simulator.
 
 This simulator uses a discrete time based structure. Events happen only at any discrete time points.
 Later, we call "at any discrete time points" simply as "at any time."
-In the initialization, a given # of peers are created, each with a certain # of orders.
+In the initialization, a given number of peers are created, each with a certain number of orders.
 
 At each time point:
 
@@ -68,13 +68,13 @@ Execution for each input.
 	- Any neighborhood relationship must to be bilateral.
 	- A peer will try to maintain the size of its neighbors within a certain range
     (min, max), unless it is impossible.
-	- Each round, the simulator will check that each peer has enough # of neighbors. If not
+	- Each round, the simulator will check that each peer has enough number of neighbors. If not
     (# < min), the simulator function add_new_links_helper() will be called to add new neighbors.
 	- The only way to create new links is calling add_new_links_helper().
 		- Procedure is: random selection of peers -> send invitation to the other party -> Accepted?
         	- Y: both sides add neighbors
         	- N: nothing happens.
-        	- Accept or reject: Always accept if # of my neighbor has not reached the pre-set 
+        	- Accept or reject: Always accept if number of my neighbor has not reached the pre-set 
         	  maximal value.
     - If neighbor departs or it is considered as lazy (score is too low) for a long time, 
       neighborhood is cancelled.

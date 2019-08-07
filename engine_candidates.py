@@ -79,8 +79,8 @@ def share_all_new_selected_old(
     """
     This is a candidate design for deciding which orders to share.
     It is called by method orders_to_share() in class Engine.
-    The choice is: share min(max_to_share, # of new_orders) of new orders,
-    and share min(remaining_quota, [# of old peers] * old_prob) of old orders,
+    The choice is: share min(max_to_share, number of new_orders) of new orders,
+    and share min(remaining_quota, [number of old peers] * old_prob) of old orders,
     where remaining_quota = max(0, max_to_share minus #_of_new_orders_selected).
     :param max_to_share: the maximal number of orders to share.
     :param old_prob: the probability of sharing an old order.
