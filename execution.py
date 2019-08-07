@@ -14,6 +14,7 @@ from data_types import (
     OrderSpreading,
     Fairness,
     UserSatisfaction,
+    BestAndWorstLists,
 )
 
 
@@ -115,16 +116,16 @@ class Execution:
             "order_spreading"
         ]
         if spreading_ratio_lists:
-            best_worst_ratios: Tuple[
-                OrderSpreading, OrderSpreading
-            ] = data_processing.find_best_worst_lists(spreading_ratio_lists)
+            best_worst_ratios: BestAndWorstLists = data_processing.find_best_worst_lists(
+                spreading_ratio_lists
+            )
             average_order_spreading_ratio: List[float] = data_processing.average_lists(
                 spreading_ratio_lists
             )
 
             plt.plot(average_order_spreading_ratio)
-            plt.plot(best_worst_ratios[1])  # worst ratio
-            plt.plot(best_worst_ratios[0])  # best ratio
+            plt.plot(best_worst_ratios.worst)  # worst ratio
+            plt.plot(best_worst_ratios.best)  # best ratio
 
             plt.legend(
                 ["average spreading", "worst spreading", "best spreading"],

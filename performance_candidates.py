@@ -201,7 +201,7 @@ def single_peer_satisfaction_neutral(
             item for item in peer_observation_ratio if item is not None
         )
     except statistics.StatisticsError:
-        # the input "order_set" is empty.
+        # There is no order in the system.
         raise RuntimeError("No orders at all to be considered.")
 
 

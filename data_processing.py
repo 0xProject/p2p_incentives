@@ -4,13 +4,12 @@ to work on performance evaluation results.
 """
 
 import statistics
+import itertools
 from typing import List, Iterator, Tuple
-from data_types import SpreadingRatio
+from data_types import SpreadingRatio, BestAndWorstLists
 
 
-def find_best_worst_lists(
-    sequence_of_lists: List[SpreadingRatio]
-) -> Tuple[SpreadingRatio, SpreadingRatio]:
+def find_best_worst_lists(sequence_of_lists: List[SpreadingRatio]) -> BestAndWorstLists:
     """
     This function finds the "best" and "worst" lists from a set of lists. See explanation below.
     :param sequence_of_lists: a sequence of equal-length lists.
@@ -40,7 +39,7 @@ def find_best_worst_lists(
     >>> spreading_ratio_1: SpreadingRatio = [0.1, 0.2, 0.3, 0.4]
     >>> spreading_ratio_2: SpreadingRatio = [0.1, 0.2, 0.3, 0.5]
     >>> find_best_worst_lists([spreading_ratio_1, spreading_ratio_2])
-    ([0.1, 0.2, 0.3, 0.5], [0.1, 0.2, 0.3, 0.4])
+    BestAndWorstLists(best=[0.1, 0.2, 0.3, 0.5], worst=[0.1, 0.2, 0.3, 0.4])
 
     If for some SpreadingRatio data, the last element is None, then we don't include it in
     consideration. For example:
@@ -49,7 +48,7 @@ def find_best_worst_lists(
     >>> spreading_ratio_2: SpreadingRatio = [0.1, 0.2, 0.3, 0.5]
     >>> spreading_ratio_3: SpreadingRatio = [0.1, 0.2, 0.8, None]
     >>> find_best_worst_lists([spreading_ratio_1, spreading_ratio_2, spreading_ratio_3])
-    ([0.1, 0.2, 0.3, 0.5], [0.1, 0.2, 0.3, 0.4])
+    BestAndWorstLists(best=[0.1, 0.2, 0.3, 0.5], worst=[0.1, 0.2, 0.3, 0.4])
 
     If for all SpreadingRatio data, the last element is None, then we compare the second last,
     third last, ..., up till the first element. For example:
@@ -58,7 +57,7 @@ def find_best_worst_lists(
     >>> spreading_ratio_2: SpreadingRatio = [0.1, 0.2, 0.4, None]
     >>> spreading_ratio_3: SpreadingRatio = [0.1, 0.2, None, None]
     >>> find_best_worst_lists([spreading_ratio_1, spreading_ratio_2, spreading_ratio_3])
-    ([0.1, 0.2, 0.4, None], [0.1, 0.2, 0.3, None])
+    BestAndWorstLists(best=[0.1, 0.2, 0.4, None], worst=[0.1, 0.2, 0.3, None])
 
     If for all SpreadingRatio data all elements are None, then raise an error with ValueError
     message.
@@ -82,16 +81,12 @@ def find_best_worst_lists(
     if last_effective_idx == -len(sequence_of_lists[0]) - 1:
         raise ValueError("All entries are None. Invalid to compare.")
 
-    it1: Iterator[SpreadingRatio] = iter(
-        (item for item in sequence_of_lists if item[last_effective_idx] is not None)
+    iterators: Tuple[Iterator[SpreadingRatio], ...] = itertools.tee(
+        (item for item in sequence_of_lists if item[last_effective_idx] is not None), 2
     )
-    best_list: SpreadingRatio = max(it1, key=lambda x: x[last_effective_idx])
-    it2: Iterator[SpreadingRatio] = iter(
-        (item for item in sequence_of_lists if item[last_effective_idx] is not None)
-    )
-    worst_list: SpreadingRatio = min(it2, key=lambda x: x[last_effective_idx])
-
-    return best_list, worst_list
+    best_list: SpreadingRatio = max(iterators[0], key=lambda x: x[last_effective_idx])
+    worst_list: SpreadingRatio = min(iterators[1], key=lambda x: x[last_effective_idx])
+    return BestAndWorstLists(best=best_list, worst=worst_list)
 
 
 def average_lists(sequence_of_lists: List[SpreadingRatio]) -> List[float]:

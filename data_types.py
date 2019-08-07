@@ -215,7 +215,7 @@ class EngineParameters(NamedTuple):
 # is tricky. When the option for choosing beneficiaries is passed to the corresponding
 # function, there is no way for the function to know the option parameter is of any
 # sub-type. It can only judge if it is of type BeneficiaryOption. If yes, then it need to
-# further judge which sub-type it is. There is no implementation of ininstance() function
+# further judge which sub-type it is. There is no implementation of isinstance() function
 # for TypedDict, so there is no way but check the "method" attribute of the instance. Once we
 # know it is TItForTat, the code will need to cast the type of this instance from
 # BeneficiaryOption to the sub-type TitForTat and further pass it to a detailed implementation.
@@ -438,3 +438,11 @@ NameSpacing = Optional[int]
 Preference = Optional[int]
 Priority = Optional[int]
 Category = Optional[int]
+
+# A NamedTuple for best and worst lists, serve for the data type of the return value of
+# find_best_worst_lists() in data_processing module.
+
+
+class BestAndWorstLists(NamedTuple):
+    best: SpreadingRatio
+    worst: SpreadingRatio
