@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  lint:
+  lint-and-test:
     docker:
       - image: circleci/python
     steps:
@@ -16,9 +16,11 @@ jobs:
             paths:
                 - '/usr/local/bin'
                 - '/usr/local/lib/python3.7/site-packages'
-      - run: python setup.py lint
+      - run: |
+          python setup.py lint
+          python setup.py test
 workflows:
   version: 2
   do_everything:
     jobs:
-      - lint
+      - lint-and-test
