@@ -3,9 +3,17 @@ This module contains all possible realizations of functions in the Engine class.
 """
 
 import random
+from typing import Set, List, TYPE_CHECKING
+from data_types import Preference, Priority
+
+if TYPE_CHECKING:
+    from node import Peer, Neighbor
+    from message import Order, OrderInfo
 
 
-def set_preference_passive(neighbor, _peer, _master, preference):
+def set_preference_passive(
+    neighbor: "Neighbor", _peer: "Peer", _master: "Peer", preference: Preference
+) -> None:
     """
     This is a candidate design for setting preference of a neighbor instance.
     It is called by method neighbor_set_preference() in class Engine.
@@ -23,7 +31,9 @@ def set_preference_passive(neighbor, _peer, _master, preference):
     neighbor.preference = preference
 
 
-def set_priority_passive(orderinfo, _order, _master, priority):
+def set_priority_passive(
+    orderinfo: "OrderInfo", _order: "Order", _master: "Peer", priority: Priority
+) -> None:
     """
     This is a candidate design for setting a priority of an orderinfo instance.
     It is called by method orderinfo_set_priority() in class Engine.
@@ -37,7 +47,7 @@ def set_priority_passive(orderinfo, _order, _master, priority):
     orderinfo.priority = priority
 
 
-def store_first(peer):
+def store_first(peer: "Peer") -> None:
     """
     This is a candidate design for storing orders.
     It is called by method order_storage() in class Engine.
@@ -63,12 +73,14 @@ def store_first(peer):
             orderinfo.storage_decision = False
 
 
-def share_all_new_selected_old(max_to_share, old_prob, peer):
+def share_all_new_selected_old(
+    max_to_share: int, old_prob: float, peer: "Peer"
+) -> Set["Order"]:
     """
     This is a candidate design for deciding which orders to share.
     It is called by method orders_to_share() in class Engine.
-    The choice is: share min(max_to_share, # of new_orders) of new orders,
-    and share min(remaining_quota, [# of old peers] * old_prob) of old orders,
+    The choice is: share min(max_to_share, number of new_orders) of new orders,
+    and share min(remaining_quota, [number of old peers] * old_prob) of old orders,
     where remaining_quota = max(0, max_to_share minus #_of_new_orders_selected).
     :param max_to_share: the maximal number of orders to share.
     :param old_prob: the probability of sharing an old order.
@@ -76,20 +88,27 @@ def share_all_new_selected_old(max_to_share, old_prob, peer):
     :return: set of order instances selected to share
     """
 
-    new_order_set = peer.new_order_set
-    old_order_set = set(peer.order_orderinfo_mapping) - peer.new_order_set
-    selected_order_set = set()
+    new_order_set: Set["Order"] = peer.new_order_set
+    old_order_set: Set["Order"] = set(peer.order_orderinfo_mapping) - peer.new_order_set
+    selected_order_set: Set["Order"] = set()
 
-    selected_order_set |= set(random.sample(new_order_set, min(max_to_share, len(new_order_set))))
+    selected_order_set |= set(
+        random.sample(new_order_set, min(max_to_share, len(new_order_set)))
+    )
 
-    remaining_share_size = max(0, max_to_share - len(new_order_set))
-    probability_selection_size = round(len(old_order_set) * old_prob)
-    selected_order_set |= set(random.sample(old_order_set, min(remaining_share_size,
-                                                               probability_selection_size)))
+    remaining_share_size: int = max(0, max_to_share - len(new_order_set))
+    probability_selection_size: int = round(len(old_order_set) * old_prob)
+    selected_order_set |= set(
+        random.sample(
+            old_order_set, min(remaining_share_size, probability_selection_size)
+        )
+    )
     return selected_order_set
 
 
-def weighted_sum(lazy_contribution, lazy_length, discount, peer):
+def weighted_sum(
+    lazy_contribution: int, lazy_length: int, discount: List[float], peer: "Peer"
+) -> None:
     """
     This is a candidate design for calculating the scores of neighbors of the peer.
     It is called by method score_neighbors() in class Engine.
@@ -110,7 +129,7 @@ def weighted_sum(lazy_contribution, lazy_length, discount, peer):
     # neighboring_peer is the peer instance for a neighbor
     # neighbor is the neighbor instance for a neighbor
     for neighboring_peer in list(peer.peer_neighbor_mapping):
-        neighbor = peer.peer_neighbor_mapping[neighboring_peer]
+        neighbor: "Neighbor" = peer.peer_neighbor_mapping[neighboring_peer]
         # update laziness
         if neighbor.share_contribution[-1] <= lazy_contribution:
             neighbor.lazy_round += 1
@@ -120,10 +139,14 @@ def weighted_sum(lazy_contribution, lazy_length, discount, peer):
         if neighbor.lazy_round >= lazy_length:
             peer.del_neighbor(neighboring_peer)
             continue
-        neighbor.score = sum(a * b for a, b in zip(neighbor.share_contribution, discount))
+        neighbor.score = sum(
+            a * b for a, b in zip(neighbor.share_contribution, discount)
+        )
 
 
-def tit_for_tat(baby_ending, mutual, optimistic, time_now, peer):
+def tit_for_tat(
+    baby_ending: int, mutual: int, optimistic: int, time_now: int, peer: "Peer"
+) -> Set["Peer"]:
     """
     This is a candidate design to select beneficiaries from neighbors.
     It is called by method neighbors_to_share() in class Engine.
@@ -143,29 +166,41 @@ def tit_for_tat(baby_ending, mutual, optimistic, time_now, peer):
     :return: set of peer instances of the nodes selected as beneficiaries.
     """
 
-    selected_peer_set = set()
-    if time_now - peer.birth_time <= baby_ending:  # This is a new peer. Random select neighbors.
-        selected_peer_set |= set(random.sample(list(peer.peer_neighbor_mapping),
-                                               min(len(peer.peer_neighbor_mapping), mutual +
-                                                   optimistic)))
+    selected_peer_set: Set["Peer"] = set()
+    if (
+        time_now - peer.birth_time <= baby_ending
+    ):  # This is a new peer. Random select neighbors.
+        selected_peer_set |= set(
+            random.sample(
+                list(peer.peer_neighbor_mapping),
+                min(len(peer.peer_neighbor_mapping), mutual + optimistic),
+            )
+        )
     else:  # This is an old peer
         # ranked_list_of_peers is a list of peer instances who are my neighbors
         # and they are ranked according to their scores that I calculate.
-        ranked_list_of_peers = peer.rank_neighbors()
+        ranked_list_of_peers: List["Peer"] = peer.rank_neighbors()
         mutual = min(mutual, len(ranked_list_of_peers))
-        while mutual > 0 and peer.peer_neighbor_mapping[ranked_list_of_peers[mutual - 1]].score\
-                == 0:
+        while (
+            mutual > 0
+            and peer.peer_neighbor_mapping[ranked_list_of_peers[mutual - 1]].score == 0
+        ):
             mutual -= 1
 
-        highly_ranked_peers_list = ranked_list_of_peers[:mutual]
-        lowly_ranked_peers_list = ranked_list_of_peers[mutual:]
+        highly_ranked_peers_list: List["Peer"] = ranked_list_of_peers[:mutual]
+        lowly_ranked_peers_list: List["Peer"] = ranked_list_of_peers[mutual:]
         selected_peer_set |= set(highly_ranked_peers_list)
-        selected_peer_set |= set(random.sample(lowly_ranked_peers_list, min(len(
-            lowly_ranked_peers_list), optimistic)))
+        selected_peer_set |= set(
+            random.sample(
+                lowly_ranked_peers_list, min(len(lowly_ranked_peers_list), optimistic)
+            )
+        )
     return selected_peer_set
 
 
-def random_recommendation(_requester, base, target_number):
+def random_recommendation(
+    _requester: "Peer", base: Set["Peer"], target_number: int
+) -> Set["Peer"]:
     """
     This is a candidate design for neighbor recommendation.
     It is called by method neighbor_rec() in class Engine.
@@ -178,6 +213,6 @@ def random_recommendation(_requester, base, target_number):
     :return: set of peer instances selected from base.
     """
     if not base or not target_number:
-        raise ValueError('Base set is empty or target number is zero.')
+        raise ValueError("Base set is empty or target number is zero.")
     # if the target number is larger than the set size, output the whole set.
     return set(random.sample(base, min(target_number, len(base))))

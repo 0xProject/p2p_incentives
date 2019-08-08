@@ -5,7 +5,7 @@ This is the single main file that runs the simulator.
 import example
 import execution
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     for my_scenario in example.SCENARIOS:
         for my_engine in example.ENGINES:
             for my_performance in example.PERFORMANCES:
