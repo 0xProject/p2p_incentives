@@ -139,6 +139,12 @@ def weighted_sum(
         if neighbor.lazy_round >= lazy_length:
             peer.del_neighbor(neighboring_peer)
             continue
+
+        if len(neighbor.share_contribution) != len(discount):
+            raise ValueError(
+                "Length of score sheet is not equal to length of discount vector."
+            )
+
         neighbor.score = sum(
             a * b for a, b in zip(neighbor.share_contribution, discount)
         )
@@ -167,9 +173,8 @@ def tit_for_tat(
     """
 
     selected_peer_set: Set["Peer"] = set()
-    if (
-        time_now - peer.birth_time <= baby_ending
-    ):  # This is a new peer. Random select neighbors.
+    if time_now - peer.birth_time <= baby_ending:
+        # This is a new peer. Random select neighbors.
         selected_peer_set |= set(
             random.sample(
                 list(peer.peer_neighbor_mapping),

@@ -38,6 +38,9 @@ def order_spreading_ratio_stat(
     this window.
     """
 
+    if cur_time < 0 or max_age_to_track < 0 or statistical_window <= 0:
+        raise ValueError("There is some invalid negative input value.")
+
     num_active_peers: int = len(peer_set)
     order_spreading_record: List[List[float]] = [
         [] for _ in range(int((max_age_to_track - 1) / statistical_window) + 1)
@@ -79,6 +82,9 @@ def order_num_stat_on_age(
     [k * statistical_window, (k+1) * statistical_window).
     """
 
+    if cur_time < 0 or max_age_to_track < 0 or statistical_window <= 0:
+        raise ValueError("There is some invalid negative input value.")
+
     num_orders_in_age_range: List[int] = [0] * int(
         ((max_age_to_track - 1) / statistical_window) + 1
     )
@@ -108,6 +114,9 @@ def peer_order_stat_on_window(
     :return: a list, each element being the number of orders observed by this peer that fall into
     the corresponding statistical window.
     """
+
+    if cur_time < 0 or max_age_to_track < 0 or statistical_window <= 0:
+        raise ValueError("There is some invalid negative input value.")
 
     num_orders_this_peer_stores: List[int] = [0] * int(
         ((max_age_to_track - 1) / statistical_window) + 1
@@ -150,6 +159,9 @@ def single_peer_order_receipt_ratio(
         except ZeroDivisionError:
             return None
 
+    # no need to do input argument check since order_num_stat_on_age() and
+    # peer_order_stat_on_window() will do exactly the same check
+
     order_stat_based_on_age: List[int] = order_num_stat_on_age(
         cur_time=cur_time,
         max_age_to_track=max_age_to_track,
@@ -188,6 +200,10 @@ def single_peer_satisfaction_neutral(
     :param order_set: same as above function.
     :return: A single value for this peer's satisfaction, or None if it did not receive anything.
     """
+
+    # no need to do input argument check since single_peer_order_receipt_ratio() will do exactly
+    # the same check
+
     peer_observation_ratio: SpreadingRatio = single_peer_order_receipt_ratio(
         cur_time=cur_time,
         peer=peer,

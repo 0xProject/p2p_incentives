@@ -45,7 +45,7 @@ def hawkes(rate: HawkesArrivalRate, max_time: int) -> List[int]:
 
     # check parameters
     if not (lambda_0 >= a >= 0 and delta > 0 and gamma >= 0):
-        raise ValueError("Parameter setting is incorrect for the Hawkes process.")
+        raise ValueError("Invalid argument(s) for Hawkes process.")
 
     T: List[float] = [0.0]  # this is the list of event happening time.
     lambda_plus = lambda_0

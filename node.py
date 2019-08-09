@@ -215,9 +215,8 @@ class Peer:
                 for idx, orderinfo in enumerate(orderinfo_list):
                     if orderinfo.prev_owner == peer:
                         del orderinfo_list[idx]
-                if (
-                    not orderinfo_list
-                ):  # no pending orderinfo. need to delete this entry
+                if not orderinfo_list:
+                    # no pending orderinfo. need to delete this entry
                     order.hesitators.remove(self)
                     del self.order_pending_orderinfo_mapping[order]
 

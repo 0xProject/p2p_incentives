@@ -111,12 +111,6 @@ class Simulator:
 
             # decide the number of orders for this peer
 
-            # Please be noted that mypy contains an error when judging literal of unions (
-            # e.g., Literal[a, b]). It always reports an error message even when it is correct.
-            # In here let me ignore the lines to avoid the issue, since we are sure that
-            # peer_type is of type PeerTypeName, and that PeerTypeName is a Literal that contains
-            # all keys in peer_parameter_dict.
-
             num_mean: float = self.scenario.peer_parameter_dict[peer_type].mean
 
             num_var: float = self.scenario.peer_parameter_dict[peer_type].var

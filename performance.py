@@ -185,7 +185,7 @@ class Performance:
 
         if not peers_to_evaluate or not orders_to_evaluate:
             raise InvalidInputError(
-                "Invalid to evaluate fairness for an empty set of " "peers/orders."
+                "Invalid to evaluate fairness for an empty set of peers/orders."
             )
 
         if self.fairness_option["method"] == "Dummy":
