@@ -15,6 +15,7 @@ from data_types import (
     Fairness,
     UserSatisfaction,
     BestAndWorstLists,
+    InvalidInputError,
 )
 
 
@@ -71,6 +72,11 @@ class Execution:
         :return: None.
         """
 
+        # pylint: disable=too-many-branches, too-many-statements
+        # temporarily disable the pylint warning for now.
+        # This function is really too long. Will split it in future PR.
+        # This comment should be deleted in the next PR.
+
         with Pool(self.multi_pools) as my_pool:
             performance_result_list: List[SingleRunPerformanceResult] = my_pool.map(
                 self.make_run,
@@ -90,12 +96,6 @@ class Execution:
             fairness=[],
         )
 
-        # Logic of the following code section is slightly changed in order to make mypy run
-        # without a need of using cast.
-        # This change should not impact any result since keys in performance_measure should be
-        # exactly the same keys in any item in performance_result_list.
-        # This comment should be deleted in the next PR.
-
         for measure_key, value_list in performance_measure.items():
             for item in performance_result_list:
                 # we don't do type check for value, but will check its type in the following lines.
@@ -111,17 +111,42 @@ class Execution:
 
         # process each performance result
 
+        # Note: There are additional try... except... judgments newly added in this PR. They are
+        # necessary.
+        # In short, the following part of the code is to fetch data from performance_measure
+        # (which is of type MultiRunPerformanceResult). For each key, if there is a corresponding
+        # non-empty value, we plot the figure for this performance metric.
+        #
+        # Previously we merely check if the value is non-empty. This is actually not enough.
+        # There is a chance that we are supposed to run a particular performance metric
+        # evaluation (say, free-rider satisfaction), but the value part is empty. This is because
+        # for avery single run of the simulator, there was no meaningful result (e.g., at the end
+        # of the run there were never any free rider in the system). We have stated that due to
+        # some randomness there is a chance that for some run, there is no meaningful result (
+        # e.g., in a particular run all free riders happen to have left the system at the end),
+        # but if it happens in every run, there must be some problem and an error should be raised.
+        # What I basically added here is to raise such errors.
+        #
+        # This explanation should be deleted (or remained but modified) in the next PR.
+
         # processing spreading ratio, calculate best, worst, and average spreading ratios
-        spreading_ratio_lists: List[OrderSpreading] = performance_measure[
-            "order_spreading"
-        ]
-        if spreading_ratio_lists:
-            best_worst_ratios: BestAndWorstLists = data_processing.find_best_worst_lists(
-                spreading_ratio_lists
-            )
-            average_order_spreading_ratio: List[float] = data_processing.average_lists(
-                spreading_ratio_lists
-            )
+
+        if self.performance.measures_to_execute.order_spreading:
+            spreading_ratio_lists: List[OrderSpreading] = performance_measure[
+                "order_spreading"
+            ]
+            try:
+                best_worst_ratios: BestAndWorstLists = data_processing.find_best_worst_lists(
+                    spreading_ratio_lists
+                )
+                average_order_spreading_ratio: List[
+                    float
+                ] = data_processing.average_lists(spreading_ratio_lists)
+            except InvalidInputError:
+                raise RuntimeError(
+                    "Running order spreading performance measurement but there was "
+                    "no result from any run."
+                )
 
             plt.plot(average_order_spreading_ratio)
             plt.plot(best_worst_ratios.worst)  # worst ratio
@@ -139,25 +164,39 @@ class Execution:
         legend_label: List[str] = []
 
         # Normal peers first.
-        normal_peer_satisfaction_lists: List[UserSatisfaction] = performance_measure[
-            "normal_peer_satisfaction"
-        ]
-        if normal_peer_satisfaction_lists:
+        if self.performance.measures_to_execute.normal_peer_satisfaction:
+            normal_peer_satisfaction_lists: List[
+                UserSatisfaction
+            ] = performance_measure["normal_peer_satisfaction"]
+            try:
+                normal_satisfaction_density: List[
+                    float
+                ] = data_processing.calculate_density(normal_peer_satisfaction_lists)
+            except InvalidInputError:
+                raise RuntimeError(
+                    "Running normal peer satisfaction performance measure but "
+                    "there was no result from any run."
+                )
+
             legend_label.append("normal peer")
-            normal_satisfaction_density: List[
-                float
-            ] = data_processing.calculate_density(normal_peer_satisfaction_lists)
             plt.plot(normal_satisfaction_density)
 
         # Free riders next.
-        free_rider_satisfaction_lists: List[UserSatisfaction] = performance_measure[
-            "free_rider_satisfaction"
-        ]
-        if free_rider_satisfaction_lists:
+        if self.performance.measures_to_execute.free_rider_satisfaction:
+            free_rider_satisfaction_lists: List[UserSatisfaction] = performance_measure[
+                "free_rider_satisfaction"
+            ]
+            try:
+                free_rider_satisfaction_density: List[
+                    float
+                ] = data_processing.calculate_density(free_rider_satisfaction_lists)
+            except InvalidInputError:
+                raise RuntimeError(
+                    "Running free rider satisfaction performance measure but there "
+                    "was no result from any run."
+                )
+
             legend_label.append("free rider")
-            free_rider_satisfaction_density: List[
-                float
-            ] = data_processing.calculate_density(free_rider_satisfaction_lists)
             plt.plot(free_rider_satisfaction_density)
 
         # plot normal peers and free riders satisfactions in one figure.
@@ -169,15 +208,19 @@ class Execution:
 
         # processing fairness index if it exists. Now it is dummy.
 
-        # deleted an error catch since it is duplicate. It is already caught in
-        # data_processing.calculate_density.
-        # This comment should be deleted in the next PR.
+        if self.performance.measures_to_execute.system_fairness:
+            system_fairness: List[Fairness] = performance_measure["fairness"]
+            try:
+                system_fairness_density: List[
+                    float
+                ] = data_processing.calculate_density([system_fairness])
+            except ValueError:  # note that this is special. There is always a non-empty input to
+                # the function, and if it is [[]], then there will be an ValueError raised.
+                raise RuntimeError(
+                    "Running system fairness performance measure but there was "
+                    "no result from any run."
+                )
 
-        system_fairness: List[Fairness] = performance_measure["fairness"]
-        if system_fairness:
-            system_fairness_density: List[float] = data_processing.calculate_density(
-                [system_fairness]
-            )
             plt.plot(system_fairness_density)
             plt.legend(["fairness density"], loc="upper left")
             plt.xlabel("fairness")

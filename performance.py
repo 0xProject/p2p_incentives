@@ -16,6 +16,7 @@ from data_types import (
     Fairness,
     UserSatisfaction,
     SingleRunPerformanceResult,
+    InvalidInputError,
 )
 
 if TYPE_CHECKING:
@@ -93,7 +94,7 @@ class Performance:
         """
 
         if not peers_to_evaluate or not orders_to_evaluate:
-            raise ValueError(
+            raise InvalidInputError(
                 "Invalid to measure the spreading based on no orders or no peers."
             )
 
@@ -133,7 +134,7 @@ class Performance:
         """
 
         if not peers_to_evaluate or not orders_to_evaluate:
-            raise ValueError(
+            raise InvalidInputError(
                 "Invalid to evaluate user satisfaction if there are no peers or no "
                 "orders."
             )
@@ -182,8 +183,10 @@ class Performance:
         Fairness defined in data_types module.
         """
 
-        if not peers_to_evaluate:
-            raise ValueError("Invalid to evaluate fairness for an empty set of peers.")
+        if not peers_to_evaluate or not orders_to_evaluate:
+            raise InvalidInputError(
+                "Invalid to evaluate fairness for an empty set of " "peers/orders."
+            )
 
         if self.fairness_option["method"] == "Dummy":
             return performance_candidates.fairness_dummy(
@@ -218,8 +221,22 @@ class Performance:
 
         # Generate order spreading measure for all orders over all peers
 
-        # NOTE: I know there are problems with except... pass... in the following lines. However,
-        # they are not related to type check. Will address them in the next PR.
+        # initialize the single run performance results.
+        # They are initially all None, and only get changed if (a) a performance evaluation
+        # execution is turned on in self.measures_to_execute, and (b) this evaluation can be done
+        # (i.e., we have enough peers and orders as inputs).
+        # If any result is left None, it is either because (a) the execution is turned off,
+        # or (b) it is not executable for this run. For reason (a), the result should be None for
+        # any run of the simulation, but for reason (b), it happens occasionally, for example,
+        # if we have 99% of normal peers and 1% of free rider, then there is a chance at the end
+        # of a simulation run, there happens to be no free rider so the satisfaction evaluation
+        # on free riders is skipped for this run.
+        # For reason (a) we don't do anything. For reason (b) we leave a print message once it
+        # happens. If it always happens due to reason (b), then we are supposed to perform some
+        # evaluation according to multiple runs of the simulator, but there will be none in any
+        # run. This error will be caught in execution.run().
+
+        # Generating order spreading measure over all orders
 
         result_order_spreading: Optional[OrderSpreading] = None
         if self.measures_to_execute.order_spreading:
@@ -227,8 +244,11 @@ class Performance:
                 result_order_spreading = self.measure_order_spreading(
                     cur_time, peer_full_set, order_full_set
                 )
-            except ValueError:  # Not enough peers/orders to evaluate
-                pass
+            except InvalidInputError:
+                print(
+                    "Not enough peers/orders to measure order spreading. Fine for occasional "
+                    "happening."
+                )
 
         # Generate normal peer satisfaction measure over all orders
 
@@ -238,8 +258,11 @@ class Performance:
                 result_normal_peer_satisfaction = self.measure_user_satisfaction(
                     cur_time, normal_peer_set, order_full_set
                 )
-            except ValueError:
-                pass
+            except InvalidInputError:
+                print(
+                    "Not enough peers/orders to measure normal peer satisfaction. Fine for "
+                    "occasional happening."
+                )
 
         # Generate free rider satisfaction measure over all orders
 
@@ -249,8 +272,11 @@ class Performance:
                 result_free_rider_satisfaction = self.measure_user_satisfaction(
                     cur_time, free_rider_set, order_full_set
                 )
-            except ValueError:
-                pass
+            except InvalidInputError:
+                print(
+                    "Not enough peers/orders to measure free rider satisfaction. Fine for "
+                    "occasional happening."
+                )
 
         # Generate system fairness measure over all peers and all orders
 
@@ -258,8 +284,11 @@ class Performance:
         if self.measures_to_execute.system_fairness:
             try:
                 result_fairness = self.measure_fairness(peer_full_set, order_full_set)
-            except ValueError:
-                pass
+            except InvalidInputError:
+                print(
+                    "Not enough peers/orders to measure system fairness. Fine for occasional "
+                    "happening."
+                )
 
         # Organize the results in a list
         return SingleRunPerformanceResult(
