@@ -75,40 +75,20 @@ PEER_TYPE_FEATURE_DICT = PeerTypeFeatureDict(
 
 # The following namedtuple specifies the parameters for the system's initial status.
 
-NUM_PEERS: int = 10
-BIRTH_TIME_SPAN: int = 20
-INIT_PAR = SystemInitialState(num_peers=NUM_PEERS, birth_time_span=BIRTH_TIME_SPAN)
+INIT_PAR = SystemInitialState(num_peers=10, birth_time_span=20)
 
 # The following namedtuple specifies the parameters for the system's growth period
 # when the number of peers keeps increasing.
 
-GROWTH_ROUND: int = 30
-GROWTH_PEER_ARRIVAL: float = 3.0
-GROWTH_PEER_DEPT: float = 0.0
-GROWTH_ORDER_ARRIVAL: float = 15.0
-GROWTH_ORDER_CANCEL: float = 15.0
 GROWTH_PAR = SystemEvolution(
-    rounds=GROWTH_ROUND,
-    peer_arrival=GROWTH_PEER_ARRIVAL,
-    peer_dept=GROWTH_PEER_DEPT,
-    order_arrival=GROWTH_ORDER_ARRIVAL,
-    order_cancel=GROWTH_ORDER_CANCEL,
+    rounds=30, peer_arrival=3.0, peer_dept=0.0, order_arrival=15.0, order_cancel=15.0
 )
 
 # The following namedtuple specifies the parameters for the system's stable period
 # when the number of peers keeps stable.
 
-STABLE_ROUND: int = 50
-STABLE_PEER_ARRIVAL: float = 2.0
-STABLE_PEER_DEPT: float = 2.0
-STABLE_ORDER_ARRIVAL: float = 15.0
-STABLE_ORDER_CANCEL: float = 15.0
 STABLE_PAR = SystemEvolution(
-    rounds=STABLE_ROUND,
-    peer_arrival=STABLE_PEER_ARRIVAL,
-    peer_dept=STABLE_PEER_DEPT,
-    order_arrival=STABLE_ORDER_ARRIVAL,
-    order_cancel=STABLE_ORDER_CANCEL,
+    rounds=50, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0, order_cancel=15.0
 )
 
 # Create scenario parameters, in type of a namedtuple.
@@ -152,34 +132,21 @@ BATCH: int = 10  # length of a batch period
 # Similar to creating a Scenario instance, please follow the format and do not change the key.
 # Only value can be changed.
 
-MAX_NEIGHBOR_SIZE: int = 30
-MIN_NEIGHBOR_SIZE: int = 20
-TOPOLOGY = Topology(
-    max_neighbor_size=MAX_NEIGHBOR_SIZE, min_neighbor_size=MIN_NEIGHBOR_SIZE
-)
+TOPOLOGY = Topology(max_neighbor_size=30, min_neighbor_size=20)
 
 # This namedtuple describes the incentive score parameters.
 # The physical meaning of parameters like reward_a, ... reward_e are in the definition of the data
 # types in date_types.py.
 
-LENGTH: int = 3
-REWARD_A: float = 0.0
-REWARD_B: float = 0.0
-REWARD_C: float = 0.0
-REWARD_D: float = 1.0
-REWARD_E: float = 0.0
-PENALTY_A: float = 0.0
-PENALTY_B: float = -1.0
-
 INCENTIVE = Incentive(
-    score_sheet_length=LENGTH,
-    reward_a=REWARD_A,
-    reward_b=REWARD_B,
-    reward_c=REWARD_C,
-    reward_d=REWARD_D,
-    reward_e=REWARD_E,
-    penalty_a=PENALTY_A,
-    penalty_b=PENALTY_B,
+    score_sheet_length=3,
+    reward_a=0.0,
+    reward_b=0.0,
+    reward_c=0.0,
+    reward_d=1.0,
+    reward_e=0.0,
+    penalty_a=0.0,
+    penalty_b=-1.0,
 )
 
 # creating engine parameters, in type of a namedtuple.
@@ -251,18 +218,11 @@ MY_ENGINE = Engine(E_PARAMETERS, E_OPTIONS)
 
 # ======
 # The following is an example of Performance instance.
-# parameters
-
-MAX_AGE_TO_TRACK: int = 50
-ADULT_AGE: int = 30
-STATISTICAL_WINDOW: int = 5
 
 # creating performance parameters, in type of a namedtuple.
 
 PERFORMANCE_PARAMETERS = PerformanceParameters(
-    max_age_to_track=MAX_AGE_TO_TRACK,
-    adult_age=ADULT_AGE,
-    statistical_window=STATISTICAL_WINDOW,
+    max_age_to_track=50, adult_age=30, statistical_window=5
 )
 
 # options
@@ -281,17 +241,11 @@ MEASURE_OPTIONS = PerformanceOptions(SPREADING, SATISFACTION, FAIRNESS)
 # If one wants to add more execution possibilities, modify the definition of
 # PerformanceExecutions (in type of a namedtuple) first in data_types module.
 
-ORDER_SPREADING: bool = True
-NORMAL_PEER_SATISFACTION: bool = True
-FREE_RIDER_SATISFACTION: bool = True
-SYSTEM_FAIRNESS: bool = False
-
-
 MEASURES_TO_EXECUTE = PerformanceExecutions(
-    order_spreading=ORDER_SPREADING,
-    normal_peer_satisfaction=NORMAL_PEER_SATISFACTION,
-    free_rider_satisfaction=FREE_RIDER_SATISFACTION,
-    system_fairness=SYSTEM_FAIRNESS,
+    order_spreading=True,
+    normal_peer_satisfaction=True,
+    free_rider_satisfaction=True,
+    system_fairness=False,
 )
 
 # create MY_PERFORMANCE instance, in type of a namedtuple.
