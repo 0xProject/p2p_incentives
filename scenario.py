@@ -8,10 +8,8 @@ import scenario_candidates
 from data_types import (
     ScenarioParameters,
     ScenarioOptions,
-    OrderRatio,
-    PeerRatio,
-    OrderParameter,
-    PeerParameter,
+    OrderTypeFeatureDict,
+    PeerTypeFeatureDict,
     EventOption,
     SettleOption,
     EventArrivalRate,
@@ -37,15 +35,10 @@ class Scenario:
 
         # unpacking parameters
 
-        # ratios of each type of orders, in forms of a dictionary.
-        self.order_type_ratios: OrderRatio = parameters.order_ratios
-        # ratios for each type of peers, in forms of a dictionary.
-        self.peer_type_ratios: PeerRatio = parameters.peer_ratios
-
-        # each value is (mean, var) of order expiration of this order type
-        self.order_parameter_dict: OrderParameter = parameters.order_parameters
-        # each value is (mean, var) of the initial orderbook size of this type
-        self.peer_parameter_dict: PeerParameter = parameters.peer_parameters
+        # order types and features
+        self.order_type_feature: OrderTypeFeatureDict = parameters.order_type_feature
+        # peer types and features
+        self.peer_type_feature: PeerTypeFeatureDict = parameters.peer_type_feature
 
         # init period, init_size is number of peers joining the mesh at the very beginning,
         # and the birth time of such peers is randomly distributed over [0,birth_time_span]

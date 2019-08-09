@@ -7,11 +7,11 @@ from engine import Engine
 from scenario import Scenario
 from performance import Performance
 from data_types import (
-    OrderRatio,
-    PeerRatio,
     Distribution,
-    OrderParameter,
-    PeerParameter,
+    OrderFeature,
+    PeerFeature,
+    OrderTypeFeatureDict,
+    PeerTypeFeatureDict,
     SystemInitialState,
     SystemEvolution,
     ScenarioParameters,
@@ -44,38 +44,34 @@ from data_types import (
 # The following is one example of a Scenario instance.
 # parameters
 
-# ratio of orders of each type.
-# If an additional type is added, remember to modify OrderRatio and OrderParameter in data_types
+# ratio and feature of orders of each type.
+# If an additional type is added, remember to modify OrderTypeFeatureDict in data_types
 
-ORDER_TYPE_RATIOS = OrderRatio(default=1.0)
+# order feature for type "default".
+ORDER_DEFAULT_FEATURE = OrderFeature(
+    ratio=1.0, expiration=Distribution(mean=500.0, var=0.0)
+)
 
-# ratio of peers of each type
-# If an additional type is added, remember to modify PeerRatio and PeerParameter in data_types
+# order type and feature dictionary. Only one type in this example.
+ORDER_TYPE_FEATURE_DICT = OrderTypeFeatureDict(default=ORDER_DEFAULT_FEATURE)
 
-PEER_TYPE_RATIOS = PeerRatio(free_rider=0.1, normal=0.9)
+# ratio and feature of peers of each type.
+# If an additional type is added, remember to modify PeerTypeFeatureDict in data_types
 
-# Order parameter distribution: a namedtuple consisting of the mean and variance of order
-# expiration. An order's real expiration follows a Normal distribution given this mean and variance.
+# peer feature for type "normal"
+PEER_NORMAL_FEATURE = PeerFeature(
+    ratio=0.9, initial_orderbook_size=Distribution(mean=6.0, var=0.0)
+)
 
-ORDER_DEFAULT = Distribution(mean=500.0, var=0.0)
+# peer feature for type "free rider"
+PEER_FREE_RIDER_FEATURE = PeerFeature(
+    ratio=0.1, initial_orderbook_size=Distribution(0, 0)
+)
 
-# Order parameter dictionary: the type OrderParameter a TypedDict, key is the name of order
-# type (str), value is the order parameter distribution.
-
-ORDER_PAR_DICT = OrderParameter(default=ORDER_DEFAULT)
-
-
-# Peer parameter distribution: a namedtuple consisting of the mean and variance of order
-# expiration. A peer's initial orderbook size follows a Normal distribution given this mean and
-# variance.
-
-PEER_FREE_RIDER = Distribution(mean=0.0, var=0.0)
-PEER_NORMAL = Distribution(mean=6.0, var=0.0)
-
-# Peer parameter dictionary: similar as above. In this example we have two types of peers: free
-# riders and normal peers.
-
-PEER_PAR_DICT = PeerParameter(free_rider=PEER_FREE_RIDER, normal=PEER_NORMAL)
+# peer type and feature dictionary. Now we have normal peers and free riders.
+PEER_TYPE_FEATURE_DICT = PeerTypeFeatureDict(
+    normal=PEER_NORMAL_FEATURE, free_rider=PEER_FREE_RIDER_FEATURE
+)
 
 # The following namedtuple specifies the parameters for the system's initial status.
 
@@ -118,10 +114,8 @@ STABLE_PAR = SystemEvolution(
 # Create scenario parameters, in type of a namedtuple.
 
 S_PARAMETERS = ScenarioParameters(
-    order_ratios=ORDER_TYPE_RATIOS,
-    peer_ratios=PEER_TYPE_RATIOS,
-    order_parameters=ORDER_PAR_DICT,
-    peer_parameters=PEER_PAR_DICT,
+    order_type_feature=ORDER_TYPE_FEATURE_DICT,
+    peer_type_feature=PEER_TYPE_FEATURE_DICT,
     init_state=INIT_PAR,
     growth_period=GROWTH_PAR,
     stable_period=STABLE_PAR,
