@@ -8,10 +8,10 @@ from scenario import Scenario
 from performance import Performance
 from data_types import (
     Distribution,
-    OrderFeature,
-    PeerFeature,
-    OrderTypeFeatureDict,
-    PeerTypeFeatureDict,
+    OrderProperty,
+    PeerProperty,
+    OrderTypePropertyDict,
+    PeerTypePropertyDict,
     SystemInitialState,
     SystemEvolution,
     ScenarioParameters,
@@ -44,33 +44,33 @@ from data_types import (
 # The following is one example of a Scenario instance.
 # parameters
 
-# ratio and feature of orders of each type.
-# If an additional type is added, remember to modify OrderTypeFeatureDict in data_types
+# ratio and property of orders of each type.
+# If an additional type is added, remember to modify OrderTypePropertyDict in data_types
 
-# order feature for type "default".
-ORDER_DEFAULT_FEATURE = OrderFeature(
+# order property for type "default".
+ORDER_DEFAULT_PROPERTY = OrderProperty(
     ratio=1.0, expiration=Distribution(mean=500.0, var=0.0)
 )
 
-# order type and feature dictionary. Only one type in this example.
-ORDER_TYPE_FEATURE_DICT = OrderTypeFeatureDict(default=ORDER_DEFAULT_FEATURE)
+# order type and property dictionary. Only one type in this example.
+ORDER_TYPE_PROPERTY_DICT = OrderTypePropertyDict(default=ORDER_DEFAULT_PROPERTY)
 
-# ratio and feature of peers of each type.
-# If an additional type is added, remember to modify PeerTypeFeatureDict in data_types
+# ratio and property of peers of each type.
+# If an additional type is added, remember to modify PeerTypePropertyDict in data_types
 
-# peer feature for type "normal"
-PEER_NORMAL_FEATURE = PeerFeature(
+# peer property for type "normal"
+PEER_NORMAL_PROPERTY = PeerProperty(
     ratio=0.9, initial_orderbook_size=Distribution(mean=6.0, var=0.0)
 )
 
-# peer feature for type "free rider"
-PEER_FREE_RIDER_FEATURE = PeerFeature(
+# peer property for type "free rider"
+PEER_FREE_RIDER_PROPERTY = PeerProperty(
     ratio=0.1, initial_orderbook_size=Distribution(0, 0)
 )
 
-# peer type and feature dictionary. Now we have normal peers and free riders.
-PEER_TYPE_FEATURE_DICT = PeerTypeFeatureDict(
-    normal=PEER_NORMAL_FEATURE, free_rider=PEER_FREE_RIDER_FEATURE
+# peer type and property dictionary. Now we have normal peers and free riders.
+PEER_TYPE_PROPERTY_DICT = PeerTypePropertyDict(
+    normal=PEER_NORMAL_PROPERTY, free_rider=PEER_FREE_RIDER_PROPERTY
 )
 
 # The following namedtuple specifies the parameters for the system's initial status.
@@ -94,8 +94,8 @@ STABLE_PAR = SystemEvolution(
 # Create scenario parameters, in type of a namedtuple.
 
 S_PARAMETERS = ScenarioParameters(
-    order_type_feature=ORDER_TYPE_FEATURE_DICT,
-    peer_type_feature=PEER_TYPE_FEATURE_DICT,
+    order_type_property=ORDER_TYPE_PROPERTY_DICT,
+    peer_type_property=PEER_TYPE_PROPERTY_DICT,
     init_state=INIT_PAR,
     growth_period=GROWTH_PAR,
     stable_period=STABLE_PAR,

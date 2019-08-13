@@ -46,9 +46,9 @@ class Distribution(NamedTuple):
     var: float
 
 
-class OrderFeature(NamedTuple):
+class OrderProperty(NamedTuple):
     """
-    This data type specifies the features of a particular order type.
+    This data type specifies the property of a particular order type.
     ratio is the portion of orders of this type in the Mesh.
     expiration is the distribution of expiration (mean and variance) of this type.
     """
@@ -57,9 +57,9 @@ class OrderFeature(NamedTuple):
     expiration: Distribution
 
 
-class PeerFeature(NamedTuple):
+class PeerProperty(NamedTuple):
     """
-    This data type specifies the features of a particular peer type.
+    This data type specifies the property of a particular peer type.
     ratio is the portion of peers of this type in the Mesh.
     initial_orderbook_size: Distribution is the distribution of a peer's initial orderbooks size
     (mean and variance) of this type.
@@ -76,21 +76,21 @@ class PeerFeature(NamedTuple):
 # It doesn't seem good so we opt to use a TypedDict.
 
 
-class OrderTypeFeatureDict(TypedDict):
+class OrderTypePropertyDict(TypedDict):
     """
-    This data type is to specify all order type names and their features.
-    """
-
-    default: OrderFeature
-
-
-class PeerTypeFeatureDict(TypedDict):
-    """
-    This data type is to specify all peer type names and their features.
+    This data type is to specify all order type names and their properties.
     """
 
-    normal: PeerFeature
-    free_rider: PeerFeature
+    default: OrderProperty
+
+
+class PeerTypePropertyDict(TypedDict):
+    """
+    This data type is to specify all peer type names and their properties.
+    """
+
+    normal: PeerProperty
+    free_rider: PeerProperty
 
 
 # The following are two Literal data types. If an instance belongs to this data type, then it can
@@ -143,8 +143,8 @@ class ScenarioParameters(NamedTuple):
     Putting all value parameters together and use a NamedTuple to represent all values for Scenario.
     """
 
-    order_type_feature: OrderTypeFeatureDict
-    peer_type_feature: PeerTypeFeatureDict
+    order_type_property: OrderTypePropertyDict
+    peer_type_property: PeerTypePropertyDict
     init_state: SystemInitialState
     growth_period: SystemEvolution
     stable_period: SystemEvolution

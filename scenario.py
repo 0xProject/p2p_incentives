@@ -8,8 +8,8 @@ import scenario_candidates
 from data_types import (
     ScenarioParameters,
     ScenarioOptions,
-    OrderTypeFeatureDict,
-    PeerTypeFeatureDict,
+    OrderTypePropertyDict,
+    PeerTypePropertyDict,
     EventOption,
     SettleOption,
     EventArrivalRate,
@@ -35,10 +35,10 @@ class Scenario:
 
         # unpacking parameters
 
-        # order types and features
-        self.order_type_feature: OrderTypeFeatureDict = parameters.order_type_feature
-        # peer types and features
-        self.peer_type_feature: PeerTypeFeatureDict = parameters.peer_type_feature
+        # order types and properties
+        self.order_type_property: OrderTypePropertyDict = parameters.order_type_property
+        # peer types and properties
+        self.peer_type_property: PeerTypePropertyDict = parameters.peer_type_property
 
         # init period, init_size is number of peers joining the mesh at the very beginning,
         # and the birth time of such peers is randomly distributed over [0,birth_time_span]
