@@ -2,7 +2,7 @@
 This module contains class Scenario only.
 """
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, cast
 import numpy
 import scenario_candidates
 from data_types import (
@@ -17,6 +17,7 @@ from data_types import (
     EventArrivalRate,
     PoissonArrivalRate,
     HawkesArrivalRate,
+    ConcaveSettle,
 )
 
 
@@ -139,6 +140,12 @@ class Scenario:
 
         if self.option_settle["method"] == "Never":
             scenario_candidates.settle_dummy(order)
+        elif self.option_settle["method"] == "ConcaveSettle":
+            self.option_settle = cast(ConcaveSettle, self.option_settle)
+            scenario_candidates.settle_concave(
+                order, self.option_settle["sensitivity"], self.option_settle["max_prob"]
+            )
+
         else:
             raise ValueError(
                 f"No such option to change settlement status for orders: "
