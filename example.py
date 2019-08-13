@@ -7,11 +7,11 @@ from engine import Engine
 from scenario import Scenario
 from performance import Performance
 from data_types import (
-    OrderRatio,
-    PeerRatio,
     Distribution,
-    OrderParameter,
-    PeerParameter,
+    OrderProperty,
+    PeerProperty,
+    OrderTypePropertyDict,
+    PeerTypePropertyDict,
     SystemInitialState,
     SystemEvolution,
     ScenarioParameters,
@@ -44,84 +44,58 @@ from data_types import (
 # The following is one example of a Scenario instance.
 # parameters
 
-# ratio of orders of each type.
-# If an additional type is added, remember to modify OrderRatio and OrderParameter in data_types
+# ratio and property of orders of each type.
+# If an additional type is added, remember to modify OrderTypePropertyDict in data_types
 
-ORDER_TYPE_RATIOS = OrderRatio(default=1.0)
+# order property for type "default".
+ORDER_DEFAULT_PROPERTY = OrderProperty(
+    ratio=1.0, expiration=Distribution(mean=500.0, var=0.0)
+)
 
-# ratio of peers of each type
-# If an additional type is added, remember to modify PeerRatio and PeerParameter in data_types
+# order type and property dictionary. Only one type in this example.
+ORDER_TYPE_PROPERTY_DICT = OrderTypePropertyDict(default=ORDER_DEFAULT_PROPERTY)
 
-PEER_TYPE_RATIOS = PeerRatio(free_rider=0.1, normal=0.9)
+# ratio and property of peers of each type.
+# If an additional type is added, remember to modify PeerTypePropertyDict in data_types
 
-# Order parameter distribution: a namedtuple consisting of the mean and variance of order
-# expiration. An order's real expiration follows a Normal distribution given this mean and variance.
+# peer property for type "normal"
+PEER_NORMAL_PROPERTY = PeerProperty(
+    ratio=0.9, initial_orderbook_size=Distribution(mean=6.0, var=0.0)
+)
 
-ORDER_DEFAULT = Distribution(mean=500.0, var=0.0)
+# peer property for type "free rider"
+PEER_FREE_RIDER_PROPERTY = PeerProperty(
+    ratio=0.1, initial_orderbook_size=Distribution(0, 0)
+)
 
-# Order parameter dictionary: the type OrderParameter a TypedDict, key is the name of order
-# type (str), value is the order parameter distribution.
-
-ORDER_PAR_DICT = OrderParameter(default=ORDER_DEFAULT)
-
-
-# Peer parameter distribution: a namedtuple consisting of the mean and variance of order
-# expiration. A peer's initial orderbook size follows a Normal distribution given this mean and
-# variance.
-
-PEER_FREE_RIDER = Distribution(mean=0.0, var=0.0)
-PEER_NORMAL = Distribution(mean=6.0, var=0.0)
-
-# Peer parameter dictionary: similar as above. In this example we have two types of peers: free
-# riders and normal peers.
-
-PEER_PAR_DICT = PeerParameter(free_rider=PEER_FREE_RIDER, normal=PEER_NORMAL)
+# peer type and property dictionary. Now we have normal peers and free riders.
+PEER_TYPE_PROPERTY_DICT = PeerTypePropertyDict(
+    normal=PEER_NORMAL_PROPERTY, free_rider=PEER_FREE_RIDER_PROPERTY
+)
 
 # The following namedtuple specifies the parameters for the system's initial status.
 
-NUM_PEERS: int = 10
-BIRTH_TIME_SPAN: int = 20
-INIT_PAR = SystemInitialState(num_peers=NUM_PEERS, birth_time_span=BIRTH_TIME_SPAN)
+INIT_PAR = SystemInitialState(num_peers=10, birth_time_span=20)
 
 # The following namedtuple specifies the parameters for the system's growth period
 # when the number of peers keeps increasing.
 
-GROWTH_ROUND: int = 30
-GROWTH_PEER_ARRIVAL: float = 3.0
-GROWTH_PEER_DEPT: float = 0.0
-GROWTH_ORDER_ARRIVAL: float = 15.0
-GROWTH_ORDER_CANCEL: float = 15.0
 GROWTH_PAR = SystemEvolution(
-    rounds=GROWTH_ROUND,
-    peer_arrival=GROWTH_PEER_ARRIVAL,
-    peer_dept=GROWTH_PEER_DEPT,
-    order_arrival=GROWTH_ORDER_ARRIVAL,
-    order_cancel=GROWTH_ORDER_CANCEL,
+    rounds=30, peer_arrival=3.0, peer_dept=0.0, order_arrival=15.0, order_cancel=15.0
 )
 
 # The following namedtuple specifies the parameters for the system's stable period
 # when the number of peers keeps stable.
 
-STABLE_ROUND: int = 50
-STABLE_PEER_ARRIVAL: float = 2.0
-STABLE_PEER_DEPT: float = 2.0
-STABLE_ORDER_ARRIVAL: float = 15.0
-STABLE_ORDER_CANCEL: float = 15.0
 STABLE_PAR = SystemEvolution(
-    rounds=STABLE_ROUND,
-    peer_arrival=STABLE_PEER_ARRIVAL,
-    peer_dept=STABLE_PEER_DEPT,
-    order_arrival=STABLE_ORDER_ARRIVAL,
-    order_cancel=STABLE_ORDER_CANCEL,
+    rounds=50, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0, order_cancel=15.0
 )
 
 # Create scenario parameters, in type of a namedtuple.
 
 S_PARAMETERS = ScenarioParameters(
-    order_ratios=ORDER_TYPE_RATIOS,
-    peer_ratios=PEER_TYPE_RATIOS,
-    order_parameters=ORDER_PAR_DICT,
-    peer_parameters=PEER_PAR_DICT,
+    order_type_property=ORDER_TYPE_PROPERTY_DICT,
+    peer_type_property=PEER_TYPE_PROPERTY_DICT,
     init_state=INIT_PAR,
     growth_period=GROWTH_PAR,
     stable_period=STABLE_PAR,
@@ -158,34 +132,21 @@ BATCH: int = 10  # length of a batch period
 # Similar to creating a Scenario instance, please follow the format and do not change the key.
 # Only value can be changed.
 
-MAX_NEIGHBOR_SIZE: int = 30
-MIN_NEIGHBOR_SIZE: int = 20
-TOPOLOGY = Topology(
-    max_neighbor_size=MAX_NEIGHBOR_SIZE, min_neighbor_size=MIN_NEIGHBOR_SIZE
-)
+TOPOLOGY = Topology(max_neighbor_size=30, min_neighbor_size=20)
 
 # This namedtuple describes the incentive score parameters.
 # The physical meaning of parameters like reward_a, ... reward_e are in the definition of the data
 # types in date_types.py.
 
-LENGTH: int = 3
-REWARD_A: float = 0.0
-REWARD_B: float = 0.0
-REWARD_C: float = 0.0
-REWARD_D: float = 1.0
-REWARD_E: float = 0.0
-PENALTY_A: float = 0.0
-PENALTY_B: float = -1.0
-
 INCENTIVE = Incentive(
-    score_sheet_length=LENGTH,
-    reward_a=REWARD_A,
-    reward_b=REWARD_B,
-    reward_c=REWARD_C,
-    reward_d=REWARD_D,
-    reward_e=REWARD_E,
-    penalty_a=PENALTY_A,
-    penalty_b=PENALTY_B,
+    score_sheet_length=3,
+    reward_a=0.0,
+    reward_b=0.0,
+    reward_c=0.0,
+    reward_d=1.0,
+    reward_e=0.0,
+    penalty_a=0.0,
+    penalty_b=-1.0,
 )
 
 # creating engine parameters, in type of a namedtuple.
@@ -257,18 +218,11 @@ MY_ENGINE = Engine(E_PARAMETERS, E_OPTIONS)
 
 # ======
 # The following is an example of Performance instance.
-# parameters
-
-MAX_AGE_TO_TRACK: int = 50
-ADULT_AGE: int = 30
-STATISTICAL_WINDOW: int = 5
 
 # creating performance parameters, in type of a namedtuple.
 
 PERFORMANCE_PARAMETERS = PerformanceParameters(
-    max_age_to_track=MAX_AGE_TO_TRACK,
-    adult_age=ADULT_AGE,
-    statistical_window=STATISTICAL_WINDOW,
+    max_age_to_track=50, adult_age=30, statistical_window=5
 )
 
 # options
@@ -287,17 +241,11 @@ MEASURE_OPTIONS = PerformanceOptions(SPREADING, SATISFACTION, FAIRNESS)
 # If one wants to add more execution possibilities, modify the definition of
 # PerformanceExecutions (in type of a namedtuple) first in data_types module.
 
-ORDER_SPREADING: bool = True
-NORMAL_PEER_SATISFACTION: bool = True
-FREE_RIDER_SATISFACTION: bool = True
-SYSTEM_FAIRNESS: bool = False
-
-
 MEASURES_TO_EXECUTE = PerformanceExecutions(
-    order_spreading=ORDER_SPREADING,
-    normal_peer_satisfaction=NORMAL_PEER_SATISFACTION,
-    free_rider_satisfaction=FREE_RIDER_SATISFACTION,
-    system_fairness=SYSTEM_FAIRNESS,
+    order_spreading=True,
+    normal_peer_satisfaction=True,
+    free_rider_satisfaction=True,
+    system_fairness=False,
 )
 
 # create MY_PERFORMANCE instance, in type of a namedtuple.

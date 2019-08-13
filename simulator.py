@@ -7,12 +7,17 @@ from typing import Dict, Set, List, TYPE_CHECKING, cast
 import numpy
 from message import Order
 from node import Peer
-from data_types import SingleRunPerformanceResult, PeerTypeName, OrderTypeName
+from data_types import (
+    SingleRunPerformanceResult,
+    PeerTypeName,
+    OrderTypeName,
+    PeerProperty,
+)
 
 
 if TYPE_CHECKING:
-    from scenario import Scenario
     from engine import Engine
+    from scenario import Scenario
     from performance import Performance
 
 
@@ -42,8 +47,8 @@ class Simulator:
         # all keys of scenario.order_type_ratios, which is a TypedDict with keys that can take
         # values in this exactly the same Literal.
 
-        for type_name in scenario.order_type_ratios:
-            # Though type_name is a key of scenario.order_type_ratios and it must be of type
+        for type_name in scenario.order_type_property:
+            # Though type_name is a key of scenario.order_type_property and it must be of type
             # OrderTypeName (a Literal containing all order names), however, mypy does not know
             # that and only treats it as a normal str type. There is no isinstance() check for it
             # either. So we can only use cast to tell mypy that the type of type_name is
@@ -55,7 +60,7 @@ class Simulator:
         # mapping from peer type to peer sets. The value element is a set containing all peers of
         # a particular type.
         self.peer_type_set_mapping: Dict[PeerTypeName, Set["Peer"]] = {}
-        for type_name in scenario.peer_type_ratios:
+        for type_name in scenario.peer_type_property:
             # Use cast to tell mypy that the type of type_name is PeerTypeName
             # Similar reason as above.
             self.peer_type_set_mapping[cast(PeerTypeName, type_name)] = set()
@@ -86,16 +91,18 @@ class Simulator:
 
         peer_type_candidates: List[PeerTypeName] = []
         peer_weights: List[float] = []
-        for peer_type, peer_weight in self.scenario.peer_type_ratios.items():
+        for peer_type, peer_property in self.scenario.peer_type_property.items():
             # This is similar to the cast in __init__ function of this class.
             # peer_type is certainly of type PeerTypeName, since PeerTypeName is the literal
-            # containing all keys in peer_type_ratios. However mypy doesn't know that. We have to
+            # containing all keys in order_type_property. However mypy doesn't know that. We have to
             # use a cast.
             peer_type_candidates.append(cast(PeerTypeName, peer_type))
-            if isinstance(peer_weight, float):
-                peer_weights.append(peer_weight)
+
+            # this check is only to help mypy judge data types. Not expected to raise an error.
+            if isinstance(peer_property, PeerProperty):
+                peer_weights.append(peer_property.ratio)
             else:
-                raise TypeError("Peer type ratio is not a float in Scenario.")
+                raise RuntimeError("Data type in a mass.")
 
         peer_type_vector: List[PeerTypeName] = random.choices(
             peer_type_candidates, weights=peer_weights, k=self.scenario.init_size
@@ -111,15 +118,13 @@ class Simulator:
 
             # decide the number of orders for this peer
 
-            # Please be noted that mypy contains an error when judging literal of unions (
-            # e.g., Literal[a, b]). It always reports an error message even when it is correct.
-            # In here let me ignore the lines to avoid the issue, since we are sure that
-            # peer_type is of type PeerTypeName, and that PeerTypeName is a Literal that contains
-            # all keys in peer_parameter_dict.
+            num_mean: float = self.scenario.peer_type_property[
+                peer_type
+            ].initial_orderbook_size.mean
 
-            num_mean: float = self.scenario.peer_parameter_dict[peer_type].mean
-
-            num_var: float = self.scenario.peer_parameter_dict[peer_type].var
+            num_var: float = self.scenario.peer_type_property[
+                peer_type
+            ].initial_orderbook_size.var
             num_orders: int = max(0, round(random.gauss(num_mean, num_var)))
 
             # create all order instances, and the initial orderbooks
@@ -127,12 +132,12 @@ class Simulator:
 
             for _ in range(num_orders):
                 # decide the max expiration for this order
-                expiration_mean: float = self.scenario.order_parameter_dict[
+                expiration_mean: float = self.scenario.order_type_property[
                     "default"
-                ].mean
-                expiration_var: float = self.scenario.order_parameter_dict[
+                ].expiration.mean
+                expiration_var: float = self.scenario.order_type_property[
                     "default"
-                ].var
+                ].expiration.var
                 expiration: int = max(
                     0, round(random.gauss(expiration_mean, expiration_var))
                 )
@@ -186,8 +191,12 @@ class Simulator:
         cur_order_set: Set["Order"] = set()
         order_seq: int = self.latest_order_seq
         for _ in range(num_orders):
-            expiration_mean: float = self.scenario.order_parameter_dict["default"].mean
-            expiration_var: float = self.scenario.order_parameter_dict["default"].var
+            expiration_mean: float = self.scenario.order_type_property[
+                "default"
+            ].expiration.mean
+            expiration_var: float = self.scenario.order_type_property[
+                "default"
+            ].expiration.var
             expiration: int = max(
                 0, round(random.gauss(expiration_mean, expiration_var))
             )
@@ -367,6 +376,9 @@ class Simulator:
         :return: None
         """
 
+        # pylint: disable=too-many-branches
+        # It seems fine for this function.
+
         # peers leave
         for peer_to_depart in random.sample(
             self.peer_full_set, min(len(self.peer_full_set), peer_dept_num)
@@ -383,21 +395,29 @@ class Simulator:
 
         peer_type_candidates: List[PeerTypeName] = []
         peer_weights: List[float] = []
-        for peer_type, peer_weight in self.scenario.peer_type_ratios.items():
+        for peer_type, peer_property in self.scenario.peer_type_property.items():
             # peer_type is certainly of type PeerTypeName since PeerTypeName is the literal
-            # containing all keys in peer_type_ratios. However mypy doesn't know that and there
+            # containing all keys in peer_type_property. However mypy doesn't know that and there
             # is no isinstance() check for Literal. The only way I can do for now is to use a cast.
             peer_type_candidates.append(cast(PeerTypeName, peer_type))
-            if isinstance(peer_weight, float):
-                peer_weights.append(peer_weight)
+
+            # this check is only to help mypy judge data types. Not expected to raise an error.
+            if isinstance(peer_property, PeerProperty):
+                peer_weights.append(peer_property.ratio)
+            else:
+                raise RuntimeError("Data types in a mass.")
 
         peer_type_vector: List[PeerTypeName] = random.choices(
             peer_type_candidates, weights=peer_weights, k=peer_arr_num
         )
 
         for peer_type in peer_type_vector:
-            num_mean: float = self.scenario.peer_parameter_dict[peer_type].mean
-            num_var: float = self.scenario.peer_parameter_dict[peer_type].var
+            num_mean: float = self.scenario.peer_type_property[
+                peer_type
+            ].initial_orderbook_size.mean
+            num_var: float = self.scenario.peer_type_property[
+                peer_type
+            ].initial_orderbook_size.var
             num_init_orders: int = max(0, round(random.gauss(num_mean, num_var)))
             self.peer_arrival(peer_type, num_init_orders)
 
@@ -430,8 +450,12 @@ class Simulator:
         for target_peer in target_peer_list:
             # decide the max expiration for this order.
             # Assuming there is only one type of orders 'default'. Subject to change later.
-            expiration_mean: float = self.scenario.order_parameter_dict["default"].mean
-            expiration_var: float = self.scenario.order_parameter_dict["default"].var
+            expiration_mean: float = self.scenario.order_type_property[
+                "default"
+            ].expiration.mean
+            expiration_var: float = self.scenario.order_type_property[
+                "default"
+            ].expiration.var
             expiration: int = max(
                 0, round(random.gauss(expiration_mean, expiration_var))
             )

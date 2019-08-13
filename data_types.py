@@ -46,56 +46,51 @@ class Distribution(NamedTuple):
     var: float
 
 
-# The following four data types are created to specify order/peer type names, ratios for each
-# type in the whole set of orders/peers, and corresponding parameters.
+class OrderProperty(NamedTuple):
+    """
+    This data type specifies the property of a particular order type.
+    ratio is the portion of orders of this type in the Mesh network.
+    expiration is the distribution of expiration (mean and variance) of this type.
+    """
+
+    ratio: float
+    expiration: Distribution
+
+
+class PeerProperty(NamedTuple):
+    """
+    This data type specifies the property of a particular peer type.
+    ratio is the portion of peers of this type in the Mesh.
+    initial_orderbook_size: Distribution is the distribution of a peer's initial orderbooks size
+    (mean and variance) of this type.
+    """
+
+    ratio: float
+    initial_orderbook_size: Distribution
+
+
+# The following two data types are created to specify order/peer type names, and their
+# characteristics.
 # We use a TypedDict, not a NamedTuple. This is because we will need to iterate over them to get
 # all keys. We can also do it by using a NamedTuple but have to access namedtuple_instance._fields.
 # It doesn't seem good so we opt to use a TypedDict.
 
-# Note: OrderRatio and OrderParameter can be definitely merged into one data type, and so for
-# PeerRatio and PeerParameter. This will change a number of logic in the code anyway, so I leave
-# it to be done in the next PR.
-# This comment should be deleted in the next PR.
 
-
-class OrderRatio(TypedDict):
+class OrderTypePropertyDict(TypedDict):
     """
-    This data type is created to specify order type names and ratios for each type in the whole set
-    of orders.
-    We use a TypedDict, not a NamedTuple. This is because we will need to iterate over them to
-    get all keys. We can also do it by using a NamedTuple but have to access
-    namedtuple_instance._fields. It doesn't seem good so we opt to use a TypedDict.
+    This data type is to specify all order type names and their properties.
     """
 
-    default: float
+    default: OrderProperty
 
 
-class PeerRatio(TypedDict):
+class PeerTypePropertyDict(TypedDict):
     """
-    This is to specify peer type names and ratios.
-    """
-
-    normal: float
-    free_rider: float
-
-
-class OrderParameter(TypedDict):
-    """
-    This is to specify order type names and parameters. The values are the Gaussian distribution
-    parameters to generate its expiration.
+    This data type is to specify all peer type names and their properties.
     """
 
-    default: Distribution
-
-
-class PeerParameter(TypedDict):
-    """
-    This is to specify order type names and parameters. The values are the Gaussian distribution
-    parameters to generate the size of its initial orderbook size.
-    """
-
-    normal: Distribution
-    free_rider: Distribution
+    normal: PeerProperty
+    free_rider: PeerProperty
 
 
 # The following are two Literal data types. If an instance belongs to this data type, then it can
@@ -146,10 +141,8 @@ class ScenarioParameters(NamedTuple):
     Putting all value parameters together and use a NamedTuple to represent all values for Scenario.
     """
 
-    order_ratios: OrderRatio
-    peer_ratios: PeerRatio
-    order_parameters: OrderParameter
-    peer_parameters: PeerParameter
+    order_type_property: OrderTypePropertyDict
+    peer_type_property: PeerTypePropertyDict
     init_state: SystemInitialState
     growth_period: SystemEvolution
     stable_period: SystemEvolution
