@@ -120,7 +120,7 @@ class Execution:
         # Previously we merely check if the value is non-empty. This is actually not enough.
         # There is a chance that we are supposed to run a particular performance metric
         # evaluation (say, free-rider satisfaction), but the value part is empty. This is because
-        # for avery single run of the simulator, there was no meaningful result (e.g., at the end
+        # for every single run of the simulator, there was no meaningful result (e.g., at the end
         # of the run there were never any free rider in the system). We have stated that due to
         # some randomness there is a chance that for some run, there is no meaningful result (
         # e.g., in a particular run all free riders happen to have left the system at the end),

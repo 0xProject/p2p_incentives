@@ -185,7 +185,7 @@ class Performance:
 
         if not peers_to_evaluate or not orders_to_evaluate:
             raise InvalidInputError(
-                "Invalid to evaluate fairness for an empty set of " "peers/orders."
+                "Invalid to evaluate fairness for an empty set of peers/orders."
             )
 
         if self.fairness_option["method"] == "Dummy":
@@ -246,8 +246,8 @@ class Performance:
                 )
             except InvalidInputError:
                 print(
-                    "Not enough peers/orders to measure order spreading. Fine for occasional "
-                    "happening."
+                    "Not enough peers/orders to measure order spreading. This is fine if it only "
+                    "happens occasionally."
                 )
 
         # Generate normal peer satisfaction measure over all orders
