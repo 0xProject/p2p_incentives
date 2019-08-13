@@ -49,7 +49,7 @@ class Distribution(NamedTuple):
 class OrderProperty(NamedTuple):
     """
     This data type specifies the property of a particular order type.
-    ratio is the portion of orders of this type in the Mesh.
+    ratio is the portion of orders of this type in the Mesh network.
     expiration is the distribution of expiration (mean and variance) of this type.
     """
 
