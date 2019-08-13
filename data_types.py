@@ -134,8 +134,6 @@ class SystemEvolution(NamedTuple):
     such data might be in different types (e.g., float for Poisson, or Tuple of floats for Hawkes).
     """
 
-    # This is something I found in mistake when I wrote this string doc. Fixed it now.
-    # This comment should be deleted in the next PR.
     rounds: int
     peer_arrival: "EventArrivalRate"
     peer_dept: "EventArrivalRate"
@@ -606,3 +604,12 @@ class BestAndWorstLists(NamedTuple):
 
     best: SpreadingRatio
     worst: SpreadingRatio
+
+
+class InvalidInputError(ValueError):
+    """
+    Self defined error class in use of performance evaluation functions and data processing
+    functions. Raise such an error when the input set of orders/peers are empty such that the
+    evaluation cannot be done, or the number of lists is 0 so data processing cannot be done.
+    Don't need anything in the class.
+    """

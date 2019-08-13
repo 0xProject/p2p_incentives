@@ -101,10 +101,6 @@ class Scenario:
         slot.
         """
 
-        # Slightly modified the following code section (Poisson), just to keep it consistent with
-        # the next code section (Hawkes). Nothing special and it shouldn't impact the logic.
-        # This comment should be deleted in the next PR.
-
         if self.option_number_of_events["method"] == "Poisson":
             # check if "rate" is in the correct format
             if isinstance(rate, PoissonArrivalRate):
