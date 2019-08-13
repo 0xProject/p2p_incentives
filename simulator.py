@@ -241,9 +241,6 @@ class Simulator:
 
         # update the peer set for the Simulator
 
-        # deleted "if peer.peer_type" condition since now, we don't allow for a None type peer.
-        # This comment should be deleted in the next PR.
-
         self.peer_full_set.remove(peer)
         # use cast due to similar reason in __init__() function of this class.
         self.peer_type_set_mapping[cast(PeerTypeName, peer.peer_type)].remove(peer)
@@ -395,11 +392,6 @@ class Simulator:
                 raise RuntimeError("Clock system in a mass.")
 
         # new peers come in
-
-        # Slightly modified the code below in order to reduce the use of cast.
-        # It is only to change the list comprehension into a for loop.
-        # Nothing is really changed in terms of logic.
-        # This comment should be deleted in the next PR.
 
         peer_type_candidates: List[PeerTypeName] = []
         peer_weights: List[float] = []

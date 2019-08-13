@@ -201,8 +201,11 @@ def single_peer_satisfaction_neutral(
             item for item in peer_observation_ratio if item is not None
         )
     except statistics.StatisticsError:
-        # There is no order in the system.
-        raise RuntimeError("No orders at all to be considered.")
+        # There is no order in the system. Normally the code should never reach here.
+        raise RuntimeError(
+            "Unable to judge a single peer satisfaction since there are no orders "
+            "in the system for now."
+        )
 
 
 def fairness_dummy(_peer_set: Set["Peer"], _order_set: Set["Order"]) -> float:

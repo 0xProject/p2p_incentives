@@ -6,7 +6,7 @@ to work on performance evaluation results.
 import statistics
 import itertools
 from typing import List, Iterator, Tuple
-from data_types import SpreadingRatio, BestAndWorstLists
+from data_types import SpreadingRatio, BestAndWorstLists, InvalidInputError
 
 
 def find_best_worst_lists(sequence_of_lists: List[SpreadingRatio]) -> BestAndWorstLists:
@@ -71,6 +71,8 @@ def find_best_worst_lists(sequence_of_lists: List[SpreadingRatio]) -> BestAndWor
     This message should be deleted in the next PR.
 
     """
+    if not sequence_of_lists:  # there is no input at all
+        raise InvalidInputError("No lists are given at all.")
 
     last_effective_idx: int = -1
     while last_effective_idx >= -len(sequence_of_lists[0]):
@@ -78,12 +80,19 @@ def find_best_worst_lists(sequence_of_lists: List[SpreadingRatio]) -> BestAndWor
             break
         last_effective_idx -= 1
 
-    if last_effective_idx == -len(sequence_of_lists[0]) - 1:
+    try:
+        iterators: Tuple[Iterator[SpreadingRatio], ...] = itertools.tee(
+            (
+                item
+                for item in sequence_of_lists
+                if item[last_effective_idx] is not None
+            ),
+            2,
+        )
+    except IndexError:  # this happens when last_effective_idx == len(sequence_of_lists[0]) - 1
+        # so every element is None.
         raise ValueError("All entries are None. Invalid to compare.")
 
-    iterators: Tuple[Iterator[SpreadingRatio], ...] = itertools.tee(
-        (item for item in sequence_of_lists if item[last_effective_idx] is not None), 2
-    )
     best_list: SpreadingRatio = max(iterators[0], key=lambda x: x[last_effective_idx])
     worst_list: SpreadingRatio = min(iterators[1], key=lambda x: x[last_effective_idx])
     return BestAndWorstLists(best=best_list, worst=worst_list)
@@ -116,6 +125,9 @@ def average_lists(sequence_of_lists: List[SpreadingRatio]) -> List[float]:
     next PR.
     This message should be deleted in the next PR.
     """
+
+    if not sequence_of_lists:  # there is no input at all
+        raise InvalidInputError("No lists are given at all.")
 
     average_list: List[float] = [0.0 for _ in range(len(sequence_of_lists[0]))]
     length_of_list: int = len(average_list)
@@ -154,13 +166,12 @@ def calculate_density(
     >>> division_unit = 0.10
     >>> calculate_density([list_1, list_2], division_unit)
     [0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.2, 0.0, 0.2, 0.2, 0.0]
-
     """
 
-    total_points: int = sum(len(single_list) for single_list in sequence_of_lists)
+    if not sequence_of_lists:
+        raise InvalidInputError("There are no input lists at all.")
 
-    if total_points == 0:
-        raise ValueError("Invalid to calculate density for nothing.")
+    total_points: int = sum(len(single_list) for single_list in sequence_of_lists)
 
     largest_index: int = int(1 / division_unit)
     count_list: List[int] = [0 for _ in range(largest_index + 1)]
@@ -168,7 +179,9 @@ def calculate_density(
     for single_list in sequence_of_lists:
         for value in single_list:
             count_list[int(value / division_unit)] += 1
-
-    density_list: List[float] = [value / total_points for value in count_list]
+    try:
+        density_list: List[float] = [value / total_points for value in count_list]
+    except ZeroDivisionError:  # total_points == 0
+        raise ValueError("There is no element in any input lists.")
 
     return density_list
