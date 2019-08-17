@@ -80,21 +80,24 @@ def find_best_worst_lists(sequence_of_lists: List[SpreadingRatio]) -> BestAndWor
             break
         last_effective_idx -= 1
 
-    try:
-        iterators: Tuple[Iterator[SpreadingRatio], ...] = itertools.tee(
-            (
-                item
-                for item in sequence_of_lists
-                if item[last_effective_idx] is not None
-            ),
-            2,
-        )
-    except IndexError:  # this happens when last_effective_idx == len(sequence_of_lists[0]) - 1
-        # so every element is None.
-        raise ValueError("All entries are None. Invalid to compare.")
+    # Changed the code a bit in here. Reason is when running tests, I find that the iterator
+    # thrown, so there is no way to raise ValueError by catching the IndexError in the previous
+    # implementation.
+    # This comment should be deleted in the next PR.
 
-    best_list: SpreadingRatio = max(iterators[0], key=lambda x: x[last_effective_idx])
-    worst_list: SpreadingRatio = min(iterators[1], key=lambda x: x[last_effective_idx])
+    iterators: Tuple[Iterator[SpreadingRatio], ...] = itertools.tee(
+        (item for item in sequence_of_lists if item[last_effective_idx] is not None), 2
+    )
+
+    try:
+        best_list: SpreadingRatio = max(
+            iterators[0], key=lambda x: x[last_effective_idx]
+        )
+        worst_list: SpreadingRatio = min(
+            iterators[1], key=lambda x: x[last_effective_idx]
+        )
+    except IndexError:
+        raise ValueError("All entries are None. Invalid to compare.")
     return BestAndWorstLists(best=best_list, worst=worst_list)
 
 
