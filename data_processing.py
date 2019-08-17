@@ -62,17 +62,17 @@ def find_best_worst_lists(sequence_of_lists: List[SpreadingRatio]) -> BestAndWor
     If for all SpreadingRatio data all elements are None, then raise an error with ValueError
     message.
 
-    [Note 1]: Under our simulator context, the values in a SpreadingRatio list must be in [0,
+    [Note]: Under our simulator context, the values in a SpreadingRatio list must be in [0,
     1]. However we preserve the generality of this function and we only check if they are floats
     or None, but we don't check if values are in range [0,1].
-
-    [Note 2]: Currently this function does not check if all input SpreadingRatio data are of the
-    same length. I will add this check in the next PR.
-    This message should be deleted in the next PR.
 
     """
     if not sequence_of_lists:  # there is no input at all
         raise InvalidInputError("No lists are given at all.")
+
+    for i in range(1, len(sequence_of_lists)):
+        if len(sequence_of_lists[i]) != len(sequence_of_lists[0]):
+            raise ValueError("Input lists are of different length.")
 
     last_effective_idx: int = -1
     while last_effective_idx >= -len(sequence_of_lists[0]):

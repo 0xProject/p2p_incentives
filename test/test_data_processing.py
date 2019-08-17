@@ -6,7 +6,7 @@ import pytest
 from data_processing import find_best_worst_lists
 from data_types import BestAndWorstLists, InvalidInputError
 
-# cases for function test_find_best_worst_lists()
+# test find_best_worst_lists()
 
 ratio_1 = [0.1, 0.2, 0.3, 0.4]
 ratio_2 = [0.1, 0.2, 0.3, 0.5]
@@ -63,6 +63,7 @@ ratios = [
 result = BestAndWorstLists(best=ratio_7, worst=ratio_1)
 case_list.append((ratios, result))
 
+# testing normal cases
 
 @pytest.mark.parametrize("ratio_list, expected_output", case_list)
 def test_find_best_worst_lists(ratio_list, expected_output):
@@ -79,6 +80,8 @@ ratio_14 = [None, None, None, None]
 ratios = [ratio_4, ratio_13, ratio_14]
 
 
+# testing exceptions
+
 def test_find_best_worst_lists__all_none():
     with pytest.raises(ValueError):
         find_best_worst_lists(ratios)
@@ -87,3 +90,12 @@ def test_find_best_worst_lists__all_none():
 def test_find_best_worst_lists__empty_input():
     with pytest.raises(InvalidInputError):
         find_best_worst_lists([])
+
+
+ratio_15 = [0.1, 0.4, 0.9]
+vary_length_ratios = [ratio_1, ratio_2, ratio_15]
+
+
+def test_find_best_worst_lists__different_length():
+    with pytest.raises(ValueError):
+        find_best_worst_lists(vary_length_ratios)
