@@ -81,6 +81,7 @@ def find_best_worst_lists(sequence_of_lists: List[SpreadingRatio]) -> BestAndWor
         last_effective_idx -= 1
 
     # Changed the code a bit in here. Reason is when running tests, I find that the iterator
+    # construction will never raise the IndexError exception, but when it is used the error is
     # thrown, so there is no way to raise ValueError by catching the IndexError in the previous
     # implementation.
     # This comment should be deleted in the next PR.
