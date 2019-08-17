@@ -124,14 +124,14 @@ def average_lists(sequence_of_lists: List[SpreadingRatio]) -> List[float]:
     >>> spreading_ratio_2: SpreadingRatio = [0.3, 0.2, None, None]
     >>> average_lists([spreading_ratio_1, spreading_ratio_2])
     [0.2, 0.2, 0.3, 0.0]
-
-    [Note]: Equal length condition not checked in the function for now. Need to do it in the
-    next PR.
-    This message should be deleted in the next PR.
     """
 
     if not sequence_of_lists:  # there is no input at all
         raise InvalidInputError("No lists are given at all.")
+
+    for i in range(1, len(sequence_of_lists)):
+        if len(sequence_of_lists[i]) != len(sequence_of_lists[0]):
+            raise ValueError("Input lists are of different length.")
 
     average_list: List[float] = [0.0 for _ in range(len(sequence_of_lists[0]))]
     length_of_list: int = len(average_list)
