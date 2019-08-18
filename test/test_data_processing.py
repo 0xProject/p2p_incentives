@@ -3,10 +3,10 @@ This module contains test functions to all functions in data_processing module
 """
 
 import pytest
-from data_processing import find_best_worst_lists, average_lists
+from data_processing import find_best_worst_lists, average_lists, calculate_density
 from data_types import BestAndWorstLists, InvalidInputError
 
-# test find_best_worst_lists()
+# constructing input data
 
 RATIO_1 = [0.1, 0.2, 0.3, 0.4]
 RATIO_2 = [0.1, 0.2, 0.3, 0.5]
@@ -20,6 +20,21 @@ RATIO_9 = [0.3, 0.5, 0.7, None]
 RATIO_10 = [0.3, 0.5, None, None]
 RATIO_11 = [0.2, 0.6, None, None]
 RATIO_12 = [1.0, 0.1, None, None]
+RATIO_13 = [None, None, None, None]
+RATIO_14 = [None, None, None, None]
+RATIO_15 = [0.1, 0.4, 0.9]
+
+SATISFACTORY_1 = [0.88, 0.25, 0.67, 0.83]
+SATISFACTORY_2 = [0.99, 0.13, 0.22, 0.01, 1.00]
+SATISFACTORY_3 = []
+SATISFACTORY_4 = [0.45]
+SATISFACTORY_5 = [2]
+SATISFACTORY_6 = [0.5, None]
+
+
+# test find_best_worst_lists()
+
+# test normal cases
 
 CASE_LIST = list()
 
@@ -64,9 +79,6 @@ RESULT = BestAndWorstLists(best=RATIO_7, worst=RATIO_1)
 CASE_LIST.append((RATIOS, RESULT))
 
 
-# testing normal cases
-
-
 @pytest.mark.parametrize("ratio_list, expected_output", CASE_LIST)
 def test_find_best_worst_lists(ratio_list, expected_output):
     """
@@ -87,10 +99,8 @@ def test_find_best_worst_lists(ratio_list, expected_output):
                 assert expected_output[idx][value_idx] is actual_output[idx][value_idx]
 
 
-# testing exceptions
+# test exceptions
 
-RATIO_13 = [None, None, None, None]
-RATIO_14 = [None, None, None, None]
 RATIOS_ALL_NONE = [RATIO_4, RATIO_13, RATIO_14]
 
 
@@ -112,7 +122,6 @@ def test_find_best_worst_lists__empty_input():
         find_best_worst_lists([])
 
 
-RATIO_15 = [0.1, 0.4, 0.9]
 RATIO_DIF_LENGTH = [RATIO_1, RATIO_2, RATIO_15]
 
 
@@ -126,6 +135,8 @@ def test_find_best_worst_lists__different_length():
 
 
 # test average_lists()
+
+# test normal cases
 
 CASE_LIST = []
 
@@ -144,9 +155,6 @@ CASE_LIST.append((RATIOS, RESULT))
 CASE_LIST.append((RATIOS_ALL_NONE, [0.0, 0.0, 0.0, 0.0]))
 
 
-# test normal cases
-
-
 @pytest.mark.parametrize("ratio_list, expected_output", CASE_LIST)
 def test_average_lists(ratio_list, expected_output):
     """
@@ -156,8 +164,9 @@ def test_average_lists(ratio_list, expected_output):
     :return: None
     """
     actual_output = average_lists(ratio_list)
-    assert len(expected_output) == len(actual_output)
-    for idx in range(len(expected_output)):
+    length = len(expected_output)
+    assert len(actual_output) == length
+    for idx in range(length):
         if isinstance(expected_output[idx], float):
             assert expected_output[idx] == pytest.approx(actual_output[idx])
         else:
@@ -165,7 +174,6 @@ def test_average_lists(ratio_list, expected_output):
 
 
 # test exceptions
-
 
 def test_average_lists__no_input():
     """
@@ -183,3 +191,82 @@ def test_average_lists__dif_length():
     """
     with pytest.raises(ValueError):
         average_lists(RATIO_DIF_LENGTH)
+
+
+# test calculate_density()
+
+# test normal cases
+
+CASE_LIST = []
+
+SATISFACTORY_LIST = [SATISFACTORY_1, SATISFACTORY_2, SATISFACTORY_3, SATISFACTORY_4]
+UNIT = 0.1
+RESULT = [0.1, 0.1, 0.2, 0, 0.1, 0, 0.1, 0, 0.2, 0.1, 0.1]
+CASE_LIST.append((SATISFACTORY_LIST, UNIT, RESULT))
+
+
+SATISFACTORY_LIST = [SATISFACTORY_1, SATISFACTORY_2]
+UNIT = 0.5
+RESULT = [4/9, 4/9, 1/9]
+CASE_LIST.append((SATISFACTORY_LIST, UNIT, RESULT))
+
+
+@pytest.mark.parametrize("satisfactory_list, division_unit, expected_output", CASE_LIST)
+def test_calculate_density(satisfactory_list, division_unit, expected_output):
+    """
+    This function tests calculate_density() with normal inputs.
+    :param satisfactory_list: first input in calculate_density()
+    :param division_unit: second input in calculate_density()
+    :param expected_output: expected output.
+    :return: None
+    """
+    actual_output = calculate_density(satisfactory_list, division_unit)
+    assert actual_output == pytest.approx(expected_output)
+
+
+# test exceptions
+
+def test_calculate_density__no_input():
+    """
+    This function tests calculate_density() with empty input.
+    :return: None
+    """
+    with pytest.raises(InvalidInputError):
+        calculate_density([], 0.1)
+
+
+def test_calculate_density__no_value():
+    """
+    This function tests calculate_density() with non-empty input, but every list in the input is
+    empty.
+    :return: None
+    """
+    with pytest.raises(ValueError):
+        calculate_density([[], []], 0.1)
+
+
+def test_calculate_density__out_of_range():
+    """
+    This function tests calculate_density() with number out of range.
+    :return: None
+    """
+    with pytest.raises(ValueError):
+        calculate_density([SATISFACTORY_5], 0.1)
+
+
+def test_calculate_density__not_a_number():
+    """
+    This function tests calculate_density() with Non-number input in the list.
+    :return: None
+    """
+    with pytest.raises(ValueError):
+        calculate_density([SATISFACTORY_6], 0.1)
+
+
+def test_calculate_density__invalid_division_unit():
+    """
+    This function tests calculate_density() with invalid division unit.
+    :return: None
+    """
+    with pytest.raises(ValueError):
+        calculate_density([SATISFACTORY_1], 2)

@@ -175,6 +175,9 @@ def calculate_density(
     if not sequence_of_lists:
         raise InvalidInputError("There are no input lists at all.")
 
+    if not 0 <= division_unit <= 1:
+        raise ValueError("Invalid division unit.")
+
     total_points: int = sum(len(single_list) for single_list in sequence_of_lists)
 
     largest_index: int = int(1 / division_unit)
@@ -182,10 +185,15 @@ def calculate_density(
 
     for single_list in sequence_of_lists:
         for value in single_list:
-            count_list[int(value / division_unit)] += 1
+            try:
+                count_list[int(value / division_unit)] += 1
+            except IndexError:
+                raise ValueError("Some input data is not a number in range [0, 1].")
+            except TypeError:
+                raise ValueError("Input is not a number.")
     try:
         density_list: List[float] = [value / total_points for value in count_list]
     except ZeroDivisionError:  # total_points == 0
-        raise ValueError("There is no element in any input lists.")
+        raise ValueError("There is no data in any input lists.")
 
     return density_list
