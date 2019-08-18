@@ -175,6 +175,7 @@ def test_average_lists(ratio_list, expected_output):
 
 # test exceptions
 
+
 def test_average_lists__no_input():
     """
     This function tests average_lists() when the input is empty.
@@ -207,7 +208,7 @@ CASE_LIST.append((SATISFACTORY_LIST, UNIT, RESULT))
 
 SATISFACTORY_LIST = [SATISFACTORY_1, SATISFACTORY_2]
 UNIT = 0.5
-RESULT = [4/9, 4/9, 1/9]
+RESULT = [4 / 9, 4 / 9, 1 / 9]
 CASE_LIST.append((SATISFACTORY_LIST, UNIT, RESULT))
 
 
@@ -225,6 +226,7 @@ def test_calculate_density(satisfactory_list, division_unit, expected_output):
 
 
 # test exceptions
+
 
 def test_calculate_density__no_input():
     """
