@@ -188,7 +188,7 @@ def calculate_density(
             try:
                 count_list[int(value / division_unit)] += 1
             except IndexError:
-                raise ValueError("Some input data is not a number in range [0, 1].")
+                raise ValueError("Some input data is out of range.")
             except TypeError:
                 raise ValueError("Input is not a number.")
     try:

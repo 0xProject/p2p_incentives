@@ -6,7 +6,8 @@ import pytest
 from data_processing import find_best_worst_lists, average_lists, calculate_density
 from data_types import BestAndWorstLists, InvalidInputError
 
-# constructing input data
+
+#  constructing input data
 
 RATIO_1 = [0.1, 0.2, 0.3, 0.4]
 RATIO_2 = [0.1, 0.2, 0.3, 0.5]
@@ -109,7 +110,7 @@ def test_find_best_worst_lists__all_none():
     This function tests find_best_worst_lists when every element is None.
     :return: None
     """
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="All entries are None."):
         find_best_worst_lists(RATIOS_ALL_NONE)
 
 
@@ -130,7 +131,7 @@ def test_find_best_worst_lists__different_length():
     This function tests find_best_worst_lists when the input length varies.
     :return: None
     """
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Input lists are of different length."):
         find_best_worst_lists(RATIO_DIF_LENGTH)
 
 
@@ -190,7 +191,7 @@ def test_average_lists__dif_length():
     This function tests average_lists() when the input length varies.
     :return: None
     """
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Input lists are of different length."):
         average_lists(RATIO_DIF_LENGTH)
 
 
@@ -243,7 +244,7 @@ def test_calculate_density__no_value():
     empty.
     :return: None
     """
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="There is no data in any input lists."):
         calculate_density([[], []], 0.1)
 
 
@@ -252,7 +253,7 @@ def test_calculate_density__out_of_range():
     This function tests calculate_density() with number out of range.
     :return: None
     """
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Some input data is out of range."):
         calculate_density([SATISFACTORY_5], 0.1)
 
 
@@ -261,7 +262,7 @@ def test_calculate_density__not_a_number():
     This function tests calculate_density() with Non-number input in the list.
     :return: None
     """
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Input is not a number."):
         calculate_density([SATISFACTORY_6], 0.1)
 
 
@@ -270,5 +271,5 @@ def test_calculate_density__invalid_division_unit():
     This function tests calculate_density() with invalid division unit.
     :return: None
     """
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid division unit."):
         calculate_density([SATISFACTORY_1], 2)
