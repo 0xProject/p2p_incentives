@@ -189,8 +189,6 @@ def calculate_density(
                 count_list[int(value / division_unit)] += 1
             except IndexError:
                 raise ValueError("Some input data is out of range.")
-            except TypeError:
-                raise ValueError("Input is not a number.")
     try:
         density_list: List[float] = [value / total_points for value in count_list]
     except ZeroDivisionError:  # total_points == 0

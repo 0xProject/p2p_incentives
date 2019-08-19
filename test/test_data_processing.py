@@ -30,7 +30,6 @@ SATISFACTORY_2 = [0.99, 0.13, 0.22, 0.01, 1.00]
 SATISFACTORY_3 = []
 SATISFACTORY_4 = [0.45]
 SATISFACTORY_5 = [2]
-SATISFACTORY_6 = [0.5, None]
 
 
 # test find_best_worst_lists()
@@ -278,15 +277,6 @@ def test_calculate_density__out_of_range():
     """
     with pytest.raises(ValueError, match="Some input data is out of range."):
         calculate_density([SATISFACTORY_5], 0.1)
-
-
-def test_calculate_density__not_a_number():
-    """
-    This function tests calculate_density() with Non-number input in the list.
-    :return: None
-    """
-    with pytest.raises(ValueError, match="Input is not a number."):
-        calculate_density([SATISFACTORY_6], 0.1)
 
 
 def test_calculate_density__invalid_division_unit():
