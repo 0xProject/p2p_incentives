@@ -152,27 +152,36 @@ class Peer:
         It accepts or rejects the request only.
         """
 
-        if requester in self.peer_neighbor_mapping:
-            raise ValueError("You are my neighbor. No need to request again.")
+        if requester in self.peer_neighbor_mapping or requester == self:
+            raise ValueError("should_accept_neighbor_request() function called by wrong peer.")
 
-        return len(self.peer_neighbor_mapping) < self.engine.neighbor_min
+        # There was a typo here. should be neighbor_max rather than neighbor_min.
+        # Fixed it here. This comment should be deleted in the next PR.
 
-    def should_add_neighbor(self, peer: "Peer") -> bool:
+        return len(self.peer_neighbor_mapping) < self.engine.neighbor_max
+
+    # Slightly modified the name and return value of this function.
+    # The change is: when if condition does not meet, raise an error rather than return False.
+    # The previous return value does not really make sense (i.e., if it is False, an error is
+    # anyway raised in the function add_new_links_helper() that calls it).
+    # This comment should be deleted in the next PR.
+
+    def add_neighbor(self, peer: "Peer") -> None:
         """
         This method establishes a neighborhood relationship.
-        Different from other methods that can be called by a peer anywhere in the simulator,
-        this method can only be called in method add_new_links_helper() in class Simulator.
+        This method can only be called in method add_new_links_helper() in class Simulator.
+        Once it is called, a neighborhood relationship should be ready for establishment;
+        otherwise, it is an error (e.g., one party has already had the other party as a neighbor).
         :param peer: the peer instance of the node to be added as a neighbor.
-        :return: True if normal, or False if it is already my neighbor.
+        :return: None
         """
-        if peer in self.peer_neighbor_mapping:
-            return False
+        if peer in self.peer_neighbor_mapping or peer == self:
+            raise ValueError("add_neighbor() function called by wrong peer.")
         # create new neighbor in my local storage
         new_neighbor = Neighbor(
             engine=self.engine, peer=peer, master=self, est_time=self.local_clock
         )
         self.peer_neighbor_mapping[peer] = new_neighbor
-        return True
 
     def accept_neighbor_cancellation(self, requester: "Peer") -> None:
         """
@@ -355,7 +364,7 @@ class Peer:
 
         # Now store an orderinfo if necessary
 
-        for (order, orderinfo_list) in self.order_pending_orderinfo_mapping.items():
+        for order, orderinfo_list in self.order_pending_orderinfo_mapping.items():
 
             # Sort the list of pending orderinfo with the same order instance, so that if
             # there is some order to be stored, it will be the first one.

@@ -330,10 +330,8 @@ class Simulator:
                     and candidate.should_accept_neighbor_request(requester)
                 ):
                     # mutual add neighbors
-                    if not candidate.should_add_neighbor(
-                        requester
-                    ) or not requester.should_add_neighbor(candidate):
-                        raise RuntimeError("Existing neighbors are being connected.")
+                    candidate.add_neighbor(requester)
+                    requester.add_neighbor(candidate)
                     links_added += 1
                     links_added_this_round += 1
 
