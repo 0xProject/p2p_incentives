@@ -199,7 +199,7 @@ def setup_engine() -> Engine:
     return Engine(e_parameters, e_options)
 
 
-def create_an_order_constant(scenario: Scenario) -> Order:
+def create_a_test_order(scenario: Scenario) -> Order:
     """
     This is a helper function to create an order.
     :param scenario: the scenario for the order.
@@ -217,7 +217,7 @@ def test_order(setup_scenario) -> None:
     :param setup_scenario: the fixture function's return value
     :return: None
     """
-    my_order: Order = create_an_order_constant(setup_scenario)
+    my_order: Order = create_a_test_order(setup_scenario)
     assert my_order.seq == 5
     assert my_order.birth_time == 12
     assert my_order.scenario.peer_type_property["normal"].ratio == pytest.approx(0.9)
@@ -226,20 +226,20 @@ def test_order(setup_scenario) -> None:
     )
 
 
-def create_orders(scenario: Scenario, num: int) -> List[Order]:
+def create_test_orders(scenario: Scenario, num: int) -> List[Order]:
     """
-    This function creates multiple order instances, each created by create_an_order_constant().
+    This function creates multiple order instances, each created by create_a_test_order().
     :param scenario: scenario to pass to init()
     :param num: number of order instances.
     :return: a set of order instances.
     """
     order_list: List[Order] = list()
     for _ in range(num):
-        order_list.append(create_an_order_constant(scenario))
+        order_list.append(create_a_test_order(scenario))
     return order_list
 
 
-def create_a_peer_constant(
+def create_a_test_peer(
     scenario: Scenario, engine: Engine
 ) -> Tuple[Peer, Set[Order]]:
     """
@@ -254,7 +254,7 @@ def create_a_peer_constant(
     """
 
     # manually create 5 orders for this peer.
-    order_set: Set[Order] = set(create_orders(scenario, 5))
+    order_set: Set[Order] = set(create_test_orders(scenario, 5))
 
     # create the peer instance
     my_peer = Peer(
@@ -277,7 +277,7 @@ def test_peer(setup_scenario, setup_engine) -> None:
     :return: None.
     """
 
-    my_peer, order_set = create_a_peer_constant(setup_scenario, setup_engine)
+    my_peer, order_set = create_a_test_peer(setup_scenario, setup_engine)
 
     # assert my_peer's attributes.
 
@@ -315,19 +315,19 @@ def test_peer(setup_scenario, setup_engine) -> None:
         assert order.holders == {my_peer}
 
 
-def create_peers(scenario: Scenario, engine: Engine, nums: int) -> List[Peer]:
+def create_test_peers(scenario: Scenario, engine: Engine, nums: int) -> List[Peer]:
     """
     This function creates a number of peers and return a list of them.
-    Each peer is created using create_a_peer_constant() function.
-    :param scenario: scenario to pass to create_a_peer_constant()
-    :param engine: engine to pass to create_a_peer_constant()
+    Each peer is created using create_a_test_peer() function.
+    :param scenario: scenario to pass to create_a_test_peer()
+    :param engine: engine to pass to create_a_test_peer()
     :param nums: number of peers.
     :return: a list of peer instances.
     """
     peer_list: List[Peer] = list()
 
     for _ in range(nums):
-        peer_list.append(create_a_peer_constant(scenario, engine)[0])
+        peer_list.append(create_a_test_peer(scenario, engine)[0])
 
     return peer_list
 
@@ -341,7 +341,7 @@ def test_add_neighbor(setup_scenario, setup_engine) -> None:
     """
 
     # We have three peers.
-    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 3)
+    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
 
     # add peer_list[1] and peer_list[2] into peer_list[0]'s neighbor,
     # assert if the neighbor can be found and if neighbor size is correct.
@@ -380,12 +380,12 @@ def test_should_accept_neighbor_request(
     This function tests should_accept_neighbor_request() function.
     :param setup_scenario: fixture.
     :param setup_engine: fixture.
-    :param monkeypatch: mocking tool.
+    :param monkeypatch: tool for fake attribute
     :return: None
     """
 
     # create two peers
-    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 2)
+    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
 
     # should accept invitation
     assert peer_list[0].should_accept_neighbor_request(peer_list[1]) is True
@@ -403,14 +403,14 @@ def test_should_accept_neighbor_request(
     with pytest.raises(ValueError):
         peer_list[0].should_accept_neighbor_request(peer_list[0])
 
-    # Now, change the max size to 1.
-    def mock_max_size():
+    # Now, fake max neighbor size to 1.
+    def fake_max_size():
         return 1
 
-    monkeypatch.setattr(setup_engine, "neighbor_max", mock_max_size())
+    monkeypatch.setattr(setup_engine, "neighbor_max", fake_max_size())
 
     # peer one has already had a neighbor, so it should reject this time.
-    another_peer, _ = create_a_peer_constant(setup_scenario, setup_engine)
+    another_peer, _ = create_a_test_peer(setup_scenario, setup_engine)
     assert peer_list[0].should_accept_neighbor_request(another_peer) is False
 
 
@@ -422,7 +422,7 @@ def test_del_neighbor(setup_scenario, setup_engine) -> None:
     :return: None
     """
 
-    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 2)
+    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
 
     peer_list[0].add_neighbor(peer_list[1])
     peer_list[1].add_neighbor(peer_list[0])
@@ -457,8 +457,8 @@ def test_receive_order_external(setup_scenario, setup_engine) -> None:
     :return: None
     """
 
-    peer: Peer = create_a_peer_constant(setup_scenario, setup_engine)[0]
-    order: Order = create_an_order_constant(setup_scenario)
+    peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+    order: Order = create_a_test_order(setup_scenario)
     peer.receive_order_external(order)
     assert order in peer.order_pending_orderinfo_mapping
     assert order not in peer.order_orderinfo_mapping
@@ -471,7 +471,7 @@ def test_store_orders(setup_scenario, setup_engine, monkeypatch) -> None:
     store_order() will be used during the test of receive_order_internal().
     :param setup_scenario: fixture.
     :param setup_engine: fixture.
-    :param monkeypatch: mocking tool.
+    :param monkeypatch: tool for fake function.
     :return: None.
     """
     # pylint: disable=too-many-branches, too-many-statements
@@ -479,15 +479,15 @@ def test_store_orders(setup_scenario, setup_engine, monkeypatch) -> None:
 
     # Create a peer and four neighbors for this peer.
     # peer will be connected with all neighbors, but for neighbor_list[3], it will disconnect later.
-    peer: Peer = create_a_peer_constant(setup_scenario, setup_engine)[0]
-    neighbor_list: List[Peer] = create_peers(setup_scenario, setup_engine, 4)
+    peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+    neighbor_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 4)
 
     # orders 0 and 1 will have multiple orderinfo instances but only one will be stored
     # order 2 will not be stored since no copy is labeled as to store
     # order 3 will be stored with the orderinfo from neighbor_disconnect (though it is
     # disconnected).
     # order 4 will have multiple orderinfo instances to store and raise an error
-    order_list: List[Order] = create_orders(setup_scenario, 5)
+    order_list: List[Order] = create_test_orders(setup_scenario, 5)
 
     for neighbor in neighbor_list:
         # each neighbor first receives the orders.
@@ -559,10 +559,10 @@ def test_store_orders(setup_scenario, setup_engine, monkeypatch) -> None:
 
     # Disable engine.store_or_discard_orders which will otherwise
     # change the values for orderinfo.storage_decision
-    def mock_storage_decision(_node):
+    def fake_storage_decision(_node):
         pass
 
-    monkeypatch.setattr(setup_engine, "store_or_discard_orders", mock_storage_decision)
+    monkeypatch.setattr(setup_engine, "store_or_discard_orders", fake_storage_decision)
 
     # Now let us check store_orders()
     peer.store_orders()
@@ -625,13 +625,13 @@ def test_receive_order_internal(setup_scenario, setup_engine) -> None:
     """
 
     # each of the peers have five distinct orders. The first two are neighbors. The third isn't.
-    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 3)
+    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
     peer_list[0].add_neighbor(peer_list[1])
     peer_list[1].add_neighbor(peer_list[0])
 
     # Here are two new orders.
     # The first one will be stored by all three peers.
-    new_order_list: List[Order] = create_orders(setup_scenario, 2)
+    new_order_list: List[Order] = create_test_orders(setup_scenario, 2)
 
     # peer 0 uses receive_order_external() to receive this order, and uses store_orders() to
     # store this order.
@@ -727,9 +727,9 @@ def test_share_orders(setup_scenario, setup_engine, monkeypatch) -> None:
     # We will change the sequence number of neighbor_three and one of the initial orders that
     # peer_one has
 
-    peer_one, order_set = create_a_peer_constant(setup_scenario, setup_engine)
+    peer_one, order_set = create_a_test_peer(setup_scenario, setup_engine)
 
-    neighbor_list = create_peers(setup_scenario, setup_engine, 3)
+    neighbor_list = create_test_peers(setup_scenario, setup_engine, 3)
     neighbor_list[2].seq = 101
 
     one_random_order = random.sample(order_set, 1)[0]
@@ -758,7 +758,7 @@ def test_share_orders(setup_scenario, setup_engine, monkeypatch) -> None:
 
     # peer_two is a free rider. It should not share anything to anyone.
 
-    peer_two: Peer = create_a_peer_constant(setup_scenario, setup_engine)[0]
+    peer_two: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
     peer_two.is_free_rider = True
 
     peer_two.add_neighbor(neighbor_list[0])
@@ -774,13 +774,13 @@ def test_del_order(setup_scenario, setup_engine) -> None:
     """
 
     # create peers.
-    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 3)
+    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
     my_peer: Peer = peer_list[0]
     neighbor_one: Peer = peer_list[1]
     neighbor_two: Peer = peer_list[2]
 
     # create new orders
-    new_order_list: List[Order] = create_orders(setup_scenario, 4)
+    new_order_list: List[Order] = create_test_orders(setup_scenario, 4)
 
     # my_peer first receives an external order new_order_list[0] and stores it.
     # Now, besides the original five orders, this new order is also in my_peer's local storage.
@@ -851,18 +851,20 @@ def test_rank_neighbors(setup_scenario, setup_engine, monkeypatch) -> None:
     the score of neighbors, and use a mocked one to replace it.
     :param setup_scenario: fixture.
     :param setup_engine: fixture.
-    :param monkeypatch: mocking tool.
+    :param monkeypatch: tool for fake function.
     :return: None
     """
 
-    # mock score_neighbors() function.
-    def mock_score_neighbors(_peer):
+    # disable score_neighbors() function. Otherwise rank_neighbors() will change the scores that
+    # we have specifically set for this test.
+
+    def fake_score_neighbors(_peer):
         pass
 
-    monkeypatch.setattr(setup_engine, "score_neighbors", mock_score_neighbors)
+    monkeypatch.setattr(setup_engine, "score_neighbors", fake_score_neighbors)
 
     # create peer list
-    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 4)
+    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 4)
 
     peer_list[0].add_neighbor(peer_list[1])
     peer_list[0].add_neighbor(peer_list[2])
@@ -887,7 +889,7 @@ def test_scoring_system(setup_scenario, setup_engine, monkeypatch) -> None:
     So we decided to have an individual test function for the score updates.
     :param setup_scenario: fixture
     :param setup_engine: fixture
-    :param monkeypatch: mocking tool
+    :param monkeypatch: tool for fake function.
     :return: None
     """
 
@@ -916,9 +918,9 @@ def test_scoring_system(setup_scenario, setup_engine, monkeypatch) -> None:
     # Order 5 is accepted to pending table but finally rejected to storage (reward_e)
     # Order 6 is accepted to pending table and is finally stored (reward_d).
 
-    my_peer: Peer = create_a_peer_constant(setup_scenario, setup_engine)[0]
-    neighbor_list: List[Peer] = create_peers(setup_scenario, setup_engine, 8)
-    order_list: List[Order] = create_orders(setup_scenario, 7)
+    my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+    neighbor_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 8)
+    order_list: List[Order] = create_test_orders(setup_scenario, 7)
 
     # setup the environment
 
@@ -951,19 +953,23 @@ def test_scoring_system(setup_scenario, setup_engine, monkeypatch) -> None:
     for neighbor_peer in neighbor_list:
         my_peer.peer_neighbor_mapping[neighbor_peer].share_contribution[-1] = 0
 
-    def mock_should_accept_internal_order(_receiver, _sender, order):
+    # define fake functions.
+    # Order 0 will cannot be accepted to the pending list; the rest might be accepted.
+    def fake_should_accept_internal_order(_receiver, _sender, order):
         if order == order_list[0]:
             return False
         return True
 
-    def mock_store_or_discard_orders(peer):
+    # This fake function does not change the storage_decision for any orderinfo instance.
+    # We will manually change them.
+    def fake_store_or_discard_orders(peer):
         pass
 
     monkeypatch.setattr(
-        setup_engine, "store_or_discard_orders", mock_store_or_discard_orders
+        setup_engine, "store_or_discard_orders", fake_store_or_discard_orders
     )
     monkeypatch.setattr(
-        setup_engine, "should_accept_internal_order", mock_should_accept_internal_order
+        setup_engine, "should_accept_internal_order", fake_should_accept_internal_order
     )
 
     # every neighbor sends the order to my_peer
@@ -1013,14 +1019,14 @@ def test_del_neighbor_with_remove_order(setup_scenario, setup_engine) -> None:
     :return: None.
     """
     # create my_peer and neighbors. Later, neighbor_list[0] will be deleted.
-    my_peer = create_a_peer_constant(setup_scenario, setup_engine)[0]
-    neighbor_list = create_peers(setup_scenario, setup_engine, 2)
+    my_peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+    neighbor_list = create_test_peers(setup_scenario, setup_engine, 2)
     for neighbor in neighbor_list:
         my_peer.add_neighbor(neighbor)
         neighbor.add_neighbor(my_peer)
 
     # we have 3 new orders. Neighbor 0 has all of them.
-    new_order_list = create_orders(setup_scenario, 3)
+    new_order_list = create_test_orders(setup_scenario, 3)
     for order in new_order_list:
         neighbor_list[0].receive_order_external(order)
     neighbor_list[0].store_orders()
