@@ -84,7 +84,7 @@ def find_best_worst_lists(sequence_of_lists: List[SpreadingRatio]) -> BestAndWor
     # construction will never raise the IndexError exception, but when it is used the error is
     # thrown, so there is no way to raise ValueError by catching the IndexError in the previous
     # implementation.
-    # This comment should be deleted in the next PR.
+    # This comment should be deleted before the next PR.
 
     iterators: Tuple[Iterator[SpreadingRatio], ...] = itertools.tee(
         (item for item in sequence_of_lists if item[last_effective_idx] is not None), 2
