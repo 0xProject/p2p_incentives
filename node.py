@@ -158,7 +158,7 @@ class Peer:
             )
 
         # There was a typo here. should be neighbor_max rather than neighbor_min.
-        # Fixed it here. This comment should be deleted in the next PR.
+        # Fixed it here. This comment should be deleted before the next PR.
 
         return len(self.peer_neighbor_mapping) < self.engine.neighbor_max
 
@@ -166,7 +166,7 @@ class Peer:
     # The change is: when if condition does not meet, raise an error rather than return False.
     # The previous return value does not really make sense (i.e., if it is False, an error is
     # anyway raised in the function add_new_links_helper() that calls it).
-    # This comment should be deleted in the next PR.
+    # This comment should be deleted before the next PR.
 
     def add_neighbor(self, peer: "Peer") -> None:
         """
@@ -217,7 +217,7 @@ class Peer:
         # if remove_order is True, delete all orders whose previous owner is this neighbor
 
         # Corrected a bug found by test function.
-        # This comment should be deleted in the next PR.
+        # This comment should be deleted before the next PR.
 
         if remove_order:
             for order in list(self.order_orderinfo_mapping):
@@ -430,7 +430,7 @@ class Peer:
 
     # Slightly changed the following function to have return values instead of calling
     # corresponding peer's receive_order_internal() directly, in order to facilitate tests.
-    # This comment should be deleted in the next PR.
+    # This comment should be deleted before the next PR.
 
     def share_orders(self) -> Tuple[Set[Order], Set["Peer"]]:
         """

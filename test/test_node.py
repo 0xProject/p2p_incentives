@@ -139,7 +139,7 @@ def setup_scenario() -> Scenario:
 def setup_engine() -> Engine:
     """
     This is a fixture function that sets up an engine. This will be useful for initiating
-    orders/nodes. Some reason that we don't need a yield statement for teardown.
+    orders/nodes. Same reason that we don't need a yield statement for teardown.
     Note that most settings are simply copied from example.py. Most parameters are not important.
     Order/Node initialization simply needs an engine.
     :return: An engine instance.

@@ -477,7 +477,7 @@ class Simulator:
 
                 # slightly changed the code here to cope with the change in share_order()
                 # implementation.
-                # This comment should be deleted in the next PR.
+                # This comment should be deleted before the next PR.
 
                 (orders_to_share, neighbors_to_share) = peer.share_orders()
                 for internal_order in orders_to_share:
