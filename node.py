@@ -348,6 +348,9 @@ class Peer:
             if peer == existing_orderinfo.prev_owner:
                 # This neighbor is sending duplicates to me in a short period of time. Likely to
                 # be a malicious one.
+                # Penalty is imposed to this neighbor. But please be noted that this peer's
+                # previous copy is still in the pending list, and if it is finally stored,
+                # this peer will still get a reward for the order being stored.
                 neighbor.share_contribution[-1] += self.engine.penalty_b
                 return
 
