@@ -215,14 +215,20 @@ class Peer:
             raise ValueError("This peer is not my neighbor. Unable to delete.")
 
         # if remove_order is True, delete all orders whose previous owner is this neighbor
+
+        # Corrected a bug found by test function.
+        # This comment should be deleted in the next PR.
+
         if remove_order:
-            for order, orderinfo in self.order_orderinfo_mapping.items():
+            for order in list(self.order_orderinfo_mapping):
+                orderinfo = self.order_orderinfo_mapping[order]
                 if orderinfo.prev_owner == peer:
                     order.holders.remove(self)
                     self.new_order_set.discard(order)
                     del self.order_orderinfo_mapping[order]
 
-            for order, orderinfo_list in self.order_pending_orderinfo_mapping.items():
+            for order in list(self.order_pending_orderinfo_mapping):
+                orderinfo_list = self.order_pending_orderinfo_mapping[order]
                 for idx, orderinfo in enumerate(orderinfo_list):
                     if orderinfo.prev_owner == peer:
                         del orderinfo_list[idx]

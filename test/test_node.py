@@ -414,7 +414,7 @@ def test_should_accept_neighbor_request(
     assert peer_list[0].should_accept_neighbor_request(another_peer) is False
 
 
-def test_del_neighbor_(setup_scenario, setup_engine) -> None:
+def test_del_neighbor(setup_scenario, setup_engine) -> None:
     """
     Test del_neighbor() function.
     :param setup_scenario: fixture.
@@ -444,7 +444,9 @@ def test_del_neighbor_(setup_scenario, setup_engine) -> None:
     with pytest.raises(ValueError):
         peer_list[0].del_neighbor(peer_list[0])
 
-    # Note: we have not tested the "remove_order" option here. Need to come back soon.
+    # Note: we have not tested the "remove_order" option here. However, in order to test it we
+    # will need to use functions receive_order_internal() and store_orders(). We will test them
+    # first and later, test this function.
 
 
 def test_receive_order_external(setup_scenario, setup_engine) -> None:
@@ -696,8 +698,6 @@ def test_receive_order_internal(setup_scenario, setup_engine) -> None:
     peer_list[0].store_orders()
     assert len(peer_list[0].order_orderinfo_mapping) == 12
 
-    # Note that we did not test the change of neighbor scores. Need to add them later.
-
 
 def test_share_orders(setup_scenario, setup_engine, monkeypatch) -> None:
     """
@@ -877,3 +877,181 @@ def test_rank_neighbors(setup_scenario, setup_engine, monkeypatch) -> None:
     # assert the return value of rank_neighbors(). Should be a list of peer instances ranked by
     # the score of their corresponding neighbor instances at peer_list[0], from highest to lowest.
     assert peer_list[0].rank_neighbors() == [peer_list[3], peer_list[1], peer_list[2]]
+
+
+def test_scoring_system(setup_scenario, setup_engine, monkeypatch) -> None:
+    """
+    This function tests the scoring system for neighbors to contribute. Score changes happen in
+    receive_order_internal() and store_orders(), but it is difficult to cover all cases when
+    tests of these two functions are focused on other perspectives.
+    So we decided to have an individual test function for the score updates.
+    :param setup_scenario: fixture
+    :param setup_engine: fixture
+    :param monkeypatch: mocking tool
+    :return: None
+    """
+
+    # Setting: my_peer is the one who accepts and stores orders. We will check scores
+    # for neighbors 0-6. Neighbor 7 is some other neighbor as a competitor.
+    #
+    # my_peer's initial status:
+    # Local storage: Order 1 from Neighbor 1, Order 2 from Neighbor 7.
+    # Pending table: Order 3 from Neighbor 3, Order 5 from Neighbor 7, Order 6 from Neighbor 7.
+    #
+    # Behavior: neighbor i sends order i to my_peer, i in [0,6].
+    # Assumption:
+    # Order 0 does not pass should_accept_internal_order()
+    # Order 4's storage_decision is set False
+    # Order 5: version from Neighbor 7 is accepted
+    # Order 6: version from Neighbor 6 is accepted.
+    # Result:
+    # Order 0 rejected since it doesn't pass should_accept_internal_order() (penalty_a).
+    # Order 1 rejected since there's a duplicate in local storage from same neighbor (reward_a).
+    # Order 2 rejected since there's a duplicate in local storage from someone else (reward_b).
+    # Order 3 rejected since there's a duplicate in pending table from same neighbor (penalty_b).
+    # however, there is another copy of order 3 from neighbor 3 and finally it gets stored,
+    # so neighbor 3 will finally get reward_d as well.
+    # Order 4's storage_decision is set False so it is accepted to pending table but rejected in
+    # storage. (reward_c)
+    # Order 5 is accepted to pending table but finally rejected to storage (reward_e)
+    # Order 6 is accepted to pending table and is finally stored (reward_d).
+
+    my_peer: Peer = create_a_peer_constant(setup_scenario, setup_engine)[0]
+    neighbor_list: List[Peer] = create_peers(setup_scenario, setup_engine, 8)
+    order_list: List[Order] = create_orders(setup_scenario, 7)
+
+    # setup the environment
+
+    # establish neighborhood
+
+    for i in range(8):
+        my_peer.add_neighbor(neighbor_list[i])
+        neighbor_list[i].add_neighbor(my_peer)
+
+    # let every neighbor own the orders that it should have
+    for i in range(7):
+        neighbor_list[i].receive_order_external(order_list[i])
+        neighbor_list[i].store_orders()
+
+    # let neighbor 7 have orders 2 and 5 and 6
+    for order in [order_list[2], order_list[5], order_list[6]]:
+        neighbor_list[7].receive_order_external(order)
+    neighbor_list[7].store_orders()
+
+    # setup the initial status for my_peer
+    my_peer.receive_order_internal(neighbor_list[1], order_list[1])
+    my_peer.receive_order_internal(neighbor_list[7], order_list[2])
+    my_peer.store_orders()
+
+    my_peer.receive_order_internal(neighbor_list[3], order_list[3])
+    my_peer.receive_order_internal(neighbor_list[7], order_list[5])
+    my_peer.receive_order_internal(neighbor_list[7], order_list[6])
+
+    # clear score sheet for neighbors
+    for neighbor_peer in neighbor_list:
+        my_peer.peer_neighbor_mapping[neighbor_peer].share_contribution[-1] = 0
+
+    def mock_should_accept_internal_order(_receiver, _sender, order):
+        if order == order_list[0]:
+            return False
+        return True
+
+    def mock_store_or_discard_orders(peer):
+        pass
+
+    monkeypatch.setattr(
+        setup_engine, "store_or_discard_orders", mock_store_or_discard_orders
+    )
+    monkeypatch.setattr(
+        setup_engine, "should_accept_internal_order", mock_should_accept_internal_order
+    )
+
+    # every neighbor sends the order to my_peer
+    for i in range(7):
+        my_peer.receive_order_internal(neighbor_list[i], order_list[i])
+
+    # my_peer labels storage_decision for every orderinfo
+    for order, orderinfo_list in my_peer.order_pending_orderinfo_mapping.items():
+        for orderinfo in orderinfo_list:
+            orderinfo.storage_decision = True
+
+        if order == order_list[4]:
+            for orderinfo in orderinfo_list:
+                orderinfo.storage_decision = False
+
+        if order == order_list[5]:
+            for orderinfo in orderinfo_list:
+                if orderinfo.prev_owner == neighbor_list[5]:
+                    orderinfo.storage_decision = False
+
+        if order == order_list[6]:
+            for orderinfo in orderinfo_list:
+                if orderinfo.prev_owner == neighbor_list[7]:
+                    orderinfo.storage_decision = False
+
+    # store orders
+    my_peer.store_orders()
+
+    # calculate scores. The value equals to the last entry of the score sheet.
+    my_peer.rank_neighbors()
+
+    # check scores
+    assert my_peer.peer_neighbor_mapping[neighbor_list[0]].score == pytest.approx(-13)
+    assert my_peer.peer_neighbor_mapping[neighbor_list[1]].score == pytest.approx(2)
+    assert my_peer.peer_neighbor_mapping[neighbor_list[2]].score == pytest.approx(3)
+    assert my_peer.peer_neighbor_mapping[neighbor_list[3]].score == pytest.approx(-10)
+    assert my_peer.peer_neighbor_mapping[neighbor_list[4]].score == pytest.approx(5)
+    assert my_peer.peer_neighbor_mapping[neighbor_list[5]].score == pytest.approx(11)
+    assert my_peer.peer_neighbor_mapping[neighbor_list[6]].score == pytest.approx(7)
+
+
+def test_del_neighbor_with_remove_order(setup_scenario, setup_engine) -> None:
+    """
+    This function specifically test remove order option for del_neighbor() function.
+    :param setup_scenario: fixture.
+    :param setup_engine: fixture.
+    :return: None.
+    """
+    # create my_peer and neighbors. Later, neighbor_list[0] will be deleted.
+    my_peer = create_a_peer_constant(setup_scenario, setup_engine)[0]
+    neighbor_list = create_peers(setup_scenario, setup_engine, 2)
+    for neighbor in neighbor_list:
+        my_peer.add_neighbor(neighbor)
+        neighbor.add_neighbor(my_peer)
+
+    # we have 3 new orders. Neighbor 0 has all of them.
+    new_order_list = create_orders(setup_scenario, 3)
+    for order in new_order_list:
+        neighbor_list[0].receive_order_external(order)
+    neighbor_list[0].store_orders()
+
+    # Neighbor 1 has order 2
+    neighbor_list[1].receive_order_external(new_order_list[2])
+    neighbor_list[1].store_orders()
+
+    # my_peer will have order 0 in local storage, from neighbor 0
+    my_peer.receive_order_internal(neighbor_list[0], new_order_list[0])
+    my_peer.store_orders()
+
+    # my_peer also has order 1 and order 2 in pending table. For order 1, it only has a version
+    # from neighbor 0; for order 2, it has versions fro neighbor 0 and 1.
+    my_peer.receive_order_internal(neighbor_list[0], new_order_list[1])
+    my_peer.receive_order_internal(neighbor_list[0], new_order_list[2])
+    my_peer.receive_order_internal(neighbor_list[1], new_order_list[2])
+
+    # my_peer deletes neighbor 0 and cancels orders from it.
+    my_peer.del_neighbor(neighbor_list[0], remove_order=True)
+
+    # Now order 0 should have been deleted from local storage.
+    assert new_order_list[0] not in my_peer.order_orderinfo_mapping
+
+    # Now order 1 should have been deleted from pending table.
+    assert new_order_list[1] not in my_peer.order_pending_orderinfo_mapping
+
+    # Now order 2 should still be in the pending table, but the copy is not from neighbor[0]
+    assert new_order_list[2] in my_peer.order_pending_orderinfo_mapping
+    assert len(my_peer.order_pending_orderinfo_mapping[new_order_list[2]]) == 1
+    assert (
+        my_peer.order_pending_orderinfo_mapping[new_order_list[2]][0].prev_owner
+        == neighbor_list[1]
+    )
