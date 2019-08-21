@@ -4,7 +4,7 @@ Note that sometimes we use "node" and "peer" interchangeably in the comment.
 """
 
 import collections
-from typing import Deque, Set, Dict, List, TYPE_CHECKING
+from typing import Deque, Set, Dict, List, Tuple, TYPE_CHECKING
 from message import OrderInfo, Order
 from data_types import PeerTypeName, Preference, NameSpacing, Priority
 
@@ -153,7 +153,9 @@ class Peer:
         """
 
         if requester in self.peer_neighbor_mapping or requester == self:
-            raise ValueError("should_accept_neighbor_request() function called by wrong peer.")
+            raise ValueError(
+                "should_accept_neighbor_request() function called by wrong peer."
+            )
 
         # There was a typo here. should be neighbor_max rather than neighbor_min.
         # Fixed it here. This comment should be deleted in the next PR.
@@ -417,7 +419,11 @@ class Peer:
         # clear the pending mapping table
         self.order_pending_orderinfo_mapping.clear()
 
-    def share_orders(self) -> None:
+    # Slightly changed the following function to have return values instead of calling
+    # corresponding peer's receive_order_internal() directly, in order to facilitate tests.
+    # This comment should be deleted in the next PR.
+
+    def share_orders(self) -> Tuple[Set[Order], Set["Peer"]]:
         """
         This method determines which orders to be shared to which neighbors.
         It will call internal order receiving method of the receiver peer.
@@ -433,7 +439,7 @@ class Peer:
         # free riders do not share any order.
         if self.is_free_rider:
             self.new_order_set.clear()
-            return
+            return set(), set()
 
         # Otherwise, this function has to go through order by order and neighbor by neighbor.
 
@@ -448,10 +454,7 @@ class Peer:
             self.local_clock, self
         )
 
-        # call receiver node to accept the orders
-        for peer in peer_to_share_set:
-            for order in order_to_share_set:
-                peer.receive_order_internal(self, order)
+        return order_to_share_set, peer_to_share_set
 
     def del_order(self, order: Order) -> None:
         """
@@ -474,7 +477,7 @@ class Peer:
         This method ranks neighbors according to their scores. It is called by internal method
         share_orders().
         :return: a list peer instances ranked by the scores of their corresponding neighbor
-        instances.
+        instances, from top to down.
         """
         self.engine.score_neighbors(self)
         peer_list: List["Peer"] = list(self.peer_neighbor_mapping)

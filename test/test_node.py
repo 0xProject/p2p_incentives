@@ -1,28 +1,70 @@
 """
 This module contains test functions for instances of Peer and Neighbor.
 
-Note that we will need to have instances of Order and OrderInfo first. However, due to the
-simplicity of the definitions of Order and OrderInfo, we will not test them.
+Note that we will need to have instances of Order and OrderInfo first.
 
 Also note that in order to create the instances, we will need an instance of Scenario and an
-instance of Engine. We will simply set up a scenario and an engine instance for the test
+instance of Engine. We will simply set up a scenario instance and an engine instance for the test
 functions to run, but we will not test Scenario or Engine in here. We will have extensive tests
 over them separately.
 
 """
 
-import pytest, collections
+# pylint: disable=redefined-outer-name
+# We use a lot of fixtures in this test module, where the name of the fixture function must be
+# the same as the input argument name of test functions that uses this fixture.
+# Need to disable pylint from this warning.
+
+
+import collections
+import random
+from typing import List, Set, Tuple
+import pytest
 
 from message import Order, OrderInfo
 from node import Peer, Neighbor
-from data_types import *
+from data_types import (
+    OrderProperty,
+    Distribution,
+    OrderTypePropertyDict,
+    PeerProperty,
+    PeerTypePropertyDict,
+    SystemInitialState,
+    ScenarioParameters,
+    SystemEvolution,
+    ScenarioOptions,
+    EventOption,
+    SettleOption,
+    Incentive,
+    Topology,
+    EngineParameters,
+    PriorityOption,
+    InternalOption,
+    PreferenceOption,
+    ExternalOption,
+    StoreOption,
+    Weighted,
+    TitForTat,
+    AllNewSelectedOld,
+    RecommendationOption,
+    EngineOptions,
+)
 
 from scenario import Scenario
 from engine import Engine
 
 
-@pytest.fixture(scope="module")
-def setup_scenario():
+@pytest.fixture(scope="module", autouse=True)
+def setup_scenario() -> Scenario:
+    """
+    This is a fixture function that sets up a scenario. It will serve like a setup function, and
+    will be useful for initiating orders/nodes. Since nothing of scenario will be changed by any
+    function that uses it, we don't need a teardown function so we don't use yield in the fixture.
+
+    Note that settings are simply copied from example.py. Parameters are not important.
+    Order/Node initialization simply needs a scenario.
+    :return: A scenario instance.
+    """
 
     # order property
     order_default_property = OrderProperty(
@@ -89,89 +131,93 @@ def setup_scenario():
     # creating scenario options
     s_options = ScenarioOptions(event_arrival, change_settle_status)
 
-    # create my_scenario instance
-    my_scenario = Scenario(s_parameters, s_options)
-
-    return my_scenario
+    # return scenario instance
+    return Scenario(s_parameters, s_options)
 
 
 @pytest.fixture(scope="module")
-def setup_engine():
+def setup_engine() -> Engine:
+    """
+    This is a fixture function that sets up an engine. This will be useful for initiating
+    orders/nodes. Some reason that we don't need a yield statement for teardown.
+    Note that most settings are simply copied from example.py. Most parameters are not important.
+    Order/Node initialization simply needs an engine.
+    :return: An engine instance.
+    """
 
     batch: int = 10  # length of a batch period
 
-    topology = Topology(max_neighbor_size=30, min_neighbor_size=20)
+    topology = Topology(
+        max_neighbor_size=30, min_neighbor_size=20
+    )  # neighborhood sizes
+
+    # The following are incentive parameters. In order to check if rewards/penalties are properly
+    # added, we carefully choose (mutually prime) parameters below so that we can make sure the
+    # final sum is correct in test functions.
 
     incentive = Incentive(
         score_sheet_length=3,
-        reward_a=0.0,
-        reward_b=0.0,
-        reward_c=0.0,
-        reward_d=1.0,
-        reward_e=0.0,
-        penalty_a=0.0,
-        penalty_b=-1.0,
+        reward_a=2,
+        reward_b=3,
+        reward_c=5,
+        reward_d=7,
+        reward_e=11,
+        penalty_a=-13,
+        penalty_b=-17,
     )
 
     # creating engine parameters, in type of a namedtuple.
     e_parameters = EngineParameters(batch, topology, incentive)
 
-    # options
-
-    # set preference for neighbors
+    # options. Just copied from example.py. No need to make clear their meaning for here.
+    # Only need a valid one to run.
     preference = PreferenceOption(method="Passive")
-
-    # set priority for orders
     priority = PriorityOption(method="Passive")
-
-    # accepting an external order or not
     external = ExternalOption(method="Always")
-
-    # accepting an internal order or not
     internal = InternalOption(method="Always")
-
-    # storing an order or not
     store = StoreOption(method="First")
-
-    # This TypedDict describes how to determine the orders to share with neighbors.
     share = AllNewSelectedOld(
         method="AllNewSelectedOld", max_to_share=5000, old_share_prob=0.5
     )
-
-    # This TypedDict describes how to determine neighbor scoring system.
     score = Weighted(
         method="Weighted",
-        lazy_contribution_threshold=2,
         lazy_length_threshold=6,
+        lazy_contribution_threshold=2,
         weights=[1.0, 1.0, 1.0],
-    )  # must be of the same length as incentive
-
-    # This TypedDict describes how to determine the neighbors that receive my orders.
+    )
     beneficiary = TitForTat(
         method="TitForTat", baby_ending_age=0, mutual_helpers=3, optimistic_choices=1
     )
-
-    # how to recommendation neighbors when a peer asks for more.
     rec = RecommendationOption(method="Random")
 
     # creating engine option, in type of a namedtuple
-
     e_options = EngineOptions(
         preference, priority, external, internal, store, share, score, beneficiary, rec
     )
 
-    # creating my_engine, an instance of Engine, in type pf a namedtuple.
-    my_engine = Engine(e_parameters, e_options)
-
-    return my_engine
+    # return engine instance.
+    return Engine(e_parameters, e_options)
 
 
-def create_an_order(scenario, seq, birth_time, creator):
-    return Order(scenario=scenario, seq=seq, birth_time=birth_time, creator=creator)
+def create_an_order_constant(scenario: Scenario) -> Order:
+    """
+    This is a helper function to create an order.
+    :param scenario: the scenario for the order.
+    :return: the order instance.
+    Note: parameters are arbitrarily set and not important.
+    Note that though the parameters are fixed, calling this function multiple times will create
+    multiple distinct instances.
+    """
+    return Order(scenario=scenario, seq=5, birth_time=12, creator=None)
 
 
-def test_order(setup_scenario):
-    my_order = create_an_order(setup_scenario, 5, 12, None)
+def test_order(setup_scenario) -> None:
+    """
+    This function tests an order initialization.
+    :param setup_scenario: the fixture function's return value
+    :return: None
+    """
+    my_order: Order = create_an_order_constant(setup_scenario)
     assert my_order.seq == 5
     assert my_order.birth_time == 12
     assert my_order.scenario.peer_type_property["normal"].ratio == pytest.approx(0.9)
@@ -180,43 +226,41 @@ def test_order(setup_scenario):
     )
 
 
-def create_orders(scenario, num, seq_list, birth_time_list, creator_list):
-    order_set = set()
-    for i in range(num):
-        order_set.add(
-            Order(
-                scenario=scenario,
-                seq=seq_list[i],
-                birth_time=birth_time_list[i],
-                creator=creator_list[i],
-            )
-        )
-    return order_set
-
-
-def create_a_peer_constant(scenario, engine):
+def create_orders(scenario: Scenario, num: int) -> List[Order]:
     """
-    This function creates a peer constant. Parameters are hard coded.
-    It does not pursue any generality, but merely for use of following test functions.
+    This function creates multiple order instances, each created by create_an_order_constant().
+    :param scenario: scenario to pass to init()
+    :param num: number of order instances.
+    :return: a set of order instances.
+    """
+    order_list: List[Order] = list()
+    for _ in range(num):
+        order_list.append(create_an_order_constant(scenario))
+    return order_list
+
+
+def create_a_peer_constant(
+    scenario: Scenario, engine: Engine
+) -> Tuple[Peer, Set[Order]]:
+    """
+    This function creates a peer constant. Parameters are hard coded (e.g., it has five initial
+    orders). It does not pursue any generality, but merely for use of following test functions.
     :param scenario: scenario to pass to order init.
     :param engine: engine to pass to peer init.
-    :return: a peer instance, and the set of initial order instances.
+    :return: a peer instance, and the set (5) of initial order instances.
+    Parameters are arbitrarily set and they are not important.
+    Note that though the parameters are fixed, calling this function multiple times will create
+    multiple distinct instances.
     """
 
     # manually create 5 orders for this peer.
+    order_set: Set[Order] = set(create_orders(scenario, 5))
 
-    order_set = create_orders(
-        scenario=scenario,
-        num=5,
-        seq_list=[0, 1, 2, 3, 4],
-        birth_time_list=[3, 7, 10, 15, 20],
-        creator_list=[None, None, None, None, None],
-    )
-
+    # create the peer instance
     my_peer = Peer(
         engine=engine,
-        seq=10,
-        birth_time=12,
+        seq=1,
+        birth_time=7,
         init_orders=order_set,
         namespacing=None,
         peer_type="normal",
@@ -225,21 +269,31 @@ def create_a_peer_constant(scenario, engine):
     return my_peer, order_set
 
 
-def test_peer_init(setup_scenario, setup_engine):
+def test_peer(setup_scenario, setup_engine) -> None:
+    """
+    This function tests peer initialization.
+    :param setup_scenario: fixture.
+    :param setup_engine: fixture.
+    :return: None.
+    """
 
     my_peer, order_set = create_a_peer_constant(setup_scenario, setup_engine)
 
+    # assert my_peer's attributes.
+
     assert my_peer.engine == setup_engine
-    assert my_peer.seq == 10
-    assert my_peer.birth_time == 12
+    assert my_peer.seq == 1
+    assert my_peer.birth_time == 7
     assert my_peer.init_orderbook_size == 5
     assert my_peer.namespacing is None
     assert my_peer.peer_type == "normal"
     assert my_peer.is_free_rider is False
 
+    # assert of my_peer has changed the creator of initial orders.
     for order in order_set:
         assert order.creator == my_peer
 
+    # assert my_peer's storage for order and orderinfo
     assert my_peer.new_order_set == order_set
 
     assert len(my_peer.order_orderinfo_mapping) == 5
@@ -252,226 +306,189 @@ def test_peer_init(setup_scenario, setup_engine):
         assert orderinfo.priority is None
         assert orderinfo.storage_decision is True
 
-    for order in order_set:
-        assert order.holders == {my_peer}
-
     assert my_peer.peer_neighbor_mapping == {}
     assert my_peer.order_pending_orderinfo_mapping == {}
 
+    # assert order instance's record
 
-def test_add_neighbor(setup_scenario, setup_engine):
+    for order in order_set:
+        assert order.holders == {my_peer}
 
-    peer_one, _ = create_a_peer_constant(setup_scenario, setup_engine)
-    peer_two, _ = create_a_peer_constant(setup_scenario, setup_engine)
-    peer_three, _ = create_a_peer_constant(setup_scenario, setup_engine)
 
-    peer_one.add_neighbor(peer_two)
-    assert peer_two in peer_one.peer_neighbor_mapping
-    peer_one.add_neighbor(peer_three)
-    assert peer_three in peer_one.peer_neighbor_mapping
-    assert len(peer_one.peer_neighbor_mapping) == 2
+def create_peers(scenario: Scenario, engine: Engine, nums: int) -> List[Peer]:
+    """
+    This function creates a number of peers and return a list of them.
+    Each peer is created using create_a_peer_constant() function.
+    :param scenario: scenario to pass to create_a_peer_constant()
+    :param engine: engine to pass to create_a_peer_constant()
+    :param nums: number of peers.
+    :return: a list of peer instances.
+    """
+    peer_list: List[Peer] = list()
 
-    neighbor_two = peer_one.peer_neighbor_mapping[peer_two]
-    assert neighbor_two.engine == setup_engine
-    assert neighbor_two.est_time == peer_one.birth_time
-    assert neighbor_two.preference is None
+    for _ in range(nums):
+        peer_list.append(create_a_peer_constant(scenario, engine)[0])
+
+    return peer_list
+
+
+def test_add_neighbor(setup_scenario, setup_engine) -> None:
+    """
+    Test function for add_neighbor() function.
+    :param setup_scenario: fixture.
+    :param setup_engine: fixture.
+    :return: None
+    """
+
+    # We have three peers.
+    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 3)
+
+    # add peer_list[1] and peer_list[2] into peer_list[0]'s neighbor,
+    # assert if the neighbor can be found and if neighbor size is correct.
+    peer_list[0].add_neighbor(peer_list[1])
+    assert peer_list[1] in peer_list[0].peer_neighbor_mapping
+    peer_list[0].add_neighbor(peer_list[2])
+    assert peer_list[2] in peer_list[0].peer_neighbor_mapping
+    assert len(peer_list[0].peer_neighbor_mapping) == 2
+
+    # assert neighbor instance setting
+    neighbor: Neighbor = peer_list[0].peer_neighbor_mapping[peer_list[1]]
+    assert neighbor.engine == setup_engine
+    assert neighbor.est_time == peer_list[0].birth_time
+    assert neighbor.preference is None
 
     expected_score_sheet = collections.deque()
     for _ in range(setup_engine.score_length):
         expected_score_sheet.append(0.0)
-    assert neighbor_two.share_contribution == expected_score_sheet
-    assert neighbor_two.score == pytest.approx(0.0)
-    assert neighbor_two.lazy_round == 0
+    assert neighbor.share_contribution == expected_score_sheet
+    assert neighbor.score == pytest.approx(0.0)
+    assert neighbor.lazy_round == 0
 
+    # add an existing neighbor again
     with pytest.raises(ValueError):
-        peer_one.add_neighbor(peer_two)
+        peer_list[0].add_neighbor(peer_list[1])
 
+    # add self
     with pytest.raises(ValueError):
-        peer_one.add_neighbor(peer_one)
+        peer_list[0].add_neighbor(peer_list[0])
 
 
-def test_should_accept_neighbor_request(setup_scenario, setup_engine):
-
-    peer_one, _ = create_a_peer_constant(setup_scenario, setup_engine)
-    peer_two, _ = create_a_peer_constant(setup_scenario, setup_engine)
-
-    assert peer_one.should_accept_neighbor_request(peer_two) is True
-
-    peer_one.add_neighbor(peer_two)
-    peer_two.add_neighbor(peer_one)
-
-    with pytest.raises(ValueError):
-        peer_one.should_accept_neighbor_request(peer_two)
-
-    with pytest.raises(ValueError):
-        peer_one.should_accept_neighbor_request(peer_one)
-
-    with pytest.raises(ValueError):
-        peer_two.should_accept_neighbor_request(peer_one)
-
-
-def test_should_accept_neighbor_request_reaching_capacity(
+def test_should_accept_neighbor_request(
     setup_scenario, setup_engine, monkeypatch
-):
+) -> None:
+    """
+    This function tests should_accept_neighbor_request() function.
+    :param setup_scenario: fixture.
+    :param setup_engine: fixture.
+    :param monkeypatch: mocking tool.
+    :return: None
+    """
+
+    # create two peers
+    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 2)
+
+    # should accept invitation
+    assert peer_list[0].should_accept_neighbor_request(peer_list[1]) is True
+
+    peer_list[0].add_neighbor(peer_list[1])
+    peer_list[1].add_neighbor(peer_list[0])
+
+    # when they're already neighbors and peer_two still requests, an error should be raised.
+    with pytest.raises(ValueError):
+        peer_list[0].should_accept_neighbor_request(peer_list[1])
+    with pytest.raises(ValueError):
+        peer_list[1].should_accept_neighbor_request(peer_list[0])
+
+    # a peer sends a request to itself. An error should be raised.
+    with pytest.raises(ValueError):
+        peer_list[0].should_accept_neighbor_request(peer_list[0])
+
+    # Now, change the max size to 1.
     def mock_max_size():
         return 1
 
     monkeypatch.setattr(setup_engine, "neighbor_max", mock_max_size())
 
-    peer_one, _ = create_a_peer_constant(setup_scenario, setup_engine)
-    peer_two, _ = create_a_peer_constant(setup_scenario, setup_engine)
-
-    peer_one.add_neighbor(peer_two)
-    peer_two.add_neighbor(peer_one)
-
-    peer_three, _ = create_a_peer_constant(setup_scenario, setup_engine)
-
-    assert peer_one.should_accept_neighbor_request(peer_three) is False
+    # peer one has already had a neighbor, so it should reject this time.
+    another_peer, _ = create_a_peer_constant(setup_scenario, setup_engine)
+    assert peer_list[0].should_accept_neighbor_request(another_peer) is False
 
 
-def test_del_neighbor_(setup_scenario, setup_engine):
+def test_del_neighbor_(setup_scenario, setup_engine) -> None:
+    """
+    Test del_neighbor() function.
+    :param setup_scenario: fixture.
+    :param setup_engine: fixture.
+    :return: None
+    """
 
-    peer_one, _ = create_a_peer_constant(setup_scenario, setup_engine)
-    peer_two, _ = create_a_peer_constant(setup_scenario, setup_engine)
+    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 2)
 
-    peer_one.add_neighbor(peer_two)
-    peer_two.add_neighbor(peer_one)
+    peer_list[0].add_neighbor(peer_list[1])
+    peer_list[1].add_neighbor(peer_list[0])
 
-    peer_one.del_neighbor(peer_two)
+    # This deletion should be normal. Both sides should delete the other one.
+    peer_list[0].del_neighbor(peer_list[1])
 
-    assert len(peer_one.peer_neighbor_mapping) == 0
-    assert len(peer_two.peer_neighbor_mapping) == 0
+    assert not peer_list[0].peer_neighbor_mapping
+    assert not peer_list[1].peer_neighbor_mapping
+
+    # Delete an non-existing neighbor
+    with pytest.raises(ValueError):
+        peer_list[0].del_neighbor(peer_list[1])
 
     with pytest.raises(ValueError):
-        peer_one.del_neighbor(peer_two)
+        peer_list[1].del_neighbor(peer_list[0])
 
+    # Delete self.
     with pytest.raises(ValueError):
-        peer_two.del_neighbor(peer_one)
-
-    with pytest.raises(ValueError):
-        peer_one.del_neighbor(peer_one)
+        peer_list[0].del_neighbor(peer_list[0])
 
     # Note: we have not tested the "remove_order" option here. Need to come back soon.
 
 
-def test_receive_order_external(setup_scenario, setup_engine):
+def test_receive_order_external(setup_scenario, setup_engine) -> None:
+    """
+    This function tests receive_order_external()
+    :param setup_scenario: fixture.
+    :param setup_engine: fixture.
+    :return: None
+    """
 
-    peer, _ = create_a_peer_constant(setup_scenario, setup_engine)
-    order = create_an_order(setup_scenario, seq=15, birth_time=9, creator=None)
+    peer: Peer = create_a_peer_constant(setup_scenario, setup_engine)[0]
+    order: Order = create_an_order_constant(setup_scenario)
     peer.receive_order_external(order)
     assert order in peer.order_pending_orderinfo_mapping
     assert order not in peer.order_orderinfo_mapping
     assert peer in order.hesitators
 
 
-def test_receive_order_internal(setup_scenario, setup_engine):
+def test_store_orders(setup_scenario, setup_engine, monkeypatch) -> None:
+    """
+    Before testing receive_order_internal(), we test store_orders() first. This is because
+    store_order() will be used during the test of receive_order_internal().
+    :param setup_scenario: fixture.
+    :param setup_engine: fixture.
+    :param monkeypatch: mocking tool.
+    :return: None.
+    """
+    # pylint: disable=too-many-branches, too-many-statements
+    # This test function needs to deal with lots of cases and it is fine to have a long one.
 
-    # each of the two peers have five distinct orders (though their sequence IDs are duplicate)
-    peer_one, _ = create_a_peer_constant(setup_scenario, setup_engine)
-    peer_two, _ = create_a_peer_constant(setup_scenario, setup_engine)
+    # Create a peer and four neighbors for this peer.
+    # peer will be connected with all neighbors, but for neighbor_list[3], it will disconnect later.
+    peer: Peer = create_a_peer_constant(setup_scenario, setup_engine)[0]
+    neighbor_list: List[Peer] = create_peers(setup_scenario, setup_engine, 4)
 
-    peer_one.add_neighbor(peer_two)
-    peer_two.add_neighbor(peer_one)
-
-    peer_three, _ = create_a_peer_constant(setup_scenario, setup_engine)
-
-    # Here is a new order that will be stored by all three peers.
-
-    a_new_order = create_an_order(setup_scenario, seq=10, birth_time=9, creator=None)
-
-    peer_one.receive_order_external(a_new_order)
-    peer_one.store_orders()
-    assert len(peer_one.order_orderinfo_mapping) == 6
-
-    peer_two.receive_order_external(a_new_order)
-    peer_two.store_orders()
-
-    peer_three.receive_order_external(a_new_order)
-    peer_three.store_orders()
-
-    # Non-neighbors should not be able to send orders.
-    with pytest.raises(ValueError):
-        peer_one.receive_order_internal(peer_three, a_new_order)
-
-    # peer two sends orders to peer one. Five of the orders are new to peer one. One is duplicate.
-    # Peer one should only accept the five new ones to pending list.
-    for order in peer_two.order_orderinfo_mapping:
-        peer_one.receive_order_internal(peer_two, order)
-
-    assert len(peer_one.order_pending_orderinfo_mapping) == 5
-
-    # peer one moves the five new orders from pending list to local storage.
-    peer_one.store_orders()
-    assert len(peer_one.order_orderinfo_mapping) == 11
-    assert len(peer_one.order_pending_orderinfo_mapping) == 0
-
-    # test receiving duplicate new orders
-
-    # create another new order that is stored by peer two and peer three.
-
-    second_new_order = create_an_order(
-        setup_scenario, seq=10, birth_time=9, creator=None
-    )
-    peer_two.receive_order_external(second_new_order)
-    peer_two.store_orders()
-
-    # peer one receives a copy from peer two. It is new to peer one.
-
-    peer_one.receive_order_internal(peer_two, second_new_order)
-    assert len(peer_one.order_pending_orderinfo_mapping) == 1
-    assert len(peer_one.order_pending_orderinfo_mapping[second_new_order]) == 1
-
-    # peer one receives another copy again from peer two. Duplicated copy from the same neighbor,
-    # so ignore it.
-    peer_one.receive_order_internal(peer_two, second_new_order)
-    assert len(peer_one.order_pending_orderinfo_mapping) == 1
-    assert len(peer_one.order_pending_orderinfo_mapping[second_new_order]) == 1
-
-    # peer three also has this new order and it is now a neighbor of peer one.
-    peer_three.receive_order_external(second_new_order)
-    peer_three.store_orders()
-    peer_one.add_neighbor(peer_three)
-    peer_three.add_neighbor(peer_one)
-
-    # peer one received a duplicated one from a different neighbor so it needs to put it into the
-    # pending list.
-    peer_one.receive_order_internal(peer_three, second_new_order)
-    assert len(peer_one.order_pending_orderinfo_mapping) == 1
-    assert len(peer_one.order_pending_orderinfo_mapping[second_new_order]) == 2
-
-    # peer one finally stores this order. It should store one copy only.
-    peer_one.store_orders()
-    assert len(peer_one.order_orderinfo_mapping) == 12
-
-    # Note that we did not test the change of neighbor scores. Need to add them later.
-
-
-def test_store_orders(setup_scenario, setup_engine, monkeypatch):
-
-    # peer will be connected with neighbors
-    peer, _ = create_a_peer_constant(setup_scenario, setup_engine)
-    neighbor_1, _ = create_a_peer_constant(setup_scenario, setup_engine)
-    neighbor_2, _ = create_a_peer_constant(setup_scenario, setup_engine)
-    neighbor_3, _ = create_a_peer_constant(setup_scenario, setup_engine)
-
-    # peer will later be disconnected from this neighbor
-    neighbor_disconnect, _ = create_a_peer_constant(setup_scenario, setup_engine)
-
-    # orders 1 and 2 will have multiple copies but only one will be stored
-    # order 3 will not be stored since no copy is labeled as to store
-    # order 4 will be stored with the version from neighbor_disconnect (though it is disconnected).
-    # order 5 will have multiple copies to store and raise an error
-
-    order_1 = create_an_order(setup_scenario, seq=1, birth_time=0, creator=None)
-    order_2 = create_an_order(setup_scenario, seq=2, birth_time=0, creator=None)
-    order_3 = create_an_order(setup_scenario, seq=3, birth_time=0, creator=None)
-    order_4 = create_an_order(setup_scenario, seq=4, birth_time=0, creator=None)
-    order_5 = create_an_order(setup_scenario, seq=5, birth_time=0, creator=None)
-
-    neighbor_list = [neighbor_1, neighbor_2, neighbor_3, neighbor_disconnect]
-    order_list = [order_1, order_2, order_3, order_4, order_5]
+    # orders 0 and 1 will have multiple orderinfo instances but only one will be stored
+    # order 2 will not be stored since no copy is labeled as to store
+    # order 3 will be stored with the orderinfo from neighbor_disconnect (though it is
+    # disconnected).
+    # order 4 will have multiple orderinfo instances to store and raise an error
+    order_list: List[Order] = create_orders(setup_scenario, 5)
 
     for neighbor in neighbor_list:
+        # each neighbor first receives the orders.
         for order in order_list:
             neighbor.receive_order_external(order)
         neighbor.add_neighbor(peer)
@@ -483,9 +500,10 @@ def test_store_orders(setup_scenario, setup_engine, monkeypatch):
             # check if every order is stored in every neighbor.
             assert order in neighbor.order_orderinfo_mapping
 
-    # manually put the orders 1-4 into peer's pending table
+    # since receive_order_internal() function has not been tested, we manually put the orders 0-3
+    # into peer's pending table
 
-    for order in [order_1, order_2, order_3, order_4]:
+    for order in order_list[0:4]:
         for neighbor in neighbor_list:
             orderinfo = OrderInfo(
                 engine=setup_engine,
@@ -503,92 +521,359 @@ def test_store_orders(setup_scenario, setup_engine, monkeypatch):
             order.hesitators.add(peer)
 
     # check peer's pending table.
-
     # It should contain four orders, each with four orderinfo instances.
     assert len(peer.order_pending_orderinfo_mapping) == 4
     for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
         assert len(orderinfo_list) == 4
 
-    # manually set store decisions for each order.
-    # Store neighbor_1's version for order_1, and neighbor_3's version for order_2, and do not
-    # store order_3
+    # manually set storage_decisions for each order.
+    # Store neighbor_0's orderinfo instance for order_0, neighbor_2's instance for order_1,
+    # do not store order_2, and store neighbor_3's instance for order_3
 
-    for orderinfo in peer.order_pending_orderinfo_mapping[order_1]:
-        if orderinfo.prev_owner == neighbor_1:
+    for orderinfo in peer.order_pending_orderinfo_mapping[order_list[0]]:
+        if orderinfo.prev_owner == neighbor_list[0]:
             orderinfo.storage_decision = True
         else:
             orderinfo.storage_decision = False
 
-    for orderinfo in peer.order_pending_orderinfo_mapping[order_2]:
-        if orderinfo.prev_owner == neighbor_3:
+    for orderinfo in peer.order_pending_orderinfo_mapping[order_list[1]]:
+        if orderinfo.prev_owner == neighbor_list[2]:
             orderinfo.storage_decision = True
         else:
             orderinfo.storage_decision = False
 
-    for orderinfo in peer.order_pending_orderinfo_mapping[order_3]:
+    for orderinfo in peer.order_pending_orderinfo_mapping[order_list[2]]:
         orderinfo.storage_decision = False
 
-    for orderinfo in peer.order_pending_orderinfo_mapping[order_4]:
-        if orderinfo.prev_owner == neighbor_disconnect:
+    for orderinfo in peer.order_pending_orderinfo_mapping[order_list[3]]:
+        if orderinfo.prev_owner == neighbor_list[3]:
             orderinfo.storage_decision = True
         else:
             orderinfo.storage_decision = False
 
     # now let us disconnect neighbor_disconnect
-    peer.del_neighbor(neighbor_disconnect)
-
-    assert neighbor_disconnect not in peer.peer_neighbor_mapping
+    peer.del_neighbor(neighbor_list[3])
+    assert neighbor_list[3] not in peer.peer_neighbor_mapping
 
     # Disable engine.store_or_discard_orders which will otherwise
     # change the values for orderinfo.storage_decision
-
     def mock_storage_decision(_node):
         pass
 
     monkeypatch.setattr(setup_engine, "store_or_discard_orders", mock_storage_decision)
 
     # Now let us check store_orders()
-
     peer.store_orders()
 
-    assert order_1 in peer.order_orderinfo_mapping
-    assert order_2 in peer.order_orderinfo_mapping
-    assert peer.order_orderinfo_mapping[order_1].prev_owner == neighbor_1
-    assert peer.order_orderinfo_mapping[order_2].prev_owner == neighbor_3
-    assert order_3 not in peer.order_orderinfo_mapping
-    assert peer.order_orderinfo_mapping[order_4].prev_owner == neighbor_disconnect
+    # order_0 should have been stored
+    assert order_list[0] in peer.order_orderinfo_mapping
+    assert peer.order_orderinfo_mapping[order_list[0]].prev_owner == neighbor_list[0]
 
-    # check peer's pending table. It should have nothing.
+    # order_1 too
+    assert order_list[1] in peer.order_orderinfo_mapping
+    assert peer.order_orderinfo_mapping[order_list[1]].prev_owner == neighbor_list[2]
 
+    # order_2 should have not been stored
+    assert order_list[2] not in peer.order_orderinfo_mapping
+
+    # order_3 should have been stored, though the neighbor left.
+    assert order_list[3] in peer.order_orderinfo_mapping
+    assert peer.order_orderinfo_mapping[order_list[3]].prev_owner == neighbor_list[3]
+
+    # check peer's pending table. It should have been cleared.
     assert peer.order_pending_orderinfo_mapping == {}
 
-    # Now lets consider order_5. Let it have multiple versions labeled to store.
-
-    # manually put order_5 into peer's pending table
+    # Now lets consider order_4. Let it have multiple versions labeled to store.
+    # manually put order_4 into peer's pending table
 
     for neighbor in neighbor_list:
         orderinfo = OrderInfo(
             engine=setup_engine,
-            order=order_5,
+            order=order_list[4],
             master=neighbor,
             arrival_time=peer.birth_time,
             priority=None,
             prev_owner=neighbor,
             novelty=0,
         )
-        if order_5 not in peer.order_pending_orderinfo_mapping:
-            peer.order_pending_orderinfo_mapping[order_5] = [orderinfo]
+        if order_list[4] not in peer.order_pending_orderinfo_mapping:
+            peer.order_pending_orderinfo_mapping[order_list[4]] = [orderinfo]
         else:
-            peer.order_pending_orderinfo_mapping[order_5].append(orderinfo)
-        order_5.hesitators.add(peer)
+            peer.order_pending_orderinfo_mapping[order_list[4]].append(orderinfo)
+        order_list[4].hesitators.add(peer)
 
-    # label orderinfo be stored for versions from both neighbor_1 and neighbor_2
-    for orderinfo in peer.order_pending_orderinfo_mapping[order_5]:
-        if orderinfo.prev_owner == neighbor_1 or neighbor_2:
+    # label orderinfo be stored for versions from both neighbor_0 and neighbor_1
+    for orderinfo in peer.order_pending_orderinfo_mapping[order_list[4]]:
+        if orderinfo.prev_owner == neighbor_list[0] or neighbor_list[1]:
             orderinfo.storage_decision = True
         else:
             orderinfo.storage_decision = False
 
-    # call store(). Error expected.
+    # call store(). Error is expected.
     with pytest.raises(ValueError):
         peer.store_orders()
+
+
+def test_receive_order_internal(setup_scenario, setup_engine) -> None:
+    """
+    This function tests receive_order_internal().
+    :param setup_scenario: fixture.
+    :param setup_engine: fixture.
+    :return: None.
+    """
+
+    # each of the peers have five distinct orders. The first two are neighbors. The third isn't.
+    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 3)
+    peer_list[0].add_neighbor(peer_list[1])
+    peer_list[1].add_neighbor(peer_list[0])
+
+    # Here are two new orders.
+    # The first one will be stored by all three peers.
+    new_order_list: List[Order] = create_orders(setup_scenario, 2)
+
+    # peer 0 uses receive_order_external() to receive this order, and uses store_orders() to
+    # store this order.
+    peer_list[0].receive_order_external(new_order_list[0])
+    peer_list[0].store_orders()
+    # Now, peer 0 should have 6 orders.
+    assert len(peer_list[0].order_orderinfo_mapping) == 6
+
+    # same for peers 1 and 2. Note that the extra one order they stored is exactly the
+    # same one.
+    peer_list[1].receive_order_external(new_order_list[0])
+    peer_list[1].store_orders()
+    peer_list[2].receive_order_external(new_order_list[0])
+    peer_list[2].store_orders()
+
+    # Non-neighbors should not be able to send orders.
+    with pytest.raises(ValueError):
+        peer_list[0].receive_order_internal(peer_list[2], new_order_list[0])
+
+    # peer 1 sends orders to peer 0.
+    # Five of the orders are new to peer one. One is duplicate.
+    # Peer 0 should only accept the five new ones to pending list.
+    for order in peer_list[1].order_orderinfo_mapping:
+        peer_list[0].receive_order_internal(peer_list[1], order)
+
+    assert len(peer_list[0].order_pending_orderinfo_mapping) == 5
+
+    # peer 0 moves the five new orders from pending list to local storage.
+    peer_list[0].store_orders()
+    assert len(peer_list[0].order_orderinfo_mapping) == 11
+    assert not peer_list[0].order_pending_orderinfo_mapping
+
+    # test receiving duplicate new orders
+
+    # new order 1 is stored by peer 1 and peer 2.
+    peer_list[1].receive_order_external(new_order_list[1])
+    peer_list[1].store_orders()
+
+    # peer 0 receives a copy from peer 1. This order is new to peer 0.
+    peer_list[0].receive_order_internal(peer_list[1], new_order_list[1])
+    assert len(peer_list[0].order_pending_orderinfo_mapping) == 1
+    assert len(peer_list[0].order_pending_orderinfo_mapping[new_order_list[1]]) == 1
+
+    # peer 0 receives another copy again from peer 1. Duplicated copy from the same neighbor,
+    # so peer 0 should ignore it.
+    peer_list[0].receive_order_internal(peer_list[1], new_order_list[1])
+    assert len(peer_list[0].order_pending_orderinfo_mapping) == 1
+    assert len(peer_list[0].order_pending_orderinfo_mapping[new_order_list[1]]) == 1
+
+    # peer 2 also has this new order and it is now a neighbor of peer 0.
+    peer_list[2].receive_order_external(new_order_list[1])
+    peer_list[2].store_orders()
+    peer_list[0].add_neighbor(peer_list[2])
+    peer_list[2].add_neighbor(peer_list[0])
+
+    # peer 0 received a duplicated order but a different orderinfo instance, from a different
+    # neighbor peer 2, so it needs to put it into the pending list.
+    peer_list[0].receive_order_internal(peer_list[2], new_order_list[1])
+    assert len(peer_list[0].order_pending_orderinfo_mapping) == 1
+    assert len(peer_list[0].order_pending_orderinfo_mapping[new_order_list[1]]) == 2
+
+    # peer 0 finally stores this order. It should store one copy only.
+    # this is actually to test store_order() function.
+    peer_list[0].store_orders()
+    assert len(peer_list[0].order_orderinfo_mapping) == 12
+
+    # Note that we did not test the change of neighbor scores. Need to add them later.
+
+
+def test_share_orders(setup_scenario, setup_engine, monkeypatch) -> None:
+    """
+    This function tests share_orders(). It mocks find_orders_to_share() and
+    find_neighbors_to_share() function by only seleting orders/peers with sequence number less
+    than 100.
+    :param setup_scenario: fixture.
+    :param setup_engine: fixture.
+    :param monkeypatch: mocking tool.
+    :return: None.
+    """
+
+    # mock the method of find orders/peers to share
+
+    def mock_find_orders_to_share(peer):
+        return set(order for order in peer.order_orderinfo_mapping if order.seq < 100)
+
+    def mock_find_neighbors_to_share(_time_now, peer):
+        return set(peer for peer in peer.peer_neighbor_mapping if peer.seq < 100)
+
+    monkeypatch.setattr(setup_engine, "find_orders_to_share", mock_find_orders_to_share)
+    monkeypatch.setattr(
+        setup_engine, "find_neighbors_to_share", mock_find_neighbors_to_share
+    )
+
+    # peer_one is a normal peer. We will add three neighbors for it.
+    # We will change the sequence number of neighbor_three and one of the initial orders that
+    # peer_one has
+
+    peer_one, order_set = create_a_peer_constant(setup_scenario, setup_engine)
+
+    neighbor_list = create_peers(setup_scenario, setup_engine, 3)
+    neighbor_list[2].seq = 101
+
+    one_random_order = random.sample(order_set, 1)[0]
+    one_random_order.seq = 280
+
+    peer_one.add_neighbor(neighbor_list[0])
+    peer_one.add_neighbor(neighbor_list[1])
+    peer_one.add_neighbor(neighbor_list[2])
+
+    # check for the neighbors and orders that peer_one shares. It should share everything expect
+    # the ones with modified sequence numbers.
+
+    order_sharing_set, beneficiary_set = peer_one.share_orders()
+
+    assert neighbor_list[0] in beneficiary_set
+    assert neighbor_list[1] in beneficiary_set
+    assert neighbor_list[2] not in beneficiary_set
+    for order in order_set:
+        if order.seq == 280:
+            assert order not in order_sharing_set
+        else:
+            assert order in order_sharing_set
+
+    # after share, the new_order_set should be cleared.
+    assert peer_one.new_order_set == set()
+
+    # peer_two is a free rider. It should not share anything to anyone.
+
+    peer_two: Peer = create_a_peer_constant(setup_scenario, setup_engine)[0]
+    peer_two.is_free_rider = True
+
+    peer_two.add_neighbor(neighbor_list[0])
+    assert peer_two.share_orders() == (set(), set())
+
+
+def test_del_order(setup_scenario, setup_engine) -> None:
+    """
+    This function tests del_orders().
+    :param setup_scenario: fixture.
+    :param setup_engine: fixture.
+    :return: None.
+    """
+
+    # create peers.
+    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 3)
+    my_peer: Peer = peer_list[0]
+    neighbor_one: Peer = peer_list[1]
+    neighbor_two: Peer = peer_list[2]
+
+    # create new orders
+    new_order_list: List[Order] = create_orders(setup_scenario, 4)
+
+    # my_peer first receives an external order new_order_list[0] and stores it.
+    # Now, besides the original five orders, this new order is also in my_peer's local storage.
+    my_peer.receive_order_external(new_order_list[0])
+    my_peer.store_orders()
+
+    # receive internal orders from neighbors
+    my_peer.add_neighbor(neighbor_one)
+    my_peer.add_neighbor(neighbor_two)
+    neighbor_one.add_neighbor(my_peer)
+    neighbor_two.add_neighbor(my_peer)
+
+    # both new_order_list[1] and new_order_list[2] will be put into both neighbor's local storage,
+    # for new_order_list[1], my_peer will receive from both neighbors, but for new_order_list[2],
+    # it will only receive from neighbor_one
+
+    for neighbor in [neighbor_one, neighbor_two]:
+        for new_order in (new_order_list[1], new_order_list[2]):
+            neighbor.receive_order_external(new_order)
+            neighbor.store_orders()
+
+    my_peer.receive_order_internal(neighbor_one, new_order_list[1])
+    my_peer.receive_order_internal(neighbor_two, new_order_list[1])
+    my_peer.receive_order_internal(neighbor_one, new_order_list[2])
+
+    # Now, my_peer's pending table should look like
+    # {new_order_list[1]: [orderinfo_11, orderinfo_12],
+    #  new_order_list[2]: [orderinfo_21]}
+
+    # check status before deletion
+    assert len(my_peer.order_orderinfo_mapping) == 6
+    assert len(my_peer.order_pending_orderinfo_mapping) == 2
+    assert new_order_list[0] in my_peer.order_orderinfo_mapping
+    assert new_order_list[1] in my_peer.order_pending_orderinfo_mapping
+    assert new_order_list[2] in my_peer.order_pending_orderinfo_mapping
+    assert my_peer in new_order_list[0].holders
+    assert my_peer in new_order_list[1].hesitators
+    assert my_peer in new_order_list[2].hesitators
+
+    # delete all new orders
+    my_peer.del_order(new_order_list[1])
+    my_peer.del_order(new_order_list[2])
+    my_peer.del_order(new_order_list[0])
+
+    # assert status after deletion
+    assert len(my_peer.order_orderinfo_mapping) == 5
+    assert not my_peer.order_pending_orderinfo_mapping
+    assert new_order_list[0] not in my_peer.order_orderinfo_mapping
+    assert new_order_list[1] not in my_peer.order_pending_orderinfo_mapping
+    assert new_order_list[2] not in my_peer.order_pending_orderinfo_mapping
+    assert my_peer not in new_order_list[0].holders
+    assert my_peer not in new_order_list[1].hesitators
+    assert my_peer not in new_order_list[2].hesitators
+
+    # test deleting an order (new_order_list[3]) that this peer does not have.
+    # Nothing should happen.
+
+    assert new_order_list[3] not in my_peer.order_pending_orderinfo_mapping
+    assert new_order_list[3] not in my_peer.order_orderinfo_mapping
+    my_peer.del_order(new_order_list[3])
+    assert new_order_list[3] not in my_peer.order_pending_orderinfo_mapping
+    assert new_order_list[3] not in my_peer.order_orderinfo_mapping
+
+
+def test_rank_neighbors(setup_scenario, setup_engine, monkeypatch) -> None:
+    """
+    This function tests rank_neighbors(). We disable score_neighbors() function which will change
+    the score of neighbors, and use a mocked one to replace it.
+    :param setup_scenario: fixture.
+    :param setup_engine: fixture.
+    :param monkeypatch: mocking tool.
+    :return: None
+    """
+
+    # mock score_neighbors() function.
+    def mock_score_neighbors(_peer):
+        pass
+
+    monkeypatch.setattr(setup_engine, "score_neighbors", mock_score_neighbors)
+
+    # create peer list
+    peer_list: List[Peer] = create_peers(setup_scenario, setup_engine, 4)
+
+    peer_list[0].add_neighbor(peer_list[1])
+    peer_list[0].add_neighbor(peer_list[2])
+    peer_list[0].add_neighbor(peer_list[3])
+
+    # manually set their scores
+
+    peer_list[0].peer_neighbor_mapping[peer_list[1]].score = 50
+    peer_list[0].peer_neighbor_mapping[peer_list[2]].score = 10
+    peer_list[0].peer_neighbor_mapping[peer_list[3]].score = 80
+
+    # assert the return value of rank_neighbors(). Should be a list of peer instances ranked by
+    # the score of their corresponding neighbor instances at peer_list[0], from highest to lowest.
+    assert peer_list[0].rank_neighbors() == [peer_list[3], peer_list[1], peer_list[2]]
