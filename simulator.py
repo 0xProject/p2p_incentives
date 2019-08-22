@@ -474,11 +474,6 @@ class Simulator:
         for peer in self.peer_full_set:
             if (self.cur_time - peer.birth_time) % self.engine.batch == 0:
                 peer.store_orders()
-
-                # slightly changed the code here to cope with the change in share_order()
-                # implementation.
-                # This comment should be deleted before the next PR.
-
                 (orders_to_share, neighbors_to_share) = peer.share_orders()
                 for internal_order in orders_to_share:
                     for beneficiary_peer in neighbors_to_share:

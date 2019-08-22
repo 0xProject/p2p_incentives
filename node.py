@@ -157,16 +157,7 @@ class Peer:
                 "should_accept_neighbor_request() function called by wrong peer."
             )
 
-        # There was a typo here. should be neighbor_max rather than neighbor_min.
-        # Fixed it here. This comment should be deleted before the next PR.
-
         return len(self.peer_neighbor_mapping) < self.engine.neighbor_max
-
-    # Slightly modified the name and return value of this function.
-    # The change is: when if condition does not meet, raise an error rather than return False.
-    # The previous return value does not really make sense (i.e., if it is False, an error is
-    # anyway raised in the function add_new_links_helper() that calls it).
-    # This comment should be deleted before the next PR.
 
     def add_neighbor(self, peer: "Peer") -> None:
         """
@@ -215,9 +206,6 @@ class Peer:
             raise ValueError("This peer is not my neighbor. Unable to delete.")
 
         # if remove_order is True, delete all orders whose previous owner is this neighbor
-
-        # Corrected a bug found by test function.
-        # This comment should be deleted before the next PR.
 
         if remove_order:
             for order in list(self.order_orderinfo_mapping):
@@ -427,10 +415,6 @@ class Peer:
 
         # clear the pending mapping table
         self.order_pending_orderinfo_mapping.clear()
-
-    # Slightly changed the following function to have return values instead of calling
-    # corresponding peer's receive_order_internal() directly, in order to facilitate tests.
-    # This comment should be deleted before the next PR.
 
     def share_orders(self) -> Tuple[Set[Order], Set["Peer"]]:
         """
