@@ -211,21 +211,6 @@ def create_a_test_order(scenario: Scenario) -> Order:
     return Order(scenario=scenario, seq=5, birth_time=12, creator=None)
 
 
-def test_order(setup_scenario) -> None:
-    """
-    This function tests an order initialization.
-    :param setup_scenario: the fixture function's return value
-    :return: None
-    """
-    my_order: Order = create_a_test_order(setup_scenario)
-    assert my_order.seq == 5
-    assert my_order.birth_time == 12
-    assert my_order.scenario.peer_type_property["normal"].ratio == pytest.approx(0.9)
-    assert my_order.scenario.peer_type_property["free_rider"].ratio == pytest.approx(
-        0.1
-    )
-
-
 def create_test_orders(scenario: Scenario, num: int) -> List[Order]:
     """
     This function creates multiple order instances, each created by create_a_test_order().
@@ -239,9 +224,7 @@ def create_test_orders(scenario: Scenario, num: int) -> List[Order]:
     return order_list
 
 
-def create_a_test_peer(
-    scenario: Scenario, engine: Engine
-) -> Tuple[Peer, Set[Order]]:
+def create_a_test_peer(scenario: Scenario, engine: Engine) -> Tuple[Peer, Set[Order]]:
     """
     This function creates a peer constant. Parameters are hard coded (e.g., it has five initial
     orders). It does not pursue any generality, but merely for use of following test functions.
@@ -269,52 +252,6 @@ def create_a_test_peer(
     return my_peer, order_set
 
 
-def test_peer(setup_scenario, setup_engine) -> None:
-    """
-    This function tests peer initialization.
-    :param setup_scenario: fixture.
-    :param setup_engine: fixture.
-    :return: None.
-    """
-
-    my_peer, order_set = create_a_test_peer(setup_scenario, setup_engine)
-
-    # assert my_peer's attributes.
-
-    assert my_peer.engine == setup_engine
-    assert my_peer.seq == 1
-    assert my_peer.birth_time == 7
-    assert my_peer.init_orderbook_size == 5
-    assert my_peer.namespacing is None
-    assert my_peer.peer_type == "normal"
-    assert my_peer.is_free_rider is False
-
-    # assert of my_peer has changed the creator of initial orders.
-    for order in order_set:
-        assert order.creator == my_peer
-
-    # assert my_peer's storage for order and orderinfo
-    assert my_peer.new_order_set == order_set
-
-    assert len(my_peer.order_orderinfo_mapping) == 5
-    for order in order_set:
-        orderinfo = my_peer.order_orderinfo_mapping[order]
-        assert orderinfo.engine == setup_engine
-        assert orderinfo.arrival_time == my_peer.birth_time
-        assert orderinfo.prev_owner is None
-        assert orderinfo.novelty == 0
-        assert orderinfo.priority is None
-        assert orderinfo.storage_decision is True
-
-    assert my_peer.peer_neighbor_mapping == {}
-    assert my_peer.order_pending_orderinfo_mapping == {}
-
-    # assert order instance's record
-
-    for order in order_set:
-        assert order.holders == {my_peer}
-
-
 def create_test_peers(scenario: Scenario, engine: Engine, nums: int) -> List[Peer]:
     """
     This function creates a number of peers and return a list of them.
@@ -332,137 +269,330 @@ def create_test_peers(scenario: Scenario, engine: Engine, nums: int) -> List[Pee
     return peer_list
 
 
-def test_add_neighbor(setup_scenario, setup_engine) -> None:
+class TestOrderAndPeerInit:
     """
-    Test function for add_neighbor() function.
-    :param setup_scenario: fixture.
-    :param setup_engine: fixture.
-    :return: None
+    This class contains test functions for peer and order initiliazation functions.
     """
 
-    # We have three peers.
-    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
+    def test_order(self, setup_scenario) -> None:
+        """
+        This function tests order initialization.
+        :param setup_scenario: the fixture function's return value
+        :return: None
+        """
+        my_order: Order = create_a_test_order(setup_scenario)
+        assert my_order.seq == 5
+        assert my_order.birth_time == 12
+        assert my_order.scenario.peer_type_property["normal"].ratio == pytest.approx(
+            0.9
+        )
+        assert my_order.scenario.peer_type_property[
+            "free_rider"
+        ].ratio == pytest.approx(0.1)
 
-    # add peer_list[1] and peer_list[2] into peer_list[0]'s neighbor,
-    # assert if the neighbor can be found and if neighbor size is correct.
-    peer_list[0].add_neighbor(peer_list[1])
-    assert peer_list[1] in peer_list[0].peer_neighbor_mapping
-    peer_list[0].add_neighbor(peer_list[2])
-    assert peer_list[2] in peer_list[0].peer_neighbor_mapping
-    assert len(peer_list[0].peer_neighbor_mapping) == 2
+    def test_peer(self, setup_scenario, setup_engine) -> None:
+        """
+        This function tests peer initialization.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
 
-    # assert neighbor instance setting
-    neighbor: Neighbor = peer_list[0].peer_neighbor_mapping[peer_list[1]]
-    assert neighbor.engine == setup_engine
-    assert neighbor.est_time == peer_list[0].birth_time
-    assert neighbor.preference is None
+        my_peer, order_set = create_a_test_peer(setup_scenario, setup_engine)
 
-    expected_score_sheet = collections.deque()
-    for _ in range(setup_engine.score_length):
-        expected_score_sheet.append(0.0)
-    assert neighbor.share_contribution == expected_score_sheet
-    assert neighbor.score == pytest.approx(0.0)
-    assert neighbor.lazy_round == 0
+        # assert my_peer's attributes.
 
-    # add an existing neighbor again
-    with pytest.raises(ValueError):
+        assert my_peer.engine == setup_engine
+        assert my_peer.seq == 1
+        assert my_peer.birth_time == 7
+        assert my_peer.init_orderbook_size == 5
+        assert my_peer.namespacing is None
+        assert my_peer.peer_type == "normal"
+        assert my_peer.is_free_rider is False
+
+        # assert of my_peer has changed the creator of initial orders.
+        for order in order_set:
+            assert order.creator == my_peer
+
+        # assert my_peer's storage for order and orderinfo
+        assert my_peer.new_order_set == order_set
+
+        assert len(my_peer.order_orderinfo_mapping) == 5
+        for order in order_set:
+            orderinfo = my_peer.order_orderinfo_mapping[order]
+            assert orderinfo.engine == setup_engine
+            assert orderinfo.arrival_time == my_peer.birth_time
+            assert orderinfo.prev_owner is None
+            assert orderinfo.novelty == 0
+            assert orderinfo.priority is None
+            assert orderinfo.storage_decision is True
+
+        assert my_peer.peer_neighbor_mapping == {}
+        assert my_peer.order_pending_orderinfo_mapping == {}
+
+        # assert order instance's record
+
+        for order in order_set:
+            assert order.holders == {my_peer}
+
+
+class TestAddNeighbor:
+    """
+    This class contains test functions for add_neighbor()
+    """
+
+    def test_add_neighbor__normal(self, setup_scenario, setup_engine) -> None:
+        """
+        normal cases.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None
+        """
+        # Arrange. We have three peers.
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
+
+        # Act.
+        # add peer_list[1] and peer_list[2] into peer_list[0]'s neighbor.
+
+        peer_list[0].add_neighbor(peer_list[1])
+        peer_list[0].add_neighbor(peer_list[2])
+
+        # Assert.
+
+        # assert if the neighbor can be found and if neighbor size is correct.
+        assert peer_list[1] in peer_list[0].peer_neighbor_mapping
+        assert peer_list[2] in peer_list[0].peer_neighbor_mapping
+        assert len(peer_list[0].peer_neighbor_mapping) == 2
+
+        # assert neighbor instance setting
+        neighbor: Neighbor = peer_list[0].peer_neighbor_mapping[peer_list[1]]
+        assert neighbor.engine == setup_engine
+        assert neighbor.est_time == peer_list[0].birth_time
+        assert neighbor.preference is None
+        expected_score_sheet = collections.deque()
+        for _ in range(setup_engine.score_length):
+            expected_score_sheet.append(0.0)
+        assert neighbor.share_contribution == expected_score_sheet
+        assert neighbor.score == pytest.approx(0.0)
+        assert neighbor.lazy_round == 0
+
+    def test_add_neighbor__add_an_existing_neighbor(self, setup_scenario, setup_engine):
+        """
+        Test if one tries to add an existing neighbor
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        # Arrange.
+        # We have two peers. Peer 1 is in Peer 0's neighbor.
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
         peer_list[0].add_neighbor(peer_list[1])
 
-    # add self
-    with pytest.raises(ValueError):
-        peer_list[0].add_neighbor(peer_list[0])
+        # Action and Assert.
+        # Should raise an error when adding an existing neighbor.
+
+        with pytest.raises(ValueError):
+            peer_list[0].add_neighbor(peer_list[1])
+
+    def test_add_neighbor__add_self(self, setup_scenario, setup_engine):
+        """
+        Test if one tries to add itself as a neighbor
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+
+        # Add self. Should raise an error
+        with pytest.raises(ValueError):
+            peer.add_neighbor(peer)
 
 
-def test_should_accept_neighbor_request(
-    setup_scenario, setup_engine, monkeypatch
-) -> None:
+class TestShouldAcceptNeighborRequest:
     """
-    This function tests should_accept_neighbor_request() function.
-    :param setup_scenario: fixture.
-    :param setup_engine: fixture.
-    :param monkeypatch: tool for fake attribute
-    :return: None
-    """
-
-    # create two peers
-    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
-
-    # should accept invitation
-    assert peer_list[0].should_accept_neighbor_request(peer_list[1]) is True
-
-    peer_list[0].add_neighbor(peer_list[1])
-    peer_list[1].add_neighbor(peer_list[0])
-
-    # when they're already neighbors and peer_two still requests, an error should be raised.
-    with pytest.raises(ValueError):
-        peer_list[0].should_accept_neighbor_request(peer_list[1])
-    with pytest.raises(ValueError):
-        peer_list[1].should_accept_neighbor_request(peer_list[0])
-
-    # a peer sends a request to itself. An error should be raised.
-    with pytest.raises(ValueError):
-        peer_list[0].should_accept_neighbor_request(peer_list[0])
-
-    # Now, fake max neighbor size to 1.
-    def fake_max_size():
-        return 1
-
-    monkeypatch.setattr(setup_engine, "neighbor_max", fake_max_size())
-
-    # peer one has already had a neighbor, so it should reject this time.
-    another_peer, _ = create_a_test_peer(setup_scenario, setup_engine)
-    assert peer_list[0].should_accept_neighbor_request(another_peer) is False
-
-
-def test_del_neighbor(setup_scenario, setup_engine) -> None:
-    """
-    Test del_neighbor() function.
-    :param setup_scenario: fixture.
-    :param setup_engine: fixture.
-    :return: None
+    This class contains test functions for should_accept_neighbor_request().
     """
 
-    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+    def test_should_accept_neighbor_request__true(
+        self, setup_scenario, setup_engine
+    ) -> None:
+        """
+        Test when it should return True.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None
+        """
+        # create two peers
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+        # should accept invitation
+        assert peer_list[0].should_accept_neighbor_request(peer_list[1]) is True
 
-    peer_list[0].add_neighbor(peer_list[1])
-    peer_list[1].add_neighbor(peer_list[0])
+    def test_should_accept_neighbor_request__false(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        Test when it should return False.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :param monkeypatch: tool for fake attribute
+        :return: None
+        """
+        # Arrange.
+        # Create three peers. First two are neighbors.
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
+        peer_list[0].add_neighbor(peer_list[1])
+        peer_list[1].add_neighbor(peer_list[0])
 
-    # This deletion should be normal. Both sides should delete the other one.
-    peer_list[0].del_neighbor(peer_list[1])
+        # Now, fake max neighbor size to 1.
+        def fake_max_size():
+            return 1
 
-    assert not peer_list[0].peer_neighbor_mapping
-    assert not peer_list[1].peer_neighbor_mapping
+        monkeypatch.setattr(setup_engine, "neighbor_max", fake_max_size())
 
-    # Delete an non-existing neighbor
-    with pytest.raises(ValueError):
+        # Action and Assert: Peer 2 wants to be Peer 0's neighbor. Should reject.
+        assert peer_list[0].should_accept_neighbor_request(peer_list[2]) is False
+
+    def test_should_accept_neighbor__existing_neighbor(
+        self, setup_scenario, setup_engine
+    ) -> None:
+        """
+        Requested by an existing neighbor.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None
+        """
+        # Create three peers. First two are neighbors.
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
+        peer_list[0].add_neighbor(peer_list[1])
+        peer_list[1].add_neighbor(peer_list[0])
+
+        # when they're already neighbors and a peer still requests, an error should be raised.
+        with pytest.raises(ValueError):
+            peer_list[0].should_accept_neighbor_request(peer_list[1])
+
+    def test_should_accept_neighbor__self_request(
+        self, setup_scenario, setup_engine
+    ) -> None:
+        """
+        Requested by itself.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None
+        """
+        # Create three peers. First two are neighbors.
+        peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        # An error should be raised when receiving a request from self.
+        with pytest.raises(ValueError):
+            peer.should_accept_neighbor_request(peer)
+
+
+class TestDelNeighbor:
+    """
+    This class contains test functions for del_neighbor()
+    Note: we have not tested the "remove_order" option here. However, in order to test it we
+    will need to use functions receive_order_internal() and store_orders(). We will test them
+    first and later, test this function.
+    """
+
+    def test_del_neighbor_normal(self, setup_scenario, setup_engine) -> None:
+        """
+        normal case.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None
+        """
+
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+
+        peer_list[0].add_neighbor(peer_list[1])
+        peer_list[1].add_neighbor(peer_list[0])
+
+        # This deletion should be normal. Both sides should delete the other one.
         peer_list[0].del_neighbor(peer_list[1])
 
-    with pytest.raises(ValueError):
-        peer_list[1].del_neighbor(peer_list[0])
+        assert (
+            not peer_list[0].peer_neighbor_mapping
+            and not peer_list[1].peer_neighbor_mapping
+        )
 
-    # Delete self.
-    with pytest.raises(ValueError):
-        peer_list[0].del_neighbor(peer_list[0])
+    def test_del_neighbor__non_existing(self, setup_scenario, setup_engine) -> None:
+        """
+        Delete non existing neighbor.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None
+        """
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+        # Delete an non-existing neighbor
+        with pytest.raises(ValueError):
+            peer_list[0].del_neighbor(peer_list[1])
 
-    # Note: we have not tested the "remove_order" option here. However, in order to test it we
-    # will need to use functions receive_order_internal() and store_orders(). We will test them
-    # first and later, test this function.
+    def test_del_neighbor__self(self, setup_scenario, setup_engine) -> None:
+        """
+        Delete itself from neighbor set.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None
+        """
+
+        peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+
+        # Delete self.
+        with pytest.raises(ValueError):
+            peer.del_neighbor(peer)
 
 
-def test_receive_order_external(setup_scenario, setup_engine) -> None:
+class TestReceiveExternal:
     """
-    This function tests receive_order_external()
-    :param setup_scenario: fixture.
-    :param setup_engine: fixture.
-    :return: None
+    This class contains test functions for receive_order_external().
     """
 
-    peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
-    order: Order = create_a_test_order(setup_scenario)
-    peer.receive_order_external(order)
-    assert order in peer.order_pending_orderinfo_mapping
-    assert order not in peer.order_orderinfo_mapping
-    assert peer in order.hesitators
+    def test_receive_order_external__normal(self, setup_scenario, setup_engine) -> None:
+        """
+        normal case
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None
+        """
+        peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
+        peer.receive_order_external(order)
+        assert order in peer.order_pending_orderinfo_mapping
+        assert order not in peer.order_orderinfo_mapping
+        assert peer in order.hesitators
+
+    def test_receive_order_external__not_accepted(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        The order is set to not be accepted.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :param Monkeypatch:
+        :return: None
+        """
+
+        # Arrange: change the should_accept_external_order() implementation to a fake one that
+        # does not accept any external order.
+
+        def fake_should_accept_external_order(_receiver, _order):
+            return False
+
+        monkeypatch.setattr(
+            setup_engine,
+            "should_accept_external_order",
+            fake_should_accept_external_order,
+        )
+
+        peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
+
+        # Act: peer tries to receive order from external
+        peer.receive_order_external(order)
+
+        # Assert: should not accept the order.
+        assert order not in peer.order_pending_orderinfo_mapping
+        assert peer not in order.hesitators
 
 
 def test_store_orders(setup_scenario, setup_engine, monkeypatch) -> None:
