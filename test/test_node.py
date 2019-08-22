@@ -15,6 +15,14 @@ over them separately.
 # the same as the input argument name of test functions that uses this fixture.
 # Need to disable pylint from this warning.
 
+# pylint: disable=no-self-use
+# In this module we put functions under class merely for better readability. They are functions
+# rather than methods; but it is still find to put them as methods and classify them according to
+# the function they test for.
+
+# pylint: disable=too-many-lines
+# I know this module is very long but it contains all test cases for the functions in the
+# correponding module node.py. Putting them together in one module seems a good practice.
 
 import collections
 import random
@@ -595,47 +603,267 @@ class TestReceiveExternal:
         assert peer not in order.hesitators
 
 
-def test_store_orders(setup_scenario, setup_engine, monkeypatch) -> None:
+class TestStoreOrders:
     """
-    Before testing receive_order_internal(), we test store_orders() first. This is because
-    store_order() will be used during the test of receive_order_internal().
-    :param setup_scenario: fixture.
-    :param setup_engine: fixture.
-    :param monkeypatch: tool for fake function.
-    :return: None.
+    This class contains tests to function store_orders(). We have these tests before testing
+    receive_order_internal() because store_order() will be used during the test of
+    receive_order_internal().
     """
-    # pylint: disable=too-many-branches, too-many-statements
-    # This test function needs to deal with lots of cases and it is fine to have a long one.
 
-    # Create a peer and four neighbors for this peer.
-    # peer will be connected with all neighbors, but for neighbor_list[3], it will disconnect later.
-    peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
-    neighbor_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 4)
+    def test_store_orders__single_orderinfo(self, setup_scenario, setup_engine) -> None:
+        """
+        This one tests the case where an order has a single orderinfo instance in the pending table
+        and later, it is put into local storage.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
 
-    # orders 0 and 1 will have multiple orderinfo instances but only one will be stored
-    # order 2 will not be stored since no copy is labeled as to store
-    # order 3 will be stored with the orderinfo from neighbor_disconnect (though it is
-    # disconnected).
-    # order 4 will have multiple orderinfo instances to store and raise an error
-    order_list: List[Order] = create_test_orders(setup_scenario, 5)
+        peer.receive_order_external(order)
+        peer.store_orders()
+        assert order in peer.order_orderinfo_mapping
 
-    for neighbor in neighbor_list:
-        # each neighbor first receives the orders.
-        for order in order_list:
+    def test_store_orders__multi_orderinfo(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This one tests the case where an order has multiple orderinfo instances in the pending table
+        and later, one of them is put into local storage.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :param monkeypatch: tool for fake function.
+        :return: None.
+        """
+        # Arrange.
+
+        # Create a peer and a neighbors for this peer. They will be connected.
+        peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+
+        # create an order
+        order: Order = create_a_test_order(setup_scenario)
+
+        # neighbors store this order and are connected to peer.
+        for neighbor in neighbor_list:
+            neighbor.add_neighbor(peer)
+            peer.add_neighbor(neighbor)
             neighbor.receive_order_external(order)
+            neighbor.store_orders()
+
+        # since receive_order_internal() function has not been tested, we manually put the order
+        # into peer's pending table
+
+        for neighbor in neighbor_list:
+            orderinfo = OrderInfo(
+                engine=setup_engine,
+                order=order,
+                master=neighbor,
+                arrival_time=peer.birth_time,
+                priority=None,
+                prev_owner=neighbor,
+                novelty=0,
+            )
+            if order not in peer.order_pending_orderinfo_mapping:
+                peer.order_pending_orderinfo_mapping[order] = [orderinfo]
+            else:
+                peer.order_pending_orderinfo_mapping[order].append(orderinfo)
+        order.hesitators.add(peer)
+
+        # manually set storage_decisions for the order.
+        # Store neighbor_0's orderinfo instance for the order.
+
+        for orderinfo in peer.order_pending_orderinfo_mapping[order]:
+            if orderinfo.prev_owner == neighbor_list[0]:
+                orderinfo.storage_decision = True
+            else:
+                orderinfo.storage_decision = False
+
+        # Disable engine.store_or_discard_orders which will otherwise
+        # change the values for orderinfo.storage_decision
+        def fake_storage_decision(_node):
+            pass
+
+        monkeypatch.setattr(
+            setup_engine, "store_or_discard_orders", fake_storage_decision
+        )
+
+        # Action.
+        peer.store_orders()
+
+        # Assert.
+
+        # order should have been stored and it is the right version.
+        assert peer.order_orderinfo_mapping[order].prev_owner == neighbor_list[0]
+        # peer's pending table should have been cleared.
+        assert peer.order_pending_orderinfo_mapping == {}
+
+    def test_store_orders__do_not_store(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This one tests the case where an order has orderinfo instance(s) in the pending
+        table but later, it is not stored since labeled as not to store.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :param monkeypatch: tool for fake function.
+        :return: None.
+        """
+        # Arrange.
+
+        # Create a peer and a neighbors for this peer. They will be connected.
+        peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+
+        # create an order
+        order: Order = create_a_test_order(setup_scenario)
+
+        # neighbors store this order and are connected to peer.
+        for neighbor in neighbor_list:
+            neighbor.add_neighbor(peer)
+            peer.add_neighbor(neighbor)
+            neighbor.receive_order_external(order)
+            neighbor.store_orders()
+
+        # since receive_order_internal() function has not been tested, we manually put the order
+        # into peer's pending table
+
+        for neighbor in neighbor_list:
+            orderinfo = OrderInfo(
+                engine=setup_engine,
+                order=order,
+                master=neighbor,
+                arrival_time=peer.birth_time,
+                priority=None,
+                prev_owner=neighbor,
+                novelty=0,
+            )
+            if order not in peer.order_pending_orderinfo_mapping:
+                peer.order_pending_orderinfo_mapping[order] = [orderinfo]
+            else:
+                peer.order_pending_orderinfo_mapping[order].append(orderinfo)
+        order.hesitators.add(peer)
+
+        # manually set storage_decisions for the order. All are False.
+
+        for orderinfo in peer.order_pending_orderinfo_mapping[order]:
+            orderinfo.storage_decision = False
+
+        # Disable engine.store_or_discard_orders which will otherwise
+        # change the values for orderinfo.storage_decision
+        def fake_storage_decision(_node):
+            pass
+
+        monkeypatch.setattr(
+            setup_engine, "store_or_discard_orders", fake_storage_decision
+        )
+
+        # Action.
+        peer.store_orders()
+
+        # Assert.
+
+        # order should have been stored and it is the right version.
+        assert order not in peer.order_orderinfo_mapping
+        # peer's pending table should have been cleared.
+        assert peer.order_pending_orderinfo_mapping == {}
+
+    def test_store_orders__sender_disconnected(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This function tests the case of storing an order from some peer recently disconnected
+        (it was a neighbor when sending this order to the peer).
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :param monkeypatch: tool for fake function.
+        :return: None.
+        """
+
+        # Arrange.
+
+        # Create a peer and a neighbor for this peer.
+        peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
         neighbor.add_neighbor(peer)
         peer.add_neighbor(neighbor)
 
-        # this is a normal call of store_orders(). Should store everything.
+        # create an order and the neighbor has this order.
+        order: Order = create_a_test_order(setup_scenario)
+        neighbor.receive_order_external(order)
         neighbor.store_orders()
-        for order in order_list:
-            # check if every order is stored in every neighbor.
-            assert order in neighbor.order_orderinfo_mapping
 
-    # since receive_order_internal() function has not been tested, we manually put the orders 0-3
-    # into peer's pending table
+        # We manually put the order into peer's pending table
 
-    for order in order_list[0:4]:
+        orderinfo = OrderInfo(
+            engine=setup_engine,
+            order=order,
+            master=neighbor,
+            arrival_time=peer.birth_time,
+            priority=None,
+            prev_owner=neighbor,
+            novelty=0,
+        )
+        peer.order_pending_orderinfo_mapping[order] = [orderinfo]
+        order.hesitators.add(peer)
+
+        # manually set storage_decisions for the order.
+        orderinfo.storage_decision = True
+
+        # now let us disconnect neighbor_disconnect
+        peer.del_neighbor(neighbor)
+
+        # Disable engine.store_or_discard_orders which will otherwise
+        # change the values for orderinfo.storage_decision
+        def fake_storage_decision(_node):
+            pass
+
+        monkeypatch.setattr(
+            setup_engine, "store_or_discard_orders", fake_storage_decision
+        )
+
+        # Action.
+        peer.store_orders()
+
+        # Assert.
+
+        # order should have been stored, though the neighbor left.
+        assert peer.order_orderinfo_mapping[order].prev_owner == neighbor
+        # check peer's pending table. It should have been cleared.
+        assert peer.order_pending_orderinfo_mapping == {}
+
+    def test_store_orders__multi_orderinfo_error(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This function tests if an order has multiple orderinfo instances and more than one is
+        labeled as to store. In such case an error is expected.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :param monkeypatch: tool for fake function.
+        :return: None.
+        """
+
+        # Arrange.
+
+        # Create a peer and two neighbors for this peer.
+        peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+
+        # order will have multiple orderinfo instances to store and raise an error
+        order: Order = create_a_test_order(setup_scenario)
+
+        for neighbor in neighbor_list:
+            # each neighbor receives the orders and becomes the neighbor of the peer.
+            neighbor.receive_order_external(order)
+            neighbor.store_orders()
+            neighbor.add_neighbor(peer)
+            peer.add_neighbor(neighbor)
+
+        # since receive_order_internal() function has not been tested, we manually put the order
+        # into peer's pending table
+
         for neighbor in neighbor_list:
             orderinfo = OrderInfo(
                 engine=setup_engine,
@@ -652,542 +880,925 @@ def test_store_orders(setup_scenario, setup_engine, monkeypatch) -> None:
                 peer.order_pending_orderinfo_mapping[order].append(orderinfo)
             order.hesitators.add(peer)
 
-    # check peer's pending table.
-    # It should contain four orders, each with four orderinfo instances.
-    assert len(peer.order_pending_orderinfo_mapping) == 4
-    for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
-        assert len(orderinfo_list) == 4
-
-    # manually set storage_decisions for each order.
-    # Store neighbor_0's orderinfo instance for order_0, neighbor_2's instance for order_1,
-    # do not store order_2, and store neighbor_3's instance for order_3
-
-    for orderinfo in peer.order_pending_orderinfo_mapping[order_list[0]]:
-        if orderinfo.prev_owner == neighbor_list[0]:
+        # manually set storage_decisions for each order as True
+        for orderinfo in peer.order_pending_orderinfo_mapping[order]:
             orderinfo.storage_decision = True
-        else:
-            orderinfo.storage_decision = False
 
-    for orderinfo in peer.order_pending_orderinfo_mapping[order_list[1]]:
-        if orderinfo.prev_owner == neighbor_list[2]:
-            orderinfo.storage_decision = True
-        else:
-            orderinfo.storage_decision = False
+        # Disable engine.store_or_discard_orders which will otherwise
+        # change the values for orderinfo.storage_decision
+        def fake_storage_decision(_node):
+            pass
 
-    for orderinfo in peer.order_pending_orderinfo_mapping[order_list[2]]:
-        orderinfo.storage_decision = False
-
-    for orderinfo in peer.order_pending_orderinfo_mapping[order_list[3]]:
-        if orderinfo.prev_owner == neighbor_list[3]:
-            orderinfo.storage_decision = True
-        else:
-            orderinfo.storage_decision = False
-
-    # now let us disconnect neighbor_disconnect
-    peer.del_neighbor(neighbor_list[3])
-    assert neighbor_list[3] not in peer.peer_neighbor_mapping
-
-    # Disable engine.store_or_discard_orders which will otherwise
-    # change the values for orderinfo.storage_decision
-    def fake_storage_decision(_node):
-        pass
-
-    monkeypatch.setattr(setup_engine, "store_or_discard_orders", fake_storage_decision)
-
-    # Now let us check store_orders()
-    peer.store_orders()
-
-    # order_0 should have been stored
-    assert order_list[0] in peer.order_orderinfo_mapping
-    assert peer.order_orderinfo_mapping[order_list[0]].prev_owner == neighbor_list[0]
-
-    # order_1 too
-    assert order_list[1] in peer.order_orderinfo_mapping
-    assert peer.order_orderinfo_mapping[order_list[1]].prev_owner == neighbor_list[2]
-
-    # order_2 should have not been stored
-    assert order_list[2] not in peer.order_orderinfo_mapping
-
-    # order_3 should have been stored, though the neighbor left.
-    assert order_list[3] in peer.order_orderinfo_mapping
-    assert peer.order_orderinfo_mapping[order_list[3]].prev_owner == neighbor_list[3]
-
-    # check peer's pending table. It should have been cleared.
-    assert peer.order_pending_orderinfo_mapping == {}
-
-    # Now lets consider order_4. Let it have multiple versions labeled to store.
-    # manually put order_4 into peer's pending table
-
-    for neighbor in neighbor_list:
-        orderinfo = OrderInfo(
-            engine=setup_engine,
-            order=order_list[4],
-            master=neighbor,
-            arrival_time=peer.birth_time,
-            priority=None,
-            prev_owner=neighbor,
-            novelty=0,
+        monkeypatch.setattr(
+            setup_engine, "store_or_discard_orders", fake_storage_decision
         )
-        if order_list[4] not in peer.order_pending_orderinfo_mapping:
-            peer.order_pending_orderinfo_mapping[order_list[4]] = [orderinfo]
-        else:
-            peer.order_pending_orderinfo_mapping[order_list[4]].append(orderinfo)
-        order_list[4].hesitators.add(peer)
 
-    # label orderinfo be stored for versions from both neighbor_0 and neighbor_1
-    for orderinfo in peer.order_pending_orderinfo_mapping[order_list[4]]:
-        if orderinfo.prev_owner == neighbor_list[0] or neighbor_list[1]:
-            orderinfo.storage_decision = True
-        else:
-            orderinfo.storage_decision = False
-
-    # call store(). Error is expected.
-    with pytest.raises(ValueError):
-        peer.store_orders()
+        # Action and Assert.
+        with pytest.raises(ValueError):
+            peer.store_orders()
 
 
-def test_receive_order_internal(setup_scenario, setup_engine) -> None:
+class TestReceiveInternal:
     """
-    This function tests receive_order_internal().
-    :param setup_scenario: fixture.
-    :param setup_engine: fixture.
-    :return: None.
+    This class contains test functions for receive_order_internal().
     """
 
-    # each of the peers have five distinct orders. The first two are neighbors. The third isn't.
-    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
-    peer_list[0].add_neighbor(peer_list[1])
-    peer_list[1].add_neighbor(peer_list[0])
+    def test_receive_order_internal__from_non_neighbor(
+        self, setup_scenario, setup_engine
+    ):
+        """
+        Test receiving an internal order from a non-neighbor. Error expeceted.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+        order: Order = create_a_test_order(setup_scenario)
+        peer_list[1].receive_order_external(order)
+        peer_list[1].store_orders()
+        with pytest.raises(ValueError):
+            peer_list[0].receive_order_internal(peer_list[1], order)
 
-    # Here are two new orders.
-    # The first one will be stored by all three peers.
-    new_order_list: List[Order] = create_test_orders(setup_scenario, 2)
+    def test_receive_order_internal__normal(self, setup_scenario, setup_engine):
+        """
+        Test receiving an internal order normally.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        # Arrange.
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+        peer_list[0].add_neighbor(peer_list[1])
+        peer_list[1].add_neighbor(peer_list[0])
+        order: Order = create_a_test_order(setup_scenario)
+        peer_list[1].receive_order_external(order)
+        peer_list[1].store_orders()
+        # Action.
+        peer_list[0].receive_order_internal(peer_list[1], order)
+        # Assert.
+        assert order in peer_list[0].order_pending_orderinfo_mapping
 
-    # peer 0 uses receive_order_external() to receive this order, and uses store_orders() to
-    # store this order.
-    peer_list[0].receive_order_external(new_order_list[0])
-    peer_list[0].store_orders()
-    # Now, peer 0 should have 6 orders.
-    assert len(peer_list[0].order_orderinfo_mapping) == 6
+    def test_receive_order_internal_not_accepted(
+        self, setup_scenario, setup_engine, monkeypatch
+    ):
+        """
+        Test receiving an internal order labeled as not to accept by the receiver.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        # Arrange
+        # Changes the decision of accepting an internal order from always yes to always no.
+        def fake_should_accept_internal_order(_receiver, _sender, _order):
+            return False
 
-    # same for peers 1 and 2. Note that the extra one order they stored is exactly the
-    # same one.
-    peer_list[1].receive_order_external(new_order_list[0])
-    peer_list[1].store_orders()
-    peer_list[2].receive_order_external(new_order_list[0])
-    peer_list[2].store_orders()
+        monkeypatch.setattr(
+            setup_engine,
+            "should_accept_internal_order",
+            fake_should_accept_internal_order,
+        )
 
-    # Non-neighbors should not be able to send orders.
-    with pytest.raises(ValueError):
-        peer_list[0].receive_order_internal(peer_list[2], new_order_list[0])
+        # Same as the test above.
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+        peer_list[0].add_neighbor(peer_list[1])
+        peer_list[1].add_neighbor(peer_list[0])
+        order: Order = create_a_test_order(setup_scenario)
+        peer_list[1].receive_order_external(order)
+        peer_list[1].store_orders()
 
-    # peer 1 sends orders to peer 0.
-    # Five of the orders are new to peer one. One is duplicate.
-    # Peer 0 should only accept the five new ones to pending list.
-    for order in peer_list[1].order_orderinfo_mapping:
+        # Action.
         peer_list[0].receive_order_internal(peer_list[1], order)
 
-    assert len(peer_list[0].order_pending_orderinfo_mapping) == 5
+        # Assert. Now it should not be accepted.
+        assert order not in peer_list[0].order_pending_orderinfo_mapping
 
-    # peer 0 moves the five new orders from pending list to local storage.
-    peer_list[0].store_orders()
-    assert len(peer_list[0].order_orderinfo_mapping) == 11
-    assert not peer_list[0].order_pending_orderinfo_mapping
+    def test_receive_order_internal_duplicate_from_same_neighbor(
+        self, setup_scenario, setup_engine
+    ):
+        """
+        Test receiving the same internal order from the neighbor multiple times.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        # Arrange.
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+        peer_list[0].add_neighbor(peer_list[1])
+        peer_list[1].add_neighbor(peer_list[0])
+        order: Order = create_a_test_order(setup_scenario)
+        peer_list[1].receive_order_external(order)
+        peer_list[1].store_orders()
+        # Action.
+        peer_list[0].receive_order_internal(peer_list[1], order)
+        peer_list[0].receive_order_internal(peer_list[1], order)
+        # Assert.
+        assert len(peer_list[0].order_pending_orderinfo_mapping[order]) == 1
 
-    # test receiving duplicate new orders
-
-    # new order 1 is stored by peer 1 and peer 2.
-    peer_list[1].receive_order_external(new_order_list[1])
-    peer_list[1].store_orders()
-
-    # peer 0 receives a copy from peer 1. This order is new to peer 0.
-    peer_list[0].receive_order_internal(peer_list[1], new_order_list[1])
-    assert len(peer_list[0].order_pending_orderinfo_mapping) == 1
-    assert len(peer_list[0].order_pending_orderinfo_mapping[new_order_list[1]]) == 1
-
-    # peer 0 receives another copy again from peer 1. Duplicated copy from the same neighbor,
-    # so peer 0 should ignore it.
-    peer_list[0].receive_order_internal(peer_list[1], new_order_list[1])
-    assert len(peer_list[0].order_pending_orderinfo_mapping) == 1
-    assert len(peer_list[0].order_pending_orderinfo_mapping[new_order_list[1]]) == 1
-
-    # peer 2 also has this new order and it is now a neighbor of peer 0.
-    peer_list[2].receive_order_external(new_order_list[1])
-    peer_list[2].store_orders()
-    peer_list[0].add_neighbor(peer_list[2])
-    peer_list[2].add_neighbor(peer_list[0])
-
-    # peer 0 received a duplicated order but a different orderinfo instance, from a different
-    # neighbor peer 2, so it needs to put it into the pending list.
-    peer_list[0].receive_order_internal(peer_list[2], new_order_list[1])
-    assert len(peer_list[0].order_pending_orderinfo_mapping) == 1
-    assert len(peer_list[0].order_pending_orderinfo_mapping[new_order_list[1]]) == 2
-
-    # peer 0 finally stores this order. It should store one copy only.
-    # this is actually to test store_order() function.
-    peer_list[0].store_orders()
-    assert len(peer_list[0].order_orderinfo_mapping) == 12
-
-
-def test_share_orders(setup_scenario, setup_engine, monkeypatch) -> None:
-    """
-    This function tests share_orders(). It mocks find_orders_to_share() and
-    find_neighbors_to_share() function by only seleting orders/peers with sequence number less
-    than 100.
-    :param setup_scenario: fixture.
-    :param setup_engine: fixture.
-    :param monkeypatch: mocking tool.
-    :return: None.
-    """
-
-    # mock the method of find orders/peers to share
-
-    def mock_find_orders_to_share(peer):
-        return set(order for order in peer.order_orderinfo_mapping if order.seq < 100)
-
-    def mock_find_neighbors_to_share(_time_now, peer):
-        return set(peer for peer in peer.peer_neighbor_mapping if peer.seq < 100)
-
-    monkeypatch.setattr(setup_engine, "find_orders_to_share", mock_find_orders_to_share)
-    monkeypatch.setattr(
-        setup_engine, "find_neighbors_to_share", mock_find_neighbors_to_share
-    )
-
-    # peer_one is a normal peer. We will add three neighbors for it.
-    # We will change the sequence number of neighbor_three and one of the initial orders that
-    # peer_one has
-
-    peer_one, order_set = create_a_test_peer(setup_scenario, setup_engine)
-
-    neighbor_list = create_test_peers(setup_scenario, setup_engine, 3)
-    neighbor_list[2].seq = 101
-
-    one_random_order = random.sample(order_set, 1)[0]
-    one_random_order.seq = 280
-
-    peer_one.add_neighbor(neighbor_list[0])
-    peer_one.add_neighbor(neighbor_list[1])
-    peer_one.add_neighbor(neighbor_list[2])
-
-    # check for the neighbors and orders that peer_one shares. It should share everything expect
-    # the ones with modified sequence numbers.
-
-    order_sharing_set, beneficiary_set = peer_one.share_orders()
-
-    assert neighbor_list[0] in beneficiary_set
-    assert neighbor_list[1] in beneficiary_set
-    assert neighbor_list[2] not in beneficiary_set
-    for order in order_set:
-        if order.seq == 280:
-            assert order not in order_sharing_set
-        else:
-            assert order in order_sharing_set
-
-    # after share, the new_order_set should be cleared.
-    assert peer_one.new_order_set == set()
-
-    # peer_two is a free rider. It should not share anything to anyone.
-
-    peer_two: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
-    peer_two.is_free_rider = True
-
-    peer_two.add_neighbor(neighbor_list[0])
-    assert peer_two.share_orders() == (set(), set())
-
-
-def test_del_order(setup_scenario, setup_engine) -> None:
-    """
-    This function tests del_orders().
-    :param setup_scenario: fixture.
-    :param setup_engine: fixture.
-    :return: None.
-    """
-
-    # create peers.
-    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
-    my_peer: Peer = peer_list[0]
-    neighbor_one: Peer = peer_list[1]
-    neighbor_two: Peer = peer_list[2]
-
-    # create new orders
-    new_order_list: List[Order] = create_test_orders(setup_scenario, 4)
-
-    # my_peer first receives an external order new_order_list[0] and stores it.
-    # Now, besides the original five orders, this new order is also in my_peer's local storage.
-    my_peer.receive_order_external(new_order_list[0])
-    my_peer.store_orders()
-
-    # receive internal orders from neighbors
-    my_peer.add_neighbor(neighbor_one)
-    my_peer.add_neighbor(neighbor_two)
-    neighbor_one.add_neighbor(my_peer)
-    neighbor_two.add_neighbor(my_peer)
-
-    # both new_order_list[1] and new_order_list[2] will be put into both neighbor's local storage,
-    # for new_order_list[1], my_peer will receive from both neighbors, but for new_order_list[2],
-    # it will only receive from neighbor_one
-
-    for neighbor in [neighbor_one, neighbor_two]:
-        for new_order in (new_order_list[1], new_order_list[2]):
-            neighbor.receive_order_external(new_order)
+    def test_receive_order_internal_duplicate_from_others(
+        self, setup_scenario, setup_engine
+    ):
+        """
+        Test receiving the same internal order from different neighbors for multiple times.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        # Arrange.
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
+        for neighbor in (peer_list[1], peer_list[2]):
+            peer_list[0].add_neighbor(neighbor)
+            neighbor.add_neighbor(peer_list[0])
+        order: Order = create_a_test_order(setup_scenario)
+        for neighbor in (peer_list[1], peer_list[2]):
+            neighbor.receive_order_external(order)
             neighbor.store_orders()
-
-    my_peer.receive_order_internal(neighbor_one, new_order_list[1])
-    my_peer.receive_order_internal(neighbor_two, new_order_list[1])
-    my_peer.receive_order_internal(neighbor_one, new_order_list[2])
-
-    # Now, my_peer's pending table should look like
-    # {new_order_list[1]: [orderinfo_11, orderinfo_12],
-    #  new_order_list[2]: [orderinfo_21]}
-
-    # check status before deletion
-    assert len(my_peer.order_orderinfo_mapping) == 6
-    assert len(my_peer.order_pending_orderinfo_mapping) == 2
-    assert new_order_list[0] in my_peer.order_orderinfo_mapping
-    assert new_order_list[1] in my_peer.order_pending_orderinfo_mapping
-    assert new_order_list[2] in my_peer.order_pending_orderinfo_mapping
-    assert my_peer in new_order_list[0].holders
-    assert my_peer in new_order_list[1].hesitators
-    assert my_peer in new_order_list[2].hesitators
-
-    # delete all new orders
-    my_peer.del_order(new_order_list[1])
-    my_peer.del_order(new_order_list[2])
-    my_peer.del_order(new_order_list[0])
-
-    # assert status after deletion
-    assert len(my_peer.order_orderinfo_mapping) == 5
-    assert not my_peer.order_pending_orderinfo_mapping
-    assert new_order_list[0] not in my_peer.order_orderinfo_mapping
-    assert new_order_list[1] not in my_peer.order_pending_orderinfo_mapping
-    assert new_order_list[2] not in my_peer.order_pending_orderinfo_mapping
-    assert my_peer not in new_order_list[0].holders
-    assert my_peer not in new_order_list[1].hesitators
-    assert my_peer not in new_order_list[2].hesitators
-
-    # test deleting an order (new_order_list[3]) that this peer does not have.
-    # Nothing should happen.
-
-    assert new_order_list[3] not in my_peer.order_pending_orderinfo_mapping
-    assert new_order_list[3] not in my_peer.order_orderinfo_mapping
-    my_peer.del_order(new_order_list[3])
-    assert new_order_list[3] not in my_peer.order_pending_orderinfo_mapping
-    assert new_order_list[3] not in my_peer.order_orderinfo_mapping
+        # Action.
+        for neighbor in (peer_list[1], peer_list[2]):
+            peer_list[0].receive_order_internal(neighbor, order)
+        # Assert. Both copies should be in the pending table.
+        assert len(peer_list[0].order_pending_orderinfo_mapping[order]) == 2
 
 
-def test_rank_neighbors(setup_scenario, setup_engine, monkeypatch) -> None:
+class TestShareOrders:
     """
-    This function tests rank_neighbors(). We disable score_neighbors() function which will change
-    the score of neighbors, and use a mocked one to replace it.
-    :param setup_scenario: fixture.
-    :param setup_engine: fixture.
-    :param monkeypatch: tool for fake function.
-    :return: None
+    This class contains test functions for share_order() function.
     """
 
-    # disable score_neighbors() function. Otherwise rank_neighbors() will change the scores that
-    # we have specifically set for this test.
+    def test_share_orders__normal(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This function tests share_orders(). It mocks find_orders_to_share() and
+        find_neighbors_to_share() function by only selecting orders/peers with sequence number less
+        than 100.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :param monkeypatch: mocking tool.
+        :return: None.
+        """
 
-    def fake_score_neighbors(_peer):
-        pass
+        # Arrange.
 
-    monkeypatch.setattr(setup_engine, "score_neighbors", fake_score_neighbors)
+        # mock the method of find orders/peers to share
 
-    # create peer list
-    peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 4)
+        def mock_find_orders_to_share(peer):
+            return set(
+                any_order
+                for any_order in peer.order_orderinfo_mapping
+                if any_order.seq < 100
+            )
 
-    peer_list[0].add_neighbor(peer_list[1])
-    peer_list[0].add_neighbor(peer_list[2])
-    peer_list[0].add_neighbor(peer_list[3])
+        def mock_find_neighbors_to_share(_time_now, peer):
+            return set(
+                any_peer
+                for any_peer in peer.peer_neighbor_mapping
+                if any_peer.seq < 100
+            )
 
-    # manually set their scores
+        monkeypatch.setattr(
+            setup_engine, "find_orders_to_share", mock_find_orders_to_share
+        )
+        monkeypatch.setattr(
+            setup_engine, "find_neighbors_to_share", mock_find_neighbors_to_share
+        )
 
-    peer_list[0].peer_neighbor_mapping[peer_list[1]].score = 50
-    peer_list[0].peer_neighbor_mapping[peer_list[2]].score = 10
-    peer_list[0].peer_neighbor_mapping[peer_list[3]].score = 80
+        # peer is a normal peer. We will add three neighbors for it.
+        # We will change the sequence number of neighbor 2 and one of the initial orders of the peer
 
-    # assert the return value of rank_neighbors(). Should be a list of peer instances ranked by
-    # the score of their corresponding neighbor instances at peer_list[0], from highest to lowest.
-    assert peer_list[0].rank_neighbors() == [peer_list[3], peer_list[1], peer_list[2]]
+        peer, order_set = create_a_test_peer(setup_scenario, setup_engine)
+
+        neighbor_list = create_test_peers(setup_scenario, setup_engine, 3)
+        neighbor_list[2].seq = 101
+
+        unlucky_order = random.sample(order_set, 1)[0]
+        unlucky_order.seq = 280
+
+        for neighbor in neighbor_list:
+            peer.add_neighbor(neighbor)
+            neighbor.add_neighbor(peer)
+
+        # Action.
+
+        order_sharing_set, beneficiary_set = peer.share_orders()
+
+        # Assert.
+        assert len(beneficiary_set) == 2 and neighbor_list[2] not in beneficiary_set
+        assert len(order_sharing_set) == 4 and unlucky_order not in order_sharing_set
+        assert peer.new_order_set == set()
+
+    def test_share_orders__free_rider(self, setup_scenario, setup_engine) -> None:
+        """
+        Test sharing behavior of a free rider. Should not share anything.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        free_rider: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        free_rider.is_free_rider = True
+
+        # Give the free rider three neighbors
+        neighbor_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
+        for neighbor in neighbor_list:
+            free_rider.add_neighbor(neighbor)
+            neighbor.add_neighbor(free_rider)
+
+        assert free_rider.share_orders() == (set(), set())
 
 
-def test_scoring_system(setup_scenario, setup_engine, monkeypatch) -> None:
+class TestDelOrder:
+    """
+    This class contains functions to test del_order().
+    """
+
+    def test_del_order__in_storage(self, setup_scenario, setup_engine) -> None:
+        """
+        This function tests del_orders() when order is in local storage.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+
+        # create peer
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+
+        # create new orders
+        new_order: Order = create_a_test_order(setup_scenario)
+
+        # my_peer receives an external order and stores it.
+        my_peer.receive_order_external(new_order)
+        my_peer.store_orders()
+
+        # delete the new order
+        my_peer.del_order(new_order)
+
+        # assert status after deletion
+        assert new_order not in my_peer.order_orderinfo_mapping
+
+    def test_del_order__in_pending_table(self, setup_scenario, setup_engine) -> None:
+        """
+        This function tests del_orders() when orders are in pending table.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+
+        # create peers.
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
+        my_peer: Peer = peer_list[0]
+        neighbor_one: Peer = peer_list[1]
+        neighbor_two: Peer = peer_list[2]
+
+        # create new orders
+        new_order_list: List[Order] = create_test_orders(setup_scenario, 2)
+
+        # add neighbors
+        my_peer.add_neighbor(neighbor_one)
+        my_peer.add_neighbor(neighbor_two)
+        neighbor_one.add_neighbor(my_peer)
+        neighbor_two.add_neighbor(my_peer)
+
+        # both new_order_list[0] and new_order_list[1] will be put into both neighbor's local
+        # storage, for new_order_list[0], my_peer will receive from both neighbors,
+        # but for new_order_list[1], it will only receive from neighbor_one
+
+        for neighbor in [neighbor_one, neighbor_two]:
+            for new_order in (new_order_list[0], new_order_list[1]):
+                neighbor.receive_order_external(new_order)
+                neighbor.store_orders()
+
+        my_peer.receive_order_internal(neighbor_one, new_order_list[0])
+        my_peer.receive_order_internal(neighbor_two, new_order_list[0])
+        my_peer.receive_order_internal(neighbor_one, new_order_list[1])
+
+        # Now, my_peer's pending table should look like
+        # {new_order_list[0]: [orderinfo_from_neighbor_1, orderinfo_from_neighbor_2],
+        #  new_order_list[1]: [orderinfo_from_neighbor_1]}
+
+        # delete all new orders
+        my_peer.del_order(new_order_list[0])
+        my_peer.del_order(new_order_list[1])
+
+        # assert status after deletion
+        assert new_order_list[0] not in my_peer.order_pending_orderinfo_mapping
+        assert new_order_list[1] not in my_peer.order_pending_orderinfo_mapping
+
+    def test_del_order__not_existing(self, setup_scenario, setup_engine) -> None:
+        """
+        This function tests del_orders() when the peer does not have this order.
+        According to our design, nothing will happen under this case.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+
+        # create peers.
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        # create an order
+        new_order: Order = create_a_test_order(setup_scenario)
+
+        # delete the new order
+        my_peer.del_order(new_order)
+
+        # Assert. No error should be raised.
+        assert new_order not in my_peer.order_pending_orderinfo_mapping
+        assert new_order not in my_peer.order_orderinfo_mapping
+
+
+class TestRankNeighbors:
+    """
+    This class contains a test function for rank_neighbors().
+    """
+
+    def test_rank_neighbors(self, setup_scenario, setup_engine, monkeypatch) -> None:
+        """
+        This function tests rank_neighbors(). We disable score_neighbors() function which will
+        change the score of neighbors, and use a mocked one to replace it.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :param monkeypatch: tool for fake function.
+        :return: None
+        """
+
+        # disable score_neighbors() function. Otherwise rank_neighbors() will change the scores that
+        # we have specifically set for this test.
+
+        def fake_score_neighbors(_peer):
+            pass
+
+        monkeypatch.setattr(setup_engine, "score_neighbors", fake_score_neighbors)
+
+        # create peer list
+        peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 4)
+
+        peer_list[0].add_neighbor(peer_list[1])
+        peer_list[0].add_neighbor(peer_list[2])
+        peer_list[0].add_neighbor(peer_list[3])
+
+        # manually set their scores
+
+        peer_list[0].peer_neighbor_mapping[peer_list[1]].score = 50
+        peer_list[0].peer_neighbor_mapping[peer_list[2]].score = 10
+        peer_list[0].peer_neighbor_mapping[peer_list[3]].score = 80
+
+        # assert the return value of rank_neighbors(). Should be a list of peer instances ranked by
+        # the score of their corresponding neighbor instances at peer_list[0], from highest to
+        # lowest.
+        assert peer_list[0].rank_neighbors() == [
+            peer_list[3],
+            peer_list[1],
+            peer_list[2],
+        ]
+
+
+class TestScoringSystem:
     """
     This function tests the scoring system for neighbors to contribute. Score changes happen in
     receive_order_internal() and store_orders(), but it is difficult to cover all cases when
     tests of these two functions are focused on other perspectives.
     So we decided to have an individual test function for the score updates.
-    :param setup_scenario: fixture
-    :param setup_engine: fixture
-    :param monkeypatch: tool for fake function.
-    :return: None
     """
 
-    # Setting: my_peer is the one who accepts and stores orders. We will check scores
-    # for neighbors 0-6. Neighbor 7 is some other neighbor as a competitor.
-    #
-    # my_peer's initial status:
-    # Local storage: Order 1 from Neighbor 1, Order 2 from Neighbor 7.
-    # Pending table: Order 3 from Neighbor 3, Order 5 from Neighbor 7, Order 6 from Neighbor 7.
-    #
-    # Behavior: neighbor i sends order i to my_peer, i in [0,6].
-    # Assumption:
-    # Order 0 does not pass should_accept_internal_order()
-    # Order 4's storage_decision is set False
-    # Order 5: version from Neighbor 7 is accepted
-    # Order 6: version from Neighbor 6 is accepted.
-    # Result:
-    # Order 0 rejected since it doesn't pass should_accept_internal_order() (penalty_a).
-    # Order 1 rejected since there's a duplicate in local storage from same neighbor (reward_a).
-    # Order 2 rejected since there's a duplicate in local storage from someone else (reward_b).
-    # Order 3 rejected since there's a duplicate in pending table from same neighbor (penalty_b).
-    # however, there is another copy of order 3 from neighbor 3 and finally it gets stored,
-    # so neighbor 3 will finally get reward_d as well.
-    # Order 4's storage_decision is set False so it is accepted to pending table but rejected in
-    # storage. (reward_c)
-    # Order 5 is accepted to pending table but finally rejected to storage (reward_e)
-    # Order 6 is accepted to pending table and is finally stored (reward_d).
+    def test_scoring_system_penalty_a(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This function tests the case for penalty_a
+        :param setup_scenario: fixture
+        :param setup_engine: fixture
+        :param monkeypatch: tool for fake function.
+        :return: None
+        """
+        # Setting for this case:
+        # Order does not pass should_accept_internal_order()
+        # Order rejected since it doesn't pass should_accept_internal_order() (penalty_a).
 
-    my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
-    neighbor_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 8)
-    order_list: List[Order] = create_test_orders(setup_scenario, 7)
+        # Arrange.
 
-    # setup the environment
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
 
-    # establish neighborhood
-
-    for i in range(8):
-        my_peer.add_neighbor(neighbor_list[i])
-        neighbor_list[i].add_neighbor(my_peer)
-
-    # let every neighbor own the orders that it should have
-    for i in range(7):
-        neighbor_list[i].receive_order_external(order_list[i])
-        neighbor_list[i].store_orders()
-
-    # let neighbor 7 have orders 2 and 5 and 6
-    for order in [order_list[2], order_list[5], order_list[6]]:
-        neighbor_list[7].receive_order_external(order)
-    neighbor_list[7].store_orders()
-
-    # setup the initial status for my_peer
-    my_peer.receive_order_internal(neighbor_list[1], order_list[1])
-    my_peer.receive_order_internal(neighbor_list[7], order_list[2])
-    my_peer.store_orders()
-
-    my_peer.receive_order_internal(neighbor_list[3], order_list[3])
-    my_peer.receive_order_internal(neighbor_list[7], order_list[5])
-    my_peer.receive_order_internal(neighbor_list[7], order_list[6])
-
-    # clear score sheet for neighbors
-    for neighbor_peer in neighbor_list:
-        my_peer.peer_neighbor_mapping[neighbor_peer].share_contribution[-1] = 0
-
-    # define fake functions.
-    # Order 0 will cannot be accepted to the pending list; the rest might be accepted.
-    def fake_should_accept_internal_order(_receiver, _sender, order):
-        if order == order_list[0]:
-            return False
-        return True
-
-    # This fake function does not change the storage_decision for any orderinfo instance.
-    # We will manually change them.
-    def fake_store_or_discard_orders(peer):
-        pass
-
-    monkeypatch.setattr(
-        setup_engine, "store_or_discard_orders", fake_store_or_discard_orders
-    )
-    monkeypatch.setattr(
-        setup_engine, "should_accept_internal_order", fake_should_accept_internal_order
-    )
-
-    # every neighbor sends the order to my_peer
-    for i in range(7):
-        my_peer.receive_order_internal(neighbor_list[i], order_list[i])
-
-    # my_peer labels storage_decision for every orderinfo
-    for order, orderinfo_list in my_peer.order_pending_orderinfo_mapping.items():
-        for orderinfo in orderinfo_list:
-            orderinfo.storage_decision = True
-
-        if order == order_list[4]:
-            for orderinfo in orderinfo_list:
-                orderinfo.storage_decision = False
-
-        if order == order_list[5]:
-            for orderinfo in orderinfo_list:
-                if orderinfo.prev_owner == neighbor_list[5]:
-                    orderinfo.storage_decision = False
-
-        if order == order_list[6]:
-            for orderinfo in orderinfo_list:
-                if orderinfo.prev_owner == neighbor_list[7]:
-                    orderinfo.storage_decision = False
-
-    # store orders
-    my_peer.store_orders()
-
-    # calculate scores. The value equals to the last entry of the score sheet.
-    my_peer.rank_neighbors()
-
-    # check scores
-    assert my_peer.peer_neighbor_mapping[neighbor_list[0]].score == pytest.approx(-13)
-    assert my_peer.peer_neighbor_mapping[neighbor_list[1]].score == pytest.approx(2)
-    assert my_peer.peer_neighbor_mapping[neighbor_list[2]].score == pytest.approx(3)
-    assert my_peer.peer_neighbor_mapping[neighbor_list[3]].score == pytest.approx(-10)
-    assert my_peer.peer_neighbor_mapping[neighbor_list[4]].score == pytest.approx(5)
-    assert my_peer.peer_neighbor_mapping[neighbor_list[5]].score == pytest.approx(11)
-    assert my_peer.peer_neighbor_mapping[neighbor_list[6]].score == pytest.approx(7)
-
-
-def test_del_neighbor_with_remove_order(setup_scenario, setup_engine) -> None:
-    """
-    This function specifically test remove order option for del_neighbor() function.
-    :param setup_scenario: fixture.
-    :param setup_engine: fixture.
-    :return: None.
-    """
-    # create my_peer and neighbors. Later, neighbor_list[0] will be deleted.
-    my_peer = create_a_test_peer(setup_scenario, setup_engine)[0]
-    neighbor_list = create_test_peers(setup_scenario, setup_engine, 2)
-    for neighbor in neighbor_list:
+        # establish neighborhood
         my_peer.add_neighbor(neighbor)
         neighbor.add_neighbor(my_peer)
 
-    # we have 3 new orders. Neighbor 0 has all of them.
-    new_order_list = create_test_orders(setup_scenario, 3)
-    for order in new_order_list:
-        neighbor_list[0].receive_order_external(order)
-    neighbor_list[0].store_orders()
+        # let neighbor own the order that it should have
+        neighbor.receive_order_external(order)
+        neighbor.store_orders()
 
-    # Neighbor 1 has order 2
-    neighbor_list[1].receive_order_external(new_order_list[2])
-    neighbor_list[1].store_orders()
+        # clear score sheet for neighbors
+        my_peer.peer_neighbor_mapping[neighbor].share_contribution[-1] = 0
 
-    # my_peer will have order 0 in local storage, from neighbor 0
-    my_peer.receive_order_internal(neighbor_list[0], new_order_list[0])
-    my_peer.store_orders()
+        # define fake functions.
+        # Order cannot be accepted to the pending list
+        def fake_should_accept_internal_order(_receiver, _sender, _order):
+            return False
 
-    # my_peer also has order 1 and order 2 in pending table. For order 1, it only has a version
-    # from neighbor 0; for order 2, it has versions fro neighbor 0 and 1.
-    my_peer.receive_order_internal(neighbor_list[0], new_order_list[1])
-    my_peer.receive_order_internal(neighbor_list[0], new_order_list[2])
-    my_peer.receive_order_internal(neighbor_list[1], new_order_list[2])
+        # This fake function sets storage_decision as True for any orderinfo.
+        def fake_store_or_discard_orders(peer):
+            for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
+                for orderinfo in orderinfo_list:
+                    orderinfo.storage_decision = True
 
-    # my_peer deletes neighbor 0 and cancels orders from it.
-    my_peer.del_neighbor(neighbor_list[0], remove_order=True)
+        monkeypatch.setattr(
+            setup_engine, "store_or_discard_orders", fake_store_or_discard_orders
+        )
+        monkeypatch.setattr(
+            setup_engine,
+            "should_accept_internal_order",
+            fake_should_accept_internal_order,
+        )
 
-    # Now order 0 should have been deleted from local storage.
-    assert new_order_list[0] not in my_peer.order_orderinfo_mapping
+        # Act.
 
-    # Now order 1 should have been deleted from pending table.
-    assert new_order_list[1] not in my_peer.order_pending_orderinfo_mapping
+        # neighbor sends the order to my_peer
+        my_peer.receive_order_internal(neighbor, order)
+        # store orders
+        my_peer.store_orders()
+        # calculate scores. The value equals to the last entry of the score sheet.
+        my_peer.rank_neighbors()
 
-    # Now order 2 should still be in the pending table, but the copy is not from neighbor[0]
-    assert new_order_list[2] in my_peer.order_pending_orderinfo_mapping
-    assert len(my_peer.order_pending_orderinfo_mapping[new_order_list[2]]) == 1
-    assert (
-        my_peer.order_pending_orderinfo_mapping[new_order_list[2]][0].prev_owner
-        == neighbor_list[1]
-    )
+        # Assert.
+        assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(-13)
+
+    def test_scoring_system_reward_a(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This function tests the case for reward_a
+        :param setup_scenario: fixture
+        :param setup_engine: fixture
+        :param monkeypatch: tool for fake function.
+        :return: None
+        """
+
+        # Setting for this case:
+        # my_peer's initial status:
+        # Local storage: there is an Order instance from the same neighbor
+        # Behavior: neighbor sends order to my_peer
+        # Result: Order rejected since there's a duplicate in local storage from the same neighbor (
+        # reward_a).
+
+        # Arrange.
+
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
+
+        # establish neighborhood
+        my_peer.add_neighbor(neighbor)
+        neighbor.add_neighbor(my_peer)
+
+        # let neighbor own the order that it should have
+        neighbor.receive_order_external(order)
+        neighbor.store_orders()
+
+        # setup the initial status for my_peer
+        my_peer.receive_order_internal(neighbor, order)
+        my_peer.store_orders()
+
+        # clear score sheet for neighbor
+        my_peer.peer_neighbor_mapping[neighbor].share_contribution[-1] = 0
+
+        # define fake functions.
+
+        # This fake function sets storage_decision as True for any orderinfo.
+        def fake_store_or_discard_orders(peer):
+            for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
+                for orderinfo in orderinfo_list:
+                    orderinfo.storage_decision = True
+
+        monkeypatch.setattr(
+            setup_engine, "store_or_discard_orders", fake_store_or_discard_orders
+        )
+
+        # Act.
+
+        # neighbor sends the order to my_peer
+        my_peer.receive_order_internal(neighbor, order)
+        # store orders
+        my_peer.store_orders()
+        # calculate scores. The value equals to the last entry of the score sheet.
+        my_peer.rank_neighbors()
+
+        # Assert.
+        assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(2)
+
+    def test_scoring_system_reward_b(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This function tests the case for reward_b
+        :param setup_scenario: fixture
+        :param setup_engine: fixture
+        :param monkeypatch: tool for fake function.
+        :return: None
+        """
+
+        # Setting for this case:
+        # my_peer's initial status:
+        # Local storage: there is an Order instance from the competitor.
+        # Behavior: neighbor sends order to my_peer
+        # Result: Order rejected since there's a duplicate in local storage from competitor \(
+        # reward_b).
+
+        # Arrange.
+
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        competitor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
+
+        # establish neighborhood
+        for anyone in (neighbor, competitor):
+            my_peer.add_neighbor(anyone)
+            anyone.add_neighbor(my_peer)
+
+        # let neighbor and competitor own the order that it should have
+        for anyone in (neighbor, competitor):
+            anyone.receive_order_external(order)
+            anyone.store_orders()
+
+        # setup the initial status for my_peer
+        my_peer.receive_order_internal(competitor, order)
+        my_peer.store_orders()
+
+        # clear score sheet for neighbor
+        my_peer.peer_neighbor_mapping[neighbor].share_contribution[-1] = 0
+
+        # define fake functions.
+
+        # This fake function sets storage_decision as True for any orderinfo.
+        def fake_store_or_discard_orders(peer):
+            for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
+                for orderinfo in orderinfo_list:
+                    orderinfo.storage_decision = True
+
+        monkeypatch.setattr(
+            setup_engine, "store_or_discard_orders", fake_store_or_discard_orders
+        )
+
+        # Act.
+
+        # neighbor sends the order to my_peer
+        my_peer.receive_order_internal(neighbor, order)
+        # store orders
+        my_peer.store_orders()
+        # calculate scores. The value equals to the last entry of the score sheet.
+        my_peer.rank_neighbors()
+
+        # Assert.
+        assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(3)
+
+    def test_scoring_system_penalty_b(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This function tests the case for penalty_b
+        :param setup_scenario: fixture
+        :param setup_engine: fixture
+        :param monkeypatch: tool for fake function.
+        :return: None
+        """
+
+        # Setting for this case:
+        # my_peer's initial status:
+        # Pending table: there is an Order instance from the same neighbor
+        # Behavior: neighbor sends order to my_peer
+        # Result: The second copy rejected since there's a duplicate in pending table from the same
+        # neighbor (penalty_b); however, the first version will be stored finally (reward_d)
+
+        # Arrange.
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
+
+        # establish neighborhood
+        my_peer.add_neighbor(neighbor)
+        neighbor.add_neighbor(my_peer)
+
+        # let neighbor own the order that it should have
+        neighbor.receive_order_external(order)
+        neighbor.store_orders()
+
+        # setup the initial status for my_peer
+        my_peer.receive_order_internal(neighbor, order)
+
+        # clear score sheet for neighbor
+        my_peer.peer_neighbor_mapping[neighbor].share_contribution[-1] = 0
+
+        # define fake functions.
+
+        # This fake function sets storage_decision as True for any orderinfo.
+        def fake_store_or_discard_orders(peer):
+            for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
+                for orderinfo in orderinfo_list:
+                    orderinfo.storage_decision = True
+
+        monkeypatch.setattr(
+            setup_engine, "store_or_discard_orders", fake_store_or_discard_orders
+        )
+
+        # Act.
+
+        # neighbor sends the order to my_peer
+        my_peer.receive_order_internal(neighbor, order)
+        # store orders
+        my_peer.store_orders()
+        # calculate scores. The value equals to the last entry of the score sheet.
+        my_peer.rank_neighbors()
+
+        # Assert.
+        assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(-10)
+
+    def test_scoring_system_reward_c(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This function tests the case for reward_c
+        :param setup_scenario: fixture
+        :param setup_engine: fixture
+        :param monkeypatch: tool for fake function.
+        :return: None
+        """
+        # Setting for this case:
+        # Order passes should_accept_internal_order() but storage_decision is False
+        # Order accepted to pending table, rejected to storage, and gets reward_c
+
+        # Arrange.
+
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
+
+        # establish neighborhood
+        my_peer.add_neighbor(neighbor)
+        neighbor.add_neighbor(my_peer)
+
+        # let neighbor own the order that it should have
+        neighbor.receive_order_external(order)
+        neighbor.store_orders()
+
+        # clear score sheet for neighbors
+        my_peer.peer_neighbor_mapping[neighbor].share_contribution[-1] = 0
+
+        # define fake functions.
+
+        # This fake function sets storage_decision as True for any orderinfo.
+        def fake_store_or_discard_orders(peer):
+            for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
+                for orderinfo in orderinfo_list:
+                    orderinfo.storage_decision = False
+
+        monkeypatch.setattr(
+            setup_engine, "store_or_discard_orders", fake_store_or_discard_orders
+        )
+
+        # Act.
+
+        # neighbor sends the order to my_peer
+        my_peer.receive_order_internal(neighbor, order)
+        # store orders
+        my_peer.store_orders()
+        # calculate scores. The value equals to the last entry of the score sheet.
+        my_peer.rank_neighbors()
+
+        # Assert.
+        assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(5)
+
+    def test_scoring_system_reward_d(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This function tests the case for reward_d
+        :param setup_scenario: fixture
+        :param setup_engine: fixture
+        :param monkeypatch: tool for fake function.
+        :return: None
+        """
+
+        # Setting for this case:
+        # my_peer's initial status:
+        # Pending table: there is a pending orderinfo instance from the competitor.
+        # Behavior: neighbor sends order to my_peer
+        # Result: Order from neighbor stored since neighbor won over competitor (reward_d).
+
+        # Arrange.
+
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        competitor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
+
+        # establish neighborhood
+        for anyone in (neighbor, competitor):
+            my_peer.add_neighbor(anyone)
+            anyone.add_neighbor(my_peer)
+
+        # let neighbor and competitor own the order that it should have
+        for anyone in (neighbor, competitor):
+            anyone.receive_order_external(order)
+            anyone.store_orders()
+
+        # setup the initial status for my_peer
+        my_peer.receive_order_internal(competitor, order)
+
+        # clear score sheet for neighbor
+        my_peer.peer_neighbor_mapping[neighbor].share_contribution[-1] = 0
+
+        # define fake functions.
+
+        # This fake function sets storage_decision as True for any orderinfo.
+        def fake_store_or_discard_orders(peer):
+            for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
+                for orderinfo in orderinfo_list:
+                    if orderinfo.prev_owner == neighbor:
+                        orderinfo.storage_decision = True
+                    else:
+                        orderinfo.storage_decision = False
+
+        monkeypatch.setattr(
+            setup_engine, "store_or_discard_orders", fake_store_or_discard_orders
+        )
+
+        # Act.
+
+        # neighbor sends the order to my_peer
+        my_peer.receive_order_internal(neighbor, order)
+        # store orders
+        my_peer.store_orders()
+        # calculate scores. The value equals to the last entry of the score sheet.
+        my_peer.rank_neighbors()
+
+        # Assert.
+        assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(7)
+
+    def test_scoring_system_reward_e(
+        self, setup_scenario, setup_engine, monkeypatch
+    ) -> None:
+        """
+        This function tests the case for reward_d
+        :param setup_scenario: fixture
+        :param setup_engine: fixture
+        :param monkeypatch: tool for fake function.
+        :return: None
+        """
+
+        # Setting for this case:
+        # my_peer's initial status:
+        # Pending table: there is a pending orderinfo instance from the competitor.
+        # Behavior: neighbor sends order to my_peer
+        # Result: Order from neighbor not stored since competitor won over neighbor (reward_e).
+
+        # Arrange.
+
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        competitor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
+
+        # establish neighborhood
+        for anyone in (neighbor, competitor):
+            my_peer.add_neighbor(anyone)
+            anyone.add_neighbor(my_peer)
+
+        # let neighbor and competitor own the order that it should have
+        for anyone in (neighbor, competitor):
+            anyone.receive_order_external(order)
+            anyone.store_orders()
+
+        # setup the initial status for my_peer
+        my_peer.receive_order_internal(competitor, order)
+
+        # clear score sheet for neighbor
+        my_peer.peer_neighbor_mapping[neighbor].share_contribution[-1] = 0
+
+        # define fake functions.
+
+        # This fake function sets storage_decision as True for any orderinfo.
+        def fake_store_or_discard_orders(peer):
+            for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
+                for orderinfo in orderinfo_list:
+                    if orderinfo.prev_owner == neighbor:
+                        orderinfo.storage_decision = False
+                    else:
+                        orderinfo.storage_decision = True
+
+        monkeypatch.setattr(
+            setup_engine, "store_or_discard_orders", fake_store_or_discard_orders
+        )
+
+        # Act.
+
+        # neighbor sends the order to my_peer
+        my_peer.receive_order_internal(neighbor, order)
+        # store orders
+        my_peer.store_orders()
+        # calculate scores. The value equals to the last entry of the score sheet.
+        my_peer.rank_neighbors()
+
+        # Assert.
+        assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(11)
+
+
+class TestDelNeighborWithRemoveOrder:
+    """
+    This class contains test cases for del_neighbor() with remove order enabled.
+    """
+
+    def test_del_neighbor_with_remove_order__in_storage(
+        self, setup_scenario, setup_engine
+    ) -> None:
+        """
+        Test when there is an order from the deleted neighbor in the local storage.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        # create my_peer and a neighbor. Later, the neighbor will be deleted.
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        my_peer.add_neighbor(neighbor)
+        neighbor.add_neighbor(my_peer)
+
+        # we have a new order. Neighbor has it.
+        order: Order = create_a_test_order(setup_scenario)
+        neighbor.receive_order_external(order)
+        neighbor.store_orders()
+
+        # my_peer will have the order in local storage, from the neighbor
+        my_peer.receive_order_internal(neighbor, order)
+        my_peer.store_orders()
+
+        # my_peer deletes neighbor and cancels orders from it.
+        my_peer.del_neighbor(neighbor, remove_order=True)
+
+        # Assert: Now order should have been deleted from local storage.
+        assert order not in my_peer.order_orderinfo_mapping
+
+    def test_del_neighbor_with_remove_order__single_pending_orderinfo(
+        self, setup_scenario, setup_engine
+    ) -> None:
+        """
+        Test if there is a single orderinfo from the deleted neighbor in the pending table.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        # create my_peer and a neighbor. Later, the neighbor will be deleted.
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        my_peer.add_neighbor(neighbor)
+        neighbor.add_neighbor(my_peer)
+
+        # we have a new order. Neighbor has it.
+        order: Order = create_a_test_order(setup_scenario)
+        neighbor.receive_order_external(order)
+        neighbor.store_orders()
+
+        # my_peer will have the order in the pending table, from the neighbor
+        my_peer.receive_order_internal(neighbor, order)
+
+        # my_peer deletes neighbor and cancels orders from it.
+        my_peer.del_neighbor(neighbor, remove_order=True)
+
+        # Assert: Now order should have been deleted from local storage.
+        assert order not in my_peer.order_pending_orderinfo_mapping
+
+    def test_del_neighbor_with_remove_order__multi_pending_orderinfo(
+        self, setup_scenario, setup_engine
+    ) -> None:
+        """
+        Test if there are multiple orderinfos, one from the deleted neighbor, in the pending table.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None.
+        """
+        # create my_peer and neighbors. Later, neighbor_list[0] will be deleted.
+        my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        neighbor_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+        for neighbor in neighbor_list:
+            my_peer.add_neighbor(neighbor)
+            neighbor.add_neighbor(my_peer)
+
+        # new order.
+        order: Order = create_a_test_order(setup_scenario)
+        for neighbor in neighbor_list:
+            neighbor.receive_order_external(order)
+            neighbor.store_orders()
+
+        # my_peer also has order in pending table. It has versions from both neighbors.
+        for neighbor in neighbor_list:
+            my_peer.receive_order_internal(neighbor, order)
+
+        # Action.
+        # my_peer deletes neighbor 0 and cancels orders from it.
+        my_peer.del_neighbor(neighbor_list[0], remove_order=True)
+
+        # Assert.
+        # Now order should still be in the pending table, but the copy is not from neighbor[0]
+        assert len(my_peer.order_pending_orderinfo_mapping[order]) == 1
+        assert (
+            my_peer.order_pending_orderinfo_mapping[order][0].prev_owner
+            == neighbor_list[1]
+        )
