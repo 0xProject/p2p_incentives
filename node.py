@@ -153,9 +153,7 @@ class Peer:
         """
 
         if requester in self.peer_neighbor_mapping or requester == self:
-            raise ValueError(
-                "Called by a wrong peer."
-            )
+            raise ValueError("Called by a wrong peer.")
 
         return len(self.peer_neighbor_mapping) < self.engine.neighbor_max
 
@@ -242,13 +240,9 @@ class Peer:
         :return: None
         """
         if order in self.order_pending_orderinfo_mapping:
-            raise ValueError(
-                "Duplicated external order in pending table."
-            )
+            raise ValueError("Duplicated external order in pending table.")
         if order in self.order_orderinfo_mapping:
-            raise ValueError(
-                "Duplicated external order in local storage."
-            )
+            raise ValueError("Duplicated external order in local storage.")
 
         if self.engine.should_accept_external_order(self, order):
             # create the orderinfo instance and add it into the local mapping table

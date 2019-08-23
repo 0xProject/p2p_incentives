@@ -359,7 +359,9 @@ class TestOrderAndPeerInit:
         order_set: Set[Order] = set(create_test_orders(setup_scenario, 5))
 
         # create the peer instance
-        with pytest.raises(ValueError, match="Free riders should not have their own orders."):
+        with pytest.raises(
+            ValueError, match="Free riders should not have their own orders."
+        ):
             Peer(
                 engine=setup_engine,
                 seq=1,
