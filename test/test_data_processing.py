@@ -36,58 +36,40 @@ SATISFACTORY_5 = [2]
 
 # test normal cases
 
-def generate_cases_fbwl():
-    """
-    Generate test cases for test_find_best_worst_lists()
-    :return: a list of test inputs and expected outputs.
-    """
-
-    case_list = list()
-
-    ratios = [RATIO_1, RATIO_2, RATIO_3]
-    result = BestAndWorstLists(best=RATIO_3, worst=RATIO_1)
-    case_list.append((ratios, result))
-
-    ratios = [RATIO_1, RATIO_2, RATIO_3, RATIO_4]
-    result = BestAndWorstLists(best=RATIO_3, worst=RATIO_1)
-    case_list.append((ratios, result))
-
-    ratios = [RATIO_4, RATIO_5, RATIO_6]
-    result = BestAndWorstLists(best=RATIO_5, worst=RATIO_5)
-    case_list.append((ratios, result))
-
-    ratios = [RATIO_5, RATIO_6, RATIO_7]
-    result = BestAndWorstLists(best=RATIO_7, worst=RATIO_5)
-    case_list.append((ratios, result))
-
-    ratios = [RATIO_6, RATIO_8, RATIO_9]
-    result = BestAndWorstLists(best=RATIO_6, worst=RATIO_9)
-    case_list.append((ratios, result))
-
-    ratios = [RATIO_4, RATIO_10, RATIO_11, RATIO_12]
-    result = BestAndWorstLists(best=RATIO_11, worst=RATIO_12)
-    case_list.append((ratios, result))
-
-    ratios = [
-        RATIO_1,
-        RATIO_2,
-        RATIO_3,
-        RATIO_4,
-        RATIO_5,
-        RATIO_6,
-        RATIO_7,
-        RATIO_8,
-        RATIO_9,
-        RATIO_10,
-        RATIO_11,
-    ]
-    result = BestAndWorstLists(best=RATIO_7, worst=RATIO_1)
-    case_list.append((ratios, result))
-
-    return case_list
+CASES_BEST_WORST_LISTS = [
+    # tuples: (input, output)
+    ([RATIO_1, RATIO_2, RATIO_3], BestAndWorstLists(best=RATIO_3, worst=RATIO_1)),
+    (
+        [RATIO_1, RATIO_2, RATIO_3, RATIO_4],
+        BestAndWorstLists(best=RATIO_3, worst=RATIO_1),
+    ),
+    ([RATIO_4, RATIO_5, RATIO_6], BestAndWorstLists(best=RATIO_5, worst=RATIO_5)),
+    ([RATIO_5, RATIO_6, RATIO_7], BestAndWorstLists(best=RATIO_7, worst=RATIO_5)),
+    ([RATIO_6, RATIO_8, RATIO_9], BestAndWorstLists(best=RATIO_6, worst=RATIO_9)),
+    (
+        [RATIO_4, RATIO_10, RATIO_11, RATIO_12],
+        BestAndWorstLists(best=RATIO_11, worst=RATIO_12),
+    ),
+    (
+        [
+            RATIO_1,
+            RATIO_2,
+            RATIO_3,
+            RATIO_4,
+            RATIO_5,
+            RATIO_6,
+            RATIO_7,
+            RATIO_8,
+            RATIO_9,
+            RATIO_10,
+            RATIO_11,
+        ],
+        BestAndWorstLists(best=RATIO_7, worst=RATIO_1),
+    ),
+]
 
 
-@pytest.mark.parametrize("ratio_list, expected_output", generate_cases_fbwl())
+@pytest.mark.parametrize("ratio_list, expected_output", CASES_BEST_WORST_LISTS)
 def test_find_best_worst_lists(ratio_list, expected_output):
     """
     This function tests find_best_worst_lists in normal cases
@@ -141,34 +123,16 @@ def test_find_best_worst_lists__different_length():
 
 # test normal cases
 
-
-def generate_cases_average_lists():
-    """
-    This function generates test cases for test_average_lists().
-    :return: a list of test inputs and expected outputs.
-    """
-
-    case_list = list()
-    ratios = [RATIO_1, RATIO_2, RATIO_3]
-    result = [0.5 / 3, 0.3, 1.4 / 3, 0.6]
-    case_list.append((ratios, result))
-
-    ratios = [RATIO_1, RATIO_2, RATIO_4, RATIO_5]
-    result = [0.1, 0.2, 0.3, 0.5]
-    case_list.append((ratios, result))
-
-    ratios = [RATIO_9, RATIO_10, RATIO_11]
-    result = [0.8 / 3, 1.6 / 3, 0.7, 0.0]
-    case_list.append((ratios, result))
-
-    ratios = [RATIO_4, RATIO_13, RATIO_14]
-    result = [0.0, 0.0, 0.0, 0.0]
-    case_list.append((ratios, result))
-
-    return case_list
+CASES_AVERAGE_LISTS = [
+    # tuple: (input, output)
+    ([RATIO_1, RATIO_2, RATIO_3], [0.5 / 3, 0.3, 1.4 / 3, 0.6]),
+    ([RATIO_1, RATIO_2, RATIO_4, RATIO_5], [0.1, 0.2, 0.3, 0.5]),
+    ([RATIO_9, RATIO_10, RATIO_11], [0.8 / 3, 1.6 / 3, 0.7, 0.0]),
+    ([RATIO_4, RATIO_13, RATIO_14], [0.0, 0.0, 0.0, 0.0]),
+]
 
 
-@pytest.mark.parametrize("ratio_list, expected_output", generate_cases_average_lists())
+@pytest.mark.parametrize("ratio_list, expected_output", CASES_AVERAGE_LISTS)
 def test_average_lists(ratio_list, expected_output):
     """
     This function tests normal cases for average_lists()
@@ -211,31 +175,19 @@ def test_average_lists__dif_length():
 
 # test normal cases
 
-
-def generate_case_calculate_density():
-    """
-    This function generates test cases for calculate_density
-    :return: a list of test inputs and expected outputs.
-    """
-
-    case_list = list()
-
-    satisfactory_list = [SATISFACTORY_1, SATISFACTORY_2, SATISFACTORY_3, SATISFACTORY_4]
-    unit = 0.1
-    result = [0.1, 0.1, 0.2, 0, 0.1, 0, 0.1, 0, 0.2, 0.1, 0.1]
-    case_list.append((satisfactory_list, unit, result))
-
-    satisfactory_list = [SATISFACTORY_1, SATISFACTORY_2]
-    unit = 0.5
-    result = [4 / 9, 4 / 9, 1 / 9]
-    case_list.append((satisfactory_list, unit, result))
-
-    return case_list
+CASES_CALCULATE_DENSITY = [
+    # satisfactory_list, division_unit, result
+    (
+        [SATISFACTORY_1, SATISFACTORY_2, SATISFACTORY_3, SATISFACTORY_4],
+        0.1,
+        [0.1, 0.1, 0.2, 0, 0.1, 0, 0.1, 0, 0.2, 0.1, 0.1],
+    ),
+    ([SATISFACTORY_1, SATISFACTORY_2], 0.5, [4 / 9, 4 / 9, 1 / 9]),
+]
 
 
 @pytest.mark.parametrize(
-    "satisfactory_list, division_unit, expected_output",
-    generate_case_calculate_density(),
+    "satisfactory_list, division_unit, expected_output", CASES_CALCULATE_DENSITY
 )
 def test_calculate_density(satisfactory_list, division_unit, expected_output):
     """
@@ -250,6 +202,7 @@ def test_calculate_density(satisfactory_list, division_unit, expected_output):
 
 
 # test exceptions
+
 
 def test_calculate_density__no_input():
     """
