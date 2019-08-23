@@ -306,7 +306,11 @@ class TestOrderAndPeerInit:
         :return: None.
         """
 
+        # Arrange and Act.
+
         my_peer, order_set = create_a_test_peer(setup_scenario, setup_engine)
+
+        # Assert.
 
         # assert my_peer's attributes.
 
@@ -356,12 +360,13 @@ class TestAddNeighbor:
         :param setup_engine: fixture.
         :return: None
         """
-        # Arrange. We have three peers.
+        # Arrange.
+        # We have three peers.
         peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
 
         # Act.
-        # add peer_list[1] and peer_list[2] into peer_list[0]'s neighbor.
 
+        # add peer_list[1] and peer_list[2] into peer_list[0]'s neighbor.
         peer_list[0].add_neighbor(peer_list[1])
         peer_list[0].add_neighbor(peer_list[2])
 
@@ -391,6 +396,7 @@ class TestAddNeighbor:
         :param setup_engine: fixture.
         :return: None.
         """
+
         # Arrange.
         # We have two peers. Peer 1 is in Peer 0's neighbor.
         peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
@@ -409,8 +415,10 @@ class TestAddNeighbor:
         :param setup_engine: fixture.
         :return: None.
         """
+        # Arrange.
         peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
 
+        # Act and Assert.
         # Add self. Should raise an error
         with pytest.raises(ValueError):
             peer.add_neighbor(peer)
@@ -430,9 +438,11 @@ class TestShouldAcceptNeighborRequest:
         :param setup_engine: fixture.
         :return: None
         """
-        # create two peers
+        # Arrange. Create two peers
         peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
-        # should accept invitation
+
+        # Act and Assert.
+        # Should accept invitation
         assert peer_list[0].should_accept_neighbor_request(peer_list[1]) is True
 
     def test_should_accept_neighbor_request__false(
@@ -451,10 +461,11 @@ class TestShouldAcceptNeighborRequest:
         peer_list[0].add_neighbor(peer_list[1])
         peer_list[1].add_neighbor(peer_list[0])
 
-        # Now, fake max neighbor size to 1.
+        # Fake max neighbor size to 1.
         monkeypatch.setattr(setup_engine, "neighbor_max", 1)
 
-        # Action and Assert: Peer 2 wants to be Peer 0's neighbor. Should reject.
+        # Action and Assert.
+        # Peer 2 wants to be Peer 0's neighbor. Should reject.
         assert peer_list[0].should_accept_neighbor_request(peer_list[2]) is False
 
     def test_should_accept_neighbor__existing_neighbor(
@@ -466,11 +477,13 @@ class TestShouldAcceptNeighborRequest:
         :param setup_engine: fixture.
         :return: None
         """
+        # Arrange.
         # Create three peers. First two are neighbors.
         peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
         peer_list[0].add_neighbor(peer_list[1])
         peer_list[1].add_neighbor(peer_list[0])
 
+        # Act and Assert.
         # when they're already neighbors and a peer still requests, an error should be raised.
         with pytest.raises(ValueError):
             peer_list[0].should_accept_neighbor_request(peer_list[1])
@@ -484,8 +497,11 @@ class TestShouldAcceptNeighborRequest:
         :param setup_engine: fixture.
         :return: None
         """
+        # Arrange.
         # Create three peers. First two are neighbors.
         peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+
+        # Act and Assert.
         # An error should be raised when receiving a request from self.
         with pytest.raises(ValueError):
             peer.should_accept_neighbor_request(peer)
@@ -506,15 +522,16 @@ class TestDelNeighbor:
         :param setup_engine: fixture.
         :return: None
         """
-
+        # Arrange.
         peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
-
         peer_list[0].add_neighbor(peer_list[1])
         peer_list[1].add_neighbor(peer_list[0])
 
-        # This deletion should be normal. Both sides should delete the other one.
+        # Act.
         peer_list[0].del_neighbor(peer_list[1])
 
+        # Assert.
+        # The deletion should be normal. Both sides should delete the other one.
         assert (
             not peer_list[0].peer_neighbor_mapping
             and not peer_list[1].peer_neighbor_mapping
@@ -527,7 +544,10 @@ class TestDelNeighbor:
         :param setup_engine: fixture.
         :return: None
         """
+        # Arrange.
         peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
+
+        # Act and Assert.
         # Delete an non-existing neighbor
         with pytest.raises(ValueError):
             peer_list[0].del_neighbor(peer_list[1])
@@ -540,9 +560,10 @@ class TestDelNeighbor:
         :return: None
         """
 
+        # Arrange
         peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
 
-        # Delete self.
+        # Act and Assert. Delete self.
         with pytest.raises(ValueError):
             peer.del_neighbor(peer)
 
@@ -559,9 +580,15 @@ class TestReceiveExternal:
         :param setup_engine: fixture.
         :return: None
         """
+
+        # Arrange.
         peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
         order: Order = create_a_test_order(setup_scenario)
+
+        # Act.
         peer.receive_order_external(order)
+
+        # Assert.
         assert order in peer.order_pending_orderinfo_mapping
         assert order not in peer.order_orderinfo_mapping
         assert peer in order.hesitators
@@ -577,7 +604,9 @@ class TestReceiveExternal:
         :return: None
         """
 
-        # Arrange: change the should_accept_external_order() implementation to a fake one that
+        # Arrange:
+
+        # Change the should_accept_external_order() implementation to a fake one that
         # does not accept any external order.
 
         def fake_should_accept_external_order(_receiver, _order):
@@ -615,11 +644,15 @@ class TestStoreOrders:
         :param setup_engine: fixture.
         :return: None.
         """
+        # Arrange.
         peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
         order: Order = create_a_test_order(setup_scenario)
-
         peer.receive_order_external(order)
+
+        # Act.
         peer.store_orders()
+
+        # Assert.
         assert order in peer.order_orderinfo_mapping
 
     def test_store_orders__multi_orderinfo(
@@ -686,7 +719,7 @@ class TestStoreOrders:
             setup_engine, "store_or_discard_orders", fake_storage_decision
         )
 
-        # Action.
+        # Act.
         peer.store_orders()
 
         # Assert.
@@ -756,7 +789,7 @@ class TestStoreOrders:
             setup_engine, "store_or_discard_orders", fake_storage_decision
         )
 
-        # Action.
+        # Act.
         peer.store_orders()
 
         # Assert.
@@ -820,7 +853,7 @@ class TestStoreOrders:
             setup_engine, "store_or_discard_orders", fake_storage_decision
         )
 
-        # Action.
+        # Act.
         peer.store_orders()
 
         # Assert.
@@ -890,7 +923,7 @@ class TestStoreOrders:
             setup_engine, "store_or_discard_orders", fake_storage_decision
         )
 
-        # Action and Assert.
+        # Act and Assert.
         with pytest.raises(ValueError):
             peer.store_orders()
 
@@ -909,10 +942,14 @@ class TestReceiveInternal:
         :param setup_engine: fixture.
         :return: None.
         """
+
+        # Arrange.
         peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
         order: Order = create_a_test_order(setup_scenario)
         peer_list[1].receive_order_external(order)
         peer_list[1].store_orders()
+
+        # Act and Assert.
         with pytest.raises(ValueError):
             peer_list[0].receive_order_internal(peer_list[1], order)
 
@@ -923,6 +960,7 @@ class TestReceiveInternal:
         :param setup_engine: fixture.
         :return: None.
         """
+
         # Arrange.
         peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
         peer_list[0].add_neighbor(peer_list[1])
@@ -930,8 +968,10 @@ class TestReceiveInternal:
         order: Order = create_a_test_order(setup_scenario)
         peer_list[1].receive_order_external(order)
         peer_list[1].store_orders()
-        # Action.
+
+        # Act.
         peer_list[0].receive_order_internal(peer_list[1], order)
+
         # Assert.
         assert order in peer_list[0].order_pending_orderinfo_mapping
 
@@ -944,7 +984,8 @@ class TestReceiveInternal:
         :param setup_engine: fixture.
         :return: None.
         """
-        # Arrange
+
+        # Arrange.
         # Changes the decision of accepting an internal order from always yes to always no.
         def fake_should_accept_internal_order(_receiver, _sender, _order):
             return False
@@ -963,7 +1004,7 @@ class TestReceiveInternal:
         peer_list[1].receive_order_external(order)
         peer_list[1].store_orders()
 
-        # Action.
+        # Act.
         peer_list[0].receive_order_internal(peer_list[1], order)
 
         # Assert. Now it should not be accepted.
@@ -978,6 +1019,7 @@ class TestReceiveInternal:
         :param setup_engine: fixture.
         :return: None.
         """
+
         # Arrange.
         peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
         peer_list[0].add_neighbor(peer_list[1])
@@ -985,9 +1027,11 @@ class TestReceiveInternal:
         order: Order = create_a_test_order(setup_scenario)
         peer_list[1].receive_order_external(order)
         peer_list[1].store_orders()
-        # Action.
+
+        # Act.
         peer_list[0].receive_order_internal(peer_list[1], order)
         peer_list[0].receive_order_internal(peer_list[1], order)
+
         # Assert.
         assert len(peer_list[0].order_pending_orderinfo_mapping[order]) == 1
 
@@ -1000,6 +1044,7 @@ class TestReceiveInternal:
         :param setup_engine: fixture.
         :return: None.
         """
+
         # Arrange.
         peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
         for neighbor in (peer_list[1], peer_list[2]):
@@ -1009,9 +1054,11 @@ class TestReceiveInternal:
         for neighbor in (peer_list[1], peer_list[2]):
             neighbor.receive_order_external(order)
             neighbor.store_orders()
-        # Action.
+
+        # Act.
         for neighbor in (peer_list[1], peer_list[2]):
             peer_list[0].receive_order_internal(neighbor, order)
+
         # Assert. Both copies should be in the pending table.
         assert len(peer_list[0].order_pending_orderinfo_mapping[order]) == 2
 
@@ -1074,7 +1121,7 @@ class TestShareOrders:
             peer.add_neighbor(neighbor)
             neighbor.add_neighbor(peer)
 
-        # Action.
+        # Act.
 
         order_sharing_set, beneficiary_set = peer.share_orders()
 
@@ -1090,6 +1137,8 @@ class TestShareOrders:
         :param setup_engine: fixture.
         :return: None.
         """
+
+        # Arrange.
         free_rider: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
         free_rider.is_free_rider = True
 
@@ -1099,6 +1148,7 @@ class TestShareOrders:
             free_rider.add_neighbor(neighbor)
             neighbor.add_neighbor(free_rider)
 
+        # Act and Assert.
         assert free_rider.share_orders() == (set(), set())
 
 
@@ -1115,9 +1165,10 @@ class TestDelOrder:
         :return: None.
         """
 
+        # Arrange.
+
         # create peer
         my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
-
         # create new orders
         new_order: Order = create_a_test_order(setup_scenario)
 
@@ -1125,10 +1176,10 @@ class TestDelOrder:
         my_peer.receive_order_external(new_order)
         my_peer.store_orders()
 
-        # delete the new order
+        # Act.
         my_peer.del_order(new_order)
 
-        # assert status after deletion
+        # Assert.
         assert new_order not in my_peer.order_orderinfo_mapping
 
     def test_del_order__in_pending_table(self, setup_scenario, setup_engine) -> None:
@@ -1138,6 +1189,8 @@ class TestDelOrder:
         :param setup_engine: fixture.
         :return: None.
         """
+
+        # Arrange.
 
         # create peers.
         peer_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 3)
@@ -1171,11 +1224,12 @@ class TestDelOrder:
         # {new_order_list[0]: [orderinfo_from_neighbor_1, orderinfo_from_neighbor_2],
         #  new_order_list[1]: [orderinfo_from_neighbor_1]}
 
+        # Act.
         # delete all new orders
         my_peer.del_order(new_order_list[0])
         my_peer.del_order(new_order_list[1])
 
-        # assert status after deletion
+        # Assert.
         assert new_order_list[0] not in my_peer.order_pending_orderinfo_mapping
         assert new_order_list[1] not in my_peer.order_pending_orderinfo_mapping
 
@@ -1188,15 +1242,18 @@ class TestDelOrder:
         :return: None.
         """
 
+        # Arrange.
         # create peers.
         my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
         # create an order
         new_order: Order = create_a_test_order(setup_scenario)
 
-        # delete the new order
+        # Act.
+        # Delete the new order
         my_peer.del_order(new_order)
 
-        # Assert. No error should be raised.
+        # Assert.
+        # No error should be raised.
         assert new_order not in my_peer.order_pending_orderinfo_mapping
         assert new_order not in my_peer.order_orderinfo_mapping
 
@@ -1216,7 +1273,9 @@ class TestRankNeighbors:
         :return: None
         """
 
-        # disable score_neighbors() function. Otherwise rank_neighbors() will change the scores that
+        # Arrange.
+
+        # Disable score_neighbors() function. Otherwise rank_neighbors() will change the scores that
         # we have specifically set for this test.
 
         def fake_score_neighbors(_peer):
@@ -1236,6 +1295,8 @@ class TestRankNeighbors:
         peer_list[0].peer_neighbor_mapping[peer_list[1]].score = 50
         peer_list[0].peer_neighbor_mapping[peer_list[2]].score = 10
         peer_list[0].peer_neighbor_mapping[peer_list[3]].score = 80
+
+        # Act and Assert.
 
         # assert the return value of rank_neighbors(). Should be a list of peer instances ranked by
         # the score of their corresponding neighbor instances at peer_list[0], from highest to
@@ -1466,6 +1527,7 @@ class TestScoringSystem:
         # neighbor (penalty_b); however, the first version will be stored finally (reward_d)
 
         # Arrange.
+
         my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
         neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
         order: Order = create_a_test_order(setup_scenario)
@@ -1506,6 +1568,7 @@ class TestScoringSystem:
         my_peer.rank_neighbors()
 
         # Assert.
+
         assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(-10)
 
     def test_scoring_system_reward_c(
@@ -1561,6 +1624,7 @@ class TestScoringSystem:
         my_peer.rank_neighbors()
 
         # Assert.
+
         assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(5)
 
     def test_scoring_system_reward_d(
@@ -1695,6 +1759,7 @@ class TestScoringSystem:
         my_peer.rank_neighbors()
 
         # Assert.
+
         assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(11)
 
 
@@ -1712,6 +1777,9 @@ class TestDelNeighborWithRemoveOrder:
         :param setup_engine: fixture.
         :return: None.
         """
+
+        # Arrange.
+
         # create my_peer and a neighbor. Later, the neighbor will be deleted.
         my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
         neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
@@ -1727,10 +1795,14 @@ class TestDelNeighborWithRemoveOrder:
         my_peer.receive_order_internal(neighbor, order)
         my_peer.store_orders()
 
+        # Act.
+
         # my_peer deletes neighbor and cancels orders from it.
         my_peer.del_neighbor(neighbor, remove_order=True)
 
-        # Assert: Now order should have been deleted from local storage.
+        # Assert.
+
+        # Now order should have been deleted from local storage.
         assert order not in my_peer.order_orderinfo_mapping
 
     def test_del_neighbor_with_remove_order__single_pending_orderinfo(
@@ -1742,6 +1814,9 @@ class TestDelNeighborWithRemoveOrder:
         :param setup_engine: fixture.
         :return: None.
         """
+
+        # Arrange.
+
         # create my_peer and a neighbor. Later, the neighbor will be deleted.
         my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
         neighbor: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
@@ -1756,10 +1831,14 @@ class TestDelNeighborWithRemoveOrder:
         # my_peer will have the order in the pending table, from the neighbor
         my_peer.receive_order_internal(neighbor, order)
 
+        # Act.
+
         # my_peer deletes neighbor and cancels orders from it.
         my_peer.del_neighbor(neighbor, remove_order=True)
 
-        # Assert: Now order should have been deleted from local storage.
+        # Assert.
+
+        # Now order should have been deleted from local storage.
         assert order not in my_peer.order_pending_orderinfo_mapping
 
     def test_del_neighbor_with_remove_order__multi_pending_orderinfo(
@@ -1771,6 +1850,9 @@ class TestDelNeighborWithRemoveOrder:
         :param setup_engine: fixture.
         :return: None.
         """
+
+        # Arrange.
+
         # create my_peer and neighbors. Later, neighbor_list[0] will be deleted.
         my_peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
         neighbor_list: List[Peer] = create_test_peers(setup_scenario, setup_engine, 2)
@@ -1788,11 +1870,13 @@ class TestDelNeighborWithRemoveOrder:
         for neighbor in neighbor_list:
             my_peer.receive_order_internal(neighbor, order)
 
-        # Action.
+        # Act.
+
         # my_peer deletes neighbor 0 and cancels orders from it.
         my_peer.del_neighbor(neighbor_list[0], remove_order=True)
 
         # Assert.
+
         # Now order should still be in the pending table, but the copy is not from neighbor[0]
         assert len(my_peer.order_pending_orderinfo_mapping[order]) == 1
         assert (

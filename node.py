@@ -419,9 +419,9 @@ class Peer:
     def share_orders(self) -> Tuple[Set[Order], Set["Peer"]]:
         """
         This method determines which orders to be shared to which neighbors.
-        It will call internal order receiving method of the receiver peer.
+        It will return the set of orders to share, and the set of neighboring peers to share.
         This method is only called by each peer proactively at the end of a batch period.
-        :return: None.
+        :return: Tuple[set of orders to share, set of peers to share]
         """
 
         if (self.local_clock - self.birth_time) % self.engine.batch != 0:
