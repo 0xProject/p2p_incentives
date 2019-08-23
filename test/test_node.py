@@ -452,10 +452,7 @@ class TestShouldAcceptNeighborRequest:
         peer_list[1].add_neighbor(peer_list[0])
 
         # Now, fake max neighbor size to 1.
-        def fake_max_size():
-            return 1
-
-        monkeypatch.setattr(setup_engine, "neighbor_max", fake_max_size())
+        monkeypatch.setattr(setup_engine, "neighbor_max", 1)
 
         # Action and Assert: Peer 2 wants to be Peer 0's neighbor. Should reject.
         assert peer_list[0].should_accept_neighbor_request(peer_list[2]) is False
