@@ -347,6 +347,28 @@ class TestOrderAndPeerInit:
         for order in order_set:
             assert order.holders == {my_peer}
 
+    def test_peer__free_rider_with_orders(self, setup_scenario, setup_engine) -> None:
+        """
+        This function tests creating a free rider with its own orders.
+        Should raise an error.
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None
+        """
+        # manually create 5 orders for this peer.
+        order_set: Set[Order] = set(create_test_orders(setup_scenario, 5))
+
+        # create the peer instance
+        with pytest.raises(ValueError, match="Free riders should not have their own orders."):
+            Peer(
+                engine=setup_engine,
+                seq=1,
+                birth_time=7,
+                init_orders=order_set,
+                namespacing=None,
+                peer_type="free_rider",
+            )
+
 
 class TestAddNeighbor:
     """
@@ -405,7 +427,7 @@ class TestAddNeighbor:
         # Action and Assert.
         # Should raise an error when adding an existing neighbor.
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Function called by a wrong peer."):
             peer_list[0].add_neighbor(peer_list[1])
 
     def test_add_neighbor__add_self(self, setup_scenario, setup_engine):
@@ -420,7 +442,7 @@ class TestAddNeighbor:
 
         # Act and Assert.
         # Add self. Should raise an error
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Function called by a wrong peer."):
             peer.add_neighbor(peer)
 
 
@@ -485,7 +507,7 @@ class TestShouldAcceptNeighborRequest:
 
         # Act and Assert.
         # when they're already neighbors and a peer still requests, an error should be raised.
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Called by a wrong peer."):
             peer_list[0].should_accept_neighbor_request(peer_list[1])
 
     def test_should_accept_neighbor__self_request(
@@ -503,7 +525,7 @@ class TestShouldAcceptNeighborRequest:
 
         # Act and Assert.
         # An error should be raised when receiving a request from self.
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Called by a wrong peer."):
             peer.should_accept_neighbor_request(peer)
 
 
@@ -549,7 +571,9 @@ class TestDelNeighbor:
 
         # Act and Assert.
         # Delete an non-existing neighbor
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError, match="This peer is not my neighbor. Unable to delete."
+        ):
             peer_list[0].del_neighbor(peer_list[1])
 
     def test_del_neighbor__self(self, setup_scenario, setup_engine) -> None:
@@ -564,7 +588,9 @@ class TestDelNeighbor:
         peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
 
         # Act and Assert. Delete self.
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError, match="This peer is not my neighbor. Unable to delete."
+        ):
             peer.del_neighbor(peer)
 
 
@@ -627,6 +653,51 @@ class TestReceiveExternal:
         # Assert: should not accept the order.
         assert order not in peer.order_pending_orderinfo_mapping
         assert peer not in order.hesitators
+
+    def test_receive_order_external__duplicate_pending(
+        self, setup_scenario, setup_engine
+    ) -> None:
+        """
+        Test receiving duplicate external orders (already in pending table)
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None
+        """
+
+        # Arrange
+
+        peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
+        peer.receive_order_external(order)
+
+        # Act and Assert.
+        with pytest.raises(
+            ValueError, match="Duplicated external order in pending table."
+        ):
+            peer.receive_order_external(order)
+
+    def test_receive_order_external__duplicate_storage(
+        self, setup_scenario, setup_engine
+    ) -> None:
+        """
+        Test receiving duplicate external orders (already in storage)
+        :param setup_scenario: fixture.
+        :param setup_engine: fixture.
+        :return: None
+        """
+
+        # Arrange
+
+        peer: Peer = create_a_test_peer(setup_scenario, setup_engine)[0]
+        order: Order = create_a_test_order(setup_scenario)
+        peer.receive_order_external(order)
+        peer.store_orders()
+
+        # Act and Assert.
+        with pytest.raises(
+            ValueError, match="Duplicated external order in local storage."
+        ):
+            peer.receive_order_external(order)
 
 
 class TestStoreOrders:
@@ -924,7 +995,9 @@ class TestStoreOrders:
         )
 
         # Act and Assert.
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError, match="Should not store multiple copies of same order."
+        ):
             peer.store_orders()
 
 
@@ -950,7 +1023,7 @@ class TestReceiveInternal:
         peer_list[1].store_orders()
 
         # Act and Assert.
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Receiving order from non-neighbor."):
             peer_list[0].receive_order_internal(peer_list[1], order)
 
     def test_receive_order_internal__normal(self, setup_scenario, setup_engine):
@@ -1604,7 +1677,7 @@ class TestScoringSystem:
 
         # define fake functions.
 
-        # This fake function sets storage_decision as True for any orderinfo.
+        # This fake function sets storage_decision as False for any orderinfo.
         def fake_store_or_discard_orders(peer):
             for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
                 for orderinfo in orderinfo_list:
@@ -1669,7 +1742,8 @@ class TestScoringSystem:
 
         # define fake functions.
 
-        # This fake function sets storage_decision as True for any orderinfo.
+        # This fake function sets storage_decision as True for orderinfo from neighbor and False
+        # from competitor.
         def fake_store_or_discard_orders(peer):
             for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
                 for orderinfo in orderinfo_list:
@@ -1736,7 +1810,8 @@ class TestScoringSystem:
 
         # define fake functions.
 
-        # This fake function sets storage_decision as True for any orderinfo.
+        # This fake function sets storage_decision as True for orderinfo from competitor and
+        # False from neighbor.
         def fake_store_or_discard_orders(peer):
             for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
                 for orderinfo in orderinfo_list:

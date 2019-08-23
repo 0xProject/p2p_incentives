@@ -154,7 +154,7 @@ class Peer:
 
         if requester in self.peer_neighbor_mapping or requester == self:
             raise ValueError(
-                "should_accept_neighbor_request() function called by wrong peer."
+                "Called by a wrong peer."
             )
 
         return len(self.peer_neighbor_mapping) < self.engine.neighbor_max
@@ -169,7 +169,7 @@ class Peer:
         :return: None
         """
         if peer in self.peer_neighbor_mapping or peer == self:
-            raise ValueError("add_neighbor() function called by wrong peer.")
+            raise ValueError("Function called by a wrong peer.")
         # create new neighbor in my local storage
         new_neighbor = Neighbor(
             engine=self.engine, peer=peer, master=self, est_time=self.local_clock
@@ -243,11 +243,11 @@ class Peer:
         """
         if order in self.order_pending_orderinfo_mapping:
             raise ValueError(
-                "Duplicated external order. This order is in my pending table."
+                "Duplicated external order in pending table."
             )
         if order in self.order_orderinfo_mapping:
             raise ValueError(
-                "Duplicated external order. This order is in my local storage."
+                "Duplicated external order in local storage."
             )
 
         if self.engine.should_accept_external_order(self, order):
@@ -281,9 +281,7 @@ class Peer:
             self not in peer.peer_neighbor_mapping
             or peer not in self.peer_neighbor_mapping
         ):
-            raise ValueError(
-                "Order transmission cannot be performed between non-neighbors."
-            )
+            raise ValueError("Receiving order from non-neighbor.")
 
         neighbor: Neighbor = self.peer_neighbor_mapping[peer]
 
@@ -403,8 +401,7 @@ class Peer:
                 for pending_orderinfo in orderinfo_list[1:]:
                     if pending_orderinfo.storage_decision:
                         raise ValueError(
-                            "Should not store multiple orders. Wrong in order store "
-                            "decision process."
+                            "Should not store multiple copies of same orders."
                         )
                     # internal order, sender is still neighbor
                     if pending_orderinfo.prev_owner in self.peer_neighbor_mapping:
