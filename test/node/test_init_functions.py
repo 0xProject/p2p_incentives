@@ -17,7 +17,7 @@ from .__init__ import (
 )
 
 
-@pytest.mark.parametrize("scenario", [(SCENARIO_SAMPLE,)])
+@pytest.mark.parametrize("scenario", [(SCENARIO_SAMPLE)])
 def test_order(scenario) -> None:
     """
     This function tests order initialization.
