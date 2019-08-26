@@ -74,8 +74,7 @@ class Execution:
 
         # pylint: disable=too-many-branches, too-many-statements
         # temporarily disable the pylint warning for now.
-        # This function is really too long. Will split it in future PR.
-        # This comment should be deleted in the next PR.
+        # HACK(weijiewu8): This function is really too long. Will split it in future PR.
 
         with Pool(self.multi_pools) as my_pool:
             performance_result_list: List[SingleRunPerformanceResult] = my_pool.map(
@@ -111,13 +110,10 @@ class Execution:
 
         # process each performance result
 
-        # Note: There are additional try... except... judgments newly added in this PR. They are
-        # necessary.
-        # In short, the following part of the code is to fetch data from performance_measure
+        # The following part of the code is to fetch data from performance_measure
         # (which is of type MultiRunPerformanceResult). For each key, if there is a corresponding
         # non-empty value, we plot the figure for this performance metric.
         #
-        # Previously we merely check if the value is non-empty. This is actually not enough.
         # There is a chance that we are supposed to run a particular performance metric
         # evaluation (say, free-rider satisfaction), but the value part is empty. This is because
         # for every single run of the simulator, there was no meaningful result (e.g., at the end
@@ -125,9 +121,6 @@ class Execution:
         # some randomness there is a chance that for some run, there is no meaningful result (
         # e.g., in a particular run all free riders happen to have left the system at the end),
         # but if it happens in every run, there must be some problem and an error should be raised.
-        # What I basically added here is to raise such errors.
-        #
-        # This explanation should be deleted (or remained but modified) in the next PR.
 
         # processing spreading ratio, calculate best, worst, and average spreading ratios
 
