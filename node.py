@@ -467,6 +467,20 @@ class Peer:
         :return: a list peer instances ranked by the scores of their corresponding neighbor
         instances.
         """
+        # HACK (weijiewu8): Consider whether to change the code in here, so as not to call
+        # score_neighbors() inside the function but keep it separate. If we do it, it will
+        # keep the functions independent to each other.
+        #
+        # However, there was a reason of calling it inside: This is simply the only place for
+        # this simulator to call score_neighbors().
+        #
+        # Probably will decide whether to change it later.
+        #
+        # I have been confused many times in writing unit tests when using rank_neighbors().
+        # If we make this change, we can remove lines like
+        # monkeypatch.setattr(engine, "score_neighbors", fake_score_neighbors)
+        # in the test files.
+
         self.engine.score_neighbors(self)
         peer_list: List["Peer"] = list(self.peer_neighbor_mapping)
         peer_list.sort(
