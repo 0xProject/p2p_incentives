@@ -2,6 +2,9 @@
 This module contains possible implementations for performance measurement functions.
 """
 
+# NOTE: the attribute "max_age_to_track" in all functions means that orders whose age is less
+# than this value will be considered; orders whose age is exactly this value will be excluded.
+
 import statistics
 from typing import TYPE_CHECKING, Set, List, Optional
 from data_types import SpreadingRatio
@@ -84,6 +87,8 @@ def order_num_stat_on_age(
     )
     for order in order_set:
         age: int = cur_time - order.birth_time
+        if age < 0:
+            raise ValueError("Some order age is negative.")
         if age < max_age_to_track:
             bin_idx: int = int(age / statistical_window)
             num_orders_in_age_range[bin_idx] += 1
