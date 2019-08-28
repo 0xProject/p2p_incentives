@@ -22,6 +22,11 @@ class CaseType(NamedTuple):
     expected_result: List[int]  # expected output from order_num_stat_on_age()
 
 
+# Case 1 represents orders whose age span over 0~100 and the maximal age we consider is 99 (100
+# excluded). Statistical window is 10 so the whole age interval is divided into 10 equal length
+# sub-intervals. The expected output should be the number of orders whose age falls in [0,9],
+# [10, 19], ... , [90, 99].
+
 CASE_1 = CaseType(
     scenario=SCENARIO_SAMPLE,
     # age:                 88, 95, 94, 93, 22, 1, 0, 100, 75, 33, 1
@@ -32,6 +37,11 @@ CASE_1 = CaseType(
     # Age 100 is excluded.
     expected_result=[3, 0, 1, 1, 0, 0, 0, 1, 1, 3],
 )
+
+# Case 2 is similar to Case 1 with the only exception for the maximal age in consideration being
+# 100 (101 is excluded). Statistical window is 10 so the whole age interval is divided into 11
+# non-equal length sub-intervals. The expected output should be the number of orders whose age
+# falls in [0,9], [10, 19], ... , [90, 99], and [100].
 
 CASE_2 = CaseType(
     scenario=SCENARIO_SAMPLE,
@@ -60,21 +70,27 @@ def test_order_num_stat_on_age__normal(
     Without loss of generality, we fix the cur_time as 100.
     """
 
-    num_order = len(order_birth_time_list)
+    # Arrange.
+    num_order: int = len(order_birth_time_list)
     order_list: List[Order] = create_test_orders(scenario, num_order)
 
     for i in range(num_order):
         order_list[i].birth_time = order_birth_time_list[i]
 
-    order_num_stat = performance_candidates.order_num_stat_on_age(
+    # Act.
+    order_num_stat: List[int] = performance_candidates.order_num_stat_on_age(
         cur_time=100,
         max_age_to_track=max_age,
         statistical_window=statistical_window,
         order_set=set(order_list),
     )
 
+    # Assert.
     assert order_num_stat == expected_result
 
+
+# Case 3 represents a wrong input with an order of negative age. Error expected when running the
+# function.
 
 CASE_3 = CaseType(
     scenario=SCENARIO_SAMPLE,
@@ -102,12 +118,15 @@ def test_order_num_stat_on_age__negative_age(
     Test if an order's age is negative.
     """
 
-    num_order = len(order_birth_time_list)
+    # Arrange.
+
+    num_order: int = len(order_birth_time_list)
     order_list: List[Order] = create_test_orders(scenario, num_order)
 
     for i in range(num_order):
         order_list[i].birth_time = order_birth_time_list[i]
 
+    # Act and Assert.
     with pytest.raises(ValueError, match="Some order age is negative."):
         performance_candidates.order_num_stat_on_age(
             cur_time=100,

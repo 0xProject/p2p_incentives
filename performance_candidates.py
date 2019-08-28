@@ -52,6 +52,8 @@ def order_spreading_ratio_stat(
         )
         ratio: float = num_peers_holding_order / num_active_peers
         age: int = cur_time - order.birth_time
+        if age < 0:
+            raise ValueError("Order age should not be negative.")
         if age < max_age_to_track:
             order_spreading_record[int(age / statistical_window)].append(ratio)
 
