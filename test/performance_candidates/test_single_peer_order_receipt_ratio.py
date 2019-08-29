@@ -29,9 +29,8 @@ class CaseType(NamedTuple):
     num_order: int
     order_birth_time_list: List[int]  # list of birth times of input orders
     order_id_owned_by_peer: List[int]  # list of ids of orders that this peer stores
-    order_id_in_stat: List[
-        int
-    ]  # list of ids of orders that will be in order_set for statistics
+    # list of ids of orders that will be in order_set for statistics
+    order_id_in_stat: List[int]
     max_age: int  # max_age_to_track
     window: int  # statistical_window
     expected_result: SpreadingRatio  # expected receipt ratio
