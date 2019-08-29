@@ -17,6 +17,16 @@ from .__init__ import (
 )
 
 
+# This helper function sets storage_decision as True for any orderinfo.
+def always_store_orders(peer):
+    """
+    This is a fake function for store_or_discard_orders(), and it always store orders.
+    """
+    for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
+        for orderinfo in orderinfo_list:
+            orderinfo.storage_decision = True
+
+
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_scoring_system_penalty_a(scenario, engine, monkeypatch) -> None:
     """
@@ -44,19 +54,15 @@ def test_scoring_system_penalty_a(scenario, engine, monkeypatch) -> None:
     my_peer.peer_neighbor_mapping[neighbor].share_contribution[-1] = 0
 
     # define fake functions.
+    # always store orders
+    monkeypatch.setattr(engine, "store_or_discard_orders", always_store_orders)
+
     # Order cannot be accepted to the pending list
-    def fake_should_accept_internal_order(_receiver, _sender, _order):
+    def never_accept_internal_order(_receiver, _sender, _order):
         return False
 
-    # This fake function sets storage_decision as True for any orderinfo.
-    def fake_store_or_discard_orders(peer):
-        for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
-            for orderinfo in orderinfo_list:
-                orderinfo.storage_decision = True
-
-    monkeypatch.setattr(engine, "store_or_discard_orders", fake_store_or_discard_orders)
     monkeypatch.setattr(
-        engine, "should_accept_internal_order", fake_should_accept_internal_order
+        engine, "should_accept_internal_order", never_accept_internal_order
     )
 
     # Act.
@@ -69,7 +75,7 @@ def test_scoring_system_penalty_a(scenario, engine, monkeypatch) -> None:
     my_peer.rank_neighbors()
 
     # Assert.
-    assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(-13)
+    assert my_peer.peer_neighbor_mapping[neighbor].score == -13
 
 
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
@@ -106,15 +112,8 @@ def test_scoring_system_reward_a(scenario, engine, monkeypatch) -> None:
     # clear score sheet for neighbor
     my_peer.peer_neighbor_mapping[neighbor].share_contribution[-1] = 0
 
-    # define fake functions.
-
-    # This fake function sets storage_decision as True for any orderinfo.
-    def fake_store_or_discard_orders(peer):
-        for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
-            for orderinfo in orderinfo_list:
-                orderinfo.storage_decision = True
-
-    monkeypatch.setattr(engine, "store_or_discard_orders", fake_store_or_discard_orders)
+    # always store orders
+    monkeypatch.setattr(engine, "store_or_discard_orders", always_store_orders)
 
     # Act.
 
@@ -126,7 +125,7 @@ def test_scoring_system_reward_a(scenario, engine, monkeypatch) -> None:
     my_peer.rank_neighbors()
 
     # Assert.
-    assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(2)
+    assert my_peer.peer_neighbor_mapping[neighbor].score == 2
 
 
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
@@ -166,15 +165,8 @@ def test_scoring_system_reward_b(scenario, engine, monkeypatch) -> None:
     # clear score sheet for neighbor
     my_peer.peer_neighbor_mapping[neighbor].share_contribution[-1] = 0
 
-    # define fake functions.
-
-    # This fake function sets storage_decision as True for any orderinfo.
-    def fake_store_or_discard_orders(peer):
-        for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
-            for orderinfo in orderinfo_list:
-                orderinfo.storage_decision = True
-
-    monkeypatch.setattr(engine, "store_or_discard_orders", fake_store_or_discard_orders)
+    # Always store orders
+    monkeypatch.setattr(engine, "store_or_discard_orders", always_store_orders)
 
     # Act.
 
@@ -186,7 +178,7 @@ def test_scoring_system_reward_b(scenario, engine, monkeypatch) -> None:
     my_peer.rank_neighbors()
 
     # Assert.
-    assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(3)
+    assert my_peer.peer_neighbor_mapping[neighbor].score == 3
 
 
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
@@ -222,15 +214,8 @@ def test_scoring_system_penalty_b(scenario, engine, monkeypatch) -> None:
     # clear score sheet for neighbor
     my_peer.peer_neighbor_mapping[neighbor].share_contribution[-1] = 0
 
-    # define fake functions.
-
-    # This fake function sets storage_decision as True for any orderinfo.
-    def fake_store_or_discard_orders(peer):
-        for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
-            for orderinfo in orderinfo_list:
-                orderinfo.storage_decision = True
-
-    monkeypatch.setattr(engine, "store_or_discard_orders", fake_store_or_discard_orders)
+    # Always store orders
+    monkeypatch.setattr(engine, "store_or_discard_orders", always_store_orders)
 
     # Act.
 
@@ -243,7 +228,7 @@ def test_scoring_system_penalty_b(scenario, engine, monkeypatch) -> None:
 
     # Assert.
 
-    assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(-10)
+    assert my_peer.peer_neighbor_mapping[neighbor].score == -10
 
 
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
@@ -275,12 +260,12 @@ def test_scoring_system_reward_c(scenario, engine, monkeypatch) -> None:
     # define fake functions.
 
     # This fake function sets storage_decision as False for any orderinfo.
-    def fake_store_or_discard_orders(peer):
+    def never_store_orders(peer):
         for orderinfo_list in peer.order_pending_orderinfo_mapping.values():
             for orderinfo in orderinfo_list:
                 orderinfo.storage_decision = False
 
-    monkeypatch.setattr(engine, "store_or_discard_orders", fake_store_or_discard_orders)
+    monkeypatch.setattr(engine, "store_or_discard_orders", never_store_orders)
 
     # Act.
 
@@ -293,7 +278,7 @@ def test_scoring_system_reward_c(scenario, engine, monkeypatch) -> None:
 
     # Assert.
 
-    assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(5)
+    assert my_peer.peer_neighbor_mapping[neighbor].score == 5
 
 
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
@@ -355,7 +340,7 @@ def test_scoring_system_reward_d(scenario, engine, monkeypatch) -> None:
     my_peer.rank_neighbors()
 
     # Assert.
-    assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(7)
+    assert my_peer.peer_neighbor_mapping[neighbor].score == 7
 
 
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
@@ -418,4 +403,4 @@ def test_scoring_system_reward_e(scenario, engine, monkeypatch) -> None:
 
     # Assert.
 
-    assert my_peer.peer_neighbor_mapping[neighbor].score == pytest.approx(11)
+    assert my_peer.peer_neighbor_mapping[neighbor].score == 11

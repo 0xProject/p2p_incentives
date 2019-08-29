@@ -62,8 +62,10 @@ def test_share_orders__normal(scenario, engine, monkeypatch) -> None:
     order_sharing_set, beneficiary_set = peer.share_orders()
 
     # Assert.
-    assert len(beneficiary_set) == 2 and neighbor_list[2] not in beneficiary_set
-    assert len(order_sharing_set) == 4 and unlucky_order not in order_sharing_set
+    assert len(beneficiary_set) == 2
+    assert neighbor_list[2] not in beneficiary_set
+    assert len(order_sharing_set) == 4
+    assert unlucky_order not in order_sharing_set
     assert peer.new_order_set == set()
 
 

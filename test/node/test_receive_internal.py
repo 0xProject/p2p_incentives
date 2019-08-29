@@ -113,16 +113,15 @@ def test_receive_order_internal_duplicate_from_others(scenario, engine):
 
     # Arrange.
     peer_list: List[Peer] = create_test_peers(scenario, engine, 3)
-    for neighbor in (peer_list[1], peer_list[2]):
+    order: Order = create_a_test_order(scenario)
+    for neighbor in peer_list[1:3]:
         peer_list[0].add_neighbor(neighbor)
         neighbor.add_neighbor(peer_list[0])
-    order: Order = create_a_test_order(scenario)
-    for neighbor in (peer_list[1], peer_list[2]):
         neighbor.receive_order_external(order)
         neighbor.store_orders()
 
     # Act.
-    for neighbor in (peer_list[1], peer_list[2]):
+    for neighbor in peer_list[1:3]:
         peer_list[0].receive_order_internal(neighbor, order)
 
     # Assert. Both copies should be in the pending table.

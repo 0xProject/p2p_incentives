@@ -42,6 +42,14 @@ from data_types import (
 from scenario import Scenario
 from engine import Engine
 
+# Note that the following two instances of scenario and engine are mostly arbitrarily created,
+# with legal but no-specific meaning values for attributes.
+# Right now I don't foresee any reason of setting them in a specific way - they are needed merely
+# to create peer and order instances, and value of attributes don't really matter.
+# However, in order to leave space for extensions of future tests, we will pass these instances
+# to test functions using parametrization, rather than hard coding them into the test function
+# code.
+
 
 SCENARIO_SAMPLE = Scenario(
     ScenarioParameters(
@@ -118,6 +126,10 @@ ENGINE_SAMPLE = Engine(
         rec=RecommendationOption(method="Random"),
     ),
 )
+
+
+# Again, there are no specific reason of choosing the value for attributes in the following
+# instances; however, for specific test functions one can opt to change value for any attribute.
 
 
 def create_a_test_order(scenario: Scenario) -> Order:

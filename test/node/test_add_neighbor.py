@@ -16,6 +16,9 @@ from .__init__ import (
 )
 
 
+# Please refer to __init__.py to see the reason of using parametrization.
+
+
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_add_neighbor__normal(scenario, engine) -> None:
     """
