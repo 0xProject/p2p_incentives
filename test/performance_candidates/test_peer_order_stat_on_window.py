@@ -29,16 +29,14 @@ class CaseType(NamedTuple):
     order_birth_time_list: List[int]  # list of birth times of input orders
     max_age: int  # max_age_to_track
     window: int  # statistical_window
-    order_for_stat_idx_list: List[
-        int
-    ]  # list of indices of the orders in the peer's storage,
-    # that will be considered in statistics
-    extra_order_num: int  # number of other orders that will also be considered in statistics.
+    # list of indices of the orders in the peer's storage, that will be considered in statistics
+    order_for_stat_idx_list: List[int]
+    # number of other orders that will also be considered in statistics.
     # This should have no impact to the test cases.
-    expected_result: List[
-        int
-    ]  # expected output, list of number of orders that this peer has,
-    # arranged in the sub-intervals according to order ages.
+    extra_order_num: int
+    # Expected output, list of number of orders that this peer has, arranged in the sub-intervals
+    # according to order ages.
+    expected_result: List[int]
 
 
 # Case 1 is a very simple one where there is only one order and it is within the range of
