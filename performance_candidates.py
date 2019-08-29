@@ -122,6 +122,8 @@ def peer_order_stat_on_window(
 
     for order in peer.order_orderinfo_mapping:
         age: int = cur_time - order.birth_time
+        if age < 0:
+            raise ValueError("Order age should not be negative.")
         if age < max_age_to_track and order in order_set:
             bin_index: int = int(age / statistical_window)
             num_orders_this_peer_stores[bin_index] += 1
