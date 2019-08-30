@@ -16,10 +16,10 @@ import engine_candidates
 
 
 from .__init__ import (
-    ENGINE_SAMPLE,
-    SCENARIO_SAMPLE,
     create_a_test_peer,
     create_test_peers,
+    ENGINE_SAMPLE,
+    SCENARIO_SAMPLE,
 )
 
 

@@ -13,11 +13,11 @@ from engine import Engine
 import engine_candidates
 
 from .__init__ import (
-    SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
+    SCENARIO_SAMPLE,
     create_a_test_order,
-    create_a_test_peer,
     create_test_peers,
+    create_a_test_peer,
 )
 
 

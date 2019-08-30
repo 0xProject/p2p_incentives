@@ -6,6 +6,8 @@ some better place.
 
 """
 
+# HACK (weijiewu8): I disabled duplicate-code in pylint (see .pylintrc). Need to resolve it.
+
 from typing import List, Set, Tuple
 
 from message import Order
