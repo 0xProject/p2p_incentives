@@ -1,3 +1,3 @@
 """
-Test functions are put here.
+This module contains test functions.
 """

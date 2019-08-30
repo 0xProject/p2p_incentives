@@ -62,17 +62,17 @@ def find_best_worst_lists(sequence_of_lists: List[SpreadingRatio]) -> BestAndWor
     If for all SpreadingRatio data all elements are None, then raise an error with ValueError
     message.
 
-    [Note 1]: Under our simulator context, the values in a SpreadingRatio list must be in [0,
+    [Note]: Under our simulator context, the values in a SpreadingRatio list must be in [0,
     1]. However we preserve the generality of this function and we only check if they are floats
     or None, but we don't check if values are in range [0,1].
-
-    [Note 2]: Currently this function does not check if all input SpreadingRatio data are of the
-    same length. I will add this check in the next PR.
-    This message should be deleted in the next PR.
 
     """
     if not sequence_of_lists:  # there is no input at all
         raise InvalidInputError("No lists are given at all.")
+
+    for i in range(1, len(sequence_of_lists)):
+        if len(sequence_of_lists[i]) != len(sequence_of_lists[0]):
+            raise ValueError("Input lists are of different length.")
 
     last_effective_idx: int = -1
     while last_effective_idx >= -len(sequence_of_lists[0]):
@@ -80,21 +80,23 @@ def find_best_worst_lists(sequence_of_lists: List[SpreadingRatio]) -> BestAndWor
             break
         last_effective_idx -= 1
 
-    try:
-        iterators: Tuple[Iterator[SpreadingRatio], ...] = itertools.tee(
-            (
-                item
-                for item in sequence_of_lists
-                if item[last_effective_idx] is not None
-            ),
-            2,
-        )
-    except IndexError:  # this happens when last_effective_idx == len(sequence_of_lists[0]) - 1
-        # so every element is None.
-        raise ValueError("All entries are None. Invalid to compare.")
+    # Note that the iterator construction will never raise the IndexError exception, but when it
+    # is used the error is thrown. This is why the try statement goes after iterator
+    # initialization but when they are used.
 
-    best_list: SpreadingRatio = max(iterators[0], key=lambda x: x[last_effective_idx])
-    worst_list: SpreadingRatio = min(iterators[1], key=lambda x: x[last_effective_idx])
+    iterators: Tuple[Iterator[SpreadingRatio], ...] = itertools.tee(
+        (item for item in sequence_of_lists if item[last_effective_idx] is not None), 2
+    )
+
+    try:
+        best_list: SpreadingRatio = max(
+            iterators[0], key=lambda x: x[last_effective_idx]
+        )
+        worst_list: SpreadingRatio = min(
+            iterators[1], key=lambda x: x[last_effective_idx]
+        )
+    except IndexError:
+        raise ValueError("All entries are None. Invalid to compare.")
     return BestAndWorstLists(best=best_list, worst=worst_list)
 
 
@@ -120,14 +122,14 @@ def average_lists(sequence_of_lists: List[SpreadingRatio]) -> List[float]:
     >>> spreading_ratio_2: SpreadingRatio = [0.3, 0.2, None, None]
     >>> average_lists([spreading_ratio_1, spreading_ratio_2])
     [0.2, 0.2, 0.3, 0.0]
-
-    [Note]: Equal length condition not checked in the function for now. Need to do it in the
-    next PR.
-    This message should be deleted in the next PR.
     """
 
     if not sequence_of_lists:  # there is no input at all
         raise InvalidInputError("No lists are given at all.")
+
+    for i in range(1, len(sequence_of_lists)):
+        if len(sequence_of_lists[i]) != len(sequence_of_lists[0]):
+            raise ValueError("Input lists are of different length.")
 
     average_list: List[float] = [0.0 for _ in range(len(sequence_of_lists[0]))]
     length_of_list: int = len(average_list)
@@ -171,6 +173,9 @@ def calculate_density(
     if not sequence_of_lists:
         raise InvalidInputError("There are no input lists at all.")
 
+    if not 0 <= division_unit <= 1:
+        raise ValueError("Invalid division unit.")
+
     total_points: int = sum(len(single_list) for single_list in sequence_of_lists)
 
     largest_index: int = int(1 / division_unit)
@@ -178,10 +183,13 @@ def calculate_density(
 
     for single_list in sequence_of_lists:
         for value in single_list:
-            count_list[int(value / division_unit)] += 1
+            try:
+                count_list[int(value / division_unit)] += 1
+            except IndexError:
+                raise ValueError("Some input data is out of range.")
     try:
         density_list: List[float] = [value / total_points for value in count_list]
     except ZeroDivisionError:  # total_points == 0
-        raise ValueError("There is no element in any input lists.")
+        raise ValueError("There is no data in any input lists.")
 
     return density_list
