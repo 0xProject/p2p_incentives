@@ -1,6 +1,10 @@
 """
-This module contains the Simulator class only.
+This module contains the SingleRun class only.
 """
+
+# HACK (weijiewu8): Propose to change the name of the module to "single_run".
+# If I change the name now, no comparison of changes can be seen. So I will change it after the
+# PR is approved.
 
 import random
 from typing import Dict, Set, List, TYPE_CHECKING, cast
@@ -21,19 +25,24 @@ if TYPE_CHECKING:
     from performance import Performance
 
 
-class Simulator:
+class SingleRun:
     """
-    The Simulator class contains all function that is directly called by the simulator.
-    For example, initialization of the system, and operations in each time round.
+    The SingleRun class contains all function that is directly called by the simulator to run one
+    time. For example, initialization of the system, and operations in each time round.
     """
 
-    # [TO BE UPDATED]: In current implementation we assume there is only one order type.
+    # HACK (weijiewu8): In current implementation we assume there is only one order type.
     # There are hard-coded lines of orders of type 'default', subject to future change when there
     # are more than one type of orders.
 
     def __init__(
         self, scenario: "Scenario", engine: "Engine", performance: "Performance"
     ) -> None:
+        """
+        This init function sets up the attribute values for the class instance. It does not
+        really create the initial order set or peer set; instead, the method followed
+        (create_initial_peers_orders()) creates them.
+        """
 
         self.order_full_set: Set["Order"] = set()  # set of orders
 
@@ -73,15 +82,16 @@ class Simulator:
         self.engine: "Engine" = engine  # design choices
         self.performance: "Performance" = performance  # performance evaluation measures
 
-    def setup(self) -> None:
+    def create_initial_peers_orders(self) -> None:
         """
-        This method sets up the initial state for one run of the simulator.
-        Construct a number of peers and orders and maintain their references in two sets.
+        This method creates the initial orders and peers for a SingleRun instance, and maintain
+        their references in two sets.
         Sequence numbers of peers and neighbors begin from 0 and increase by 1 each time.
         Right now there is no use for the sequence numbers but we keep them for potential future use
-        We only consider one type of orders for now. However, we do consider multiple peer types.
         :return: None
         """
+
+        # HACK (weijiewu8): There is only one type of orders (default) and it is hard coded.
 
         # order sequence number should start from zero, but can be customized
         order_seq: int = self.latest_order_seq
@@ -239,7 +249,7 @@ class Simulator:
             if peer in other_peer.peer_neighbor_mapping:
                 other_peer.del_neighbor(peer)
 
-        # update the peer set for the Simulator
+        # update the peer set for the SingleRun instance.
 
         self.peer_full_set.remove(peer)
         # use cast due to similar reason in __init__() function of this class.
@@ -259,7 +269,7 @@ class Simulator:
             self.scenario, new_order_seq, self.cur_time, target_peer, expiration
         )
 
-        # update the set of orders for the Simulator
+        # update the set of orders for the SingleRun
         self.order_full_set.add(new_order)
         self.order_type_set_mapping["default"].add(new_order)
         self.latest_order_seq += 1
@@ -270,7 +280,8 @@ class Simulator:
     def update_global_orderbook(self, order_cancel_set: List[Order] = None) -> None:
         """
         This method takes a set of orders to cancel as input, deletes them, and deletes all other
-        invalid orders from both order set of Simulator, and all peers' pending table and storage.
+        invalid orders from both order set of SingleRun instance, and all peers' pending table and
+        storage.
         :param order_cancel_set: a set of orders to be canceled
         :return: None.
         """
@@ -356,40 +367,22 @@ class Simulator:
                     self.engine.neighbor_min - cur_neighbor_size,
                 )
 
-    def operations_in_a_time_round(
-        self,
-        peer_arr_num: int,
-        peer_dept_num: int,
-        order_arr_num: int,
-        order_cancel_num: int,
-    ) -> None:
+    def group_of_peers_departure_helper(self, peer_dept_num: int) -> None:
         """
-        This method runs normal operations at a particular time point.
-        It includes peer/order dept/arrival, order status update, and peer's order acceptance,
-        storing, and sharing.
-        :param peer_arr_num: number of peers arriving the system
-        :param peer_dept_num: number of peers departing the system
-        :param order_arr_num: number of orders arriving the system
-        :param order_cancel_num: number of orders which are canceled
-        :return: None
+        This is a helper method for operations_in_a_time_round(). Given a certain number of
+        peers to depart, this method randomly selects the peers and let them depart.
         """
-
-        # pylint: disable=too-many-branches
-        # It seems fine for this function.
-
-        # peers leave
         for peer_to_depart in random.sample(
             self.peer_full_set, min(len(self.peer_full_set), peer_dept_num)
         ):
             self.peer_departure(peer_to_depart)
 
-        # existing peers adjust clock
-        for peer in self.peer_full_set:
-            peer.local_clock += 1
-            if peer.local_clock != self.cur_time:
-                raise RuntimeError("Clock system in a mass.")
-
-        # new peers come in
+    def group_of_peers_arrival_helper(self, peer_arr_num: int) -> None:
+        """
+        This is a helper method for operations_in_a_time_round(). Given a certain number of
+        peers to arrive, this method determines the peers' types according to their weights in
+        the system, and the values of attributes of each peer, and create them.
+        """
 
         peer_type_candidates: List[PeerTypeName] = []
         peer_weights: List[float] = []
@@ -419,19 +412,12 @@ class Simulator:
             num_init_orders: int = max(0, round(random.gauss(num_mean, num_var)))
             self.peer_arrival(peer_type, num_init_orders)
 
-        # Now, if the system does not have any peers, stop operations in this round.
-        # The simulator can still run, hoping that in the next round peers will appear.
-
-        if not self.peer_full_set:
-            return
-
-        # if there are only free-riders, then there will be no new order arrival.
-        # However, other operations will continue.
-
-        if self.peer_full_set == self.peer_type_set_mapping["free_rider"]:
-            order_arr_num = 0  # all are free-riders
-
-        # external orders arrival
+    def group_of_orders_arrival_helper(self, order_arr_num):
+        """
+        This is a helper method for operations_in_a_time_round(). Given a certain number of
+        order arrival, this method determines the initial holders (peers) of these orders, and
+        the values of attributes of the orders, and create them.
+        """
 
         # Decide which peers to hold these orders.
         # The probability for any peer to get an order is proportional to its init orderbook size.
@@ -459,7 +445,12 @@ class Simulator:
             )
             self.order_arrival(target_peer, expiration)
 
-        # existing orders canceled, orders settled, and global orderbook updated
+    def group_of_orders_cancellation_and_update_status(self, order_cancel_num):
+        """
+        This is a helper method for operations_in_a_time_round(). Given a number of orders to be
+        canceled, this method randomly selects the orders to cancel, and then update the status
+        of the rest orders and update the global orderbook status.
+        """
         order_to_cancel: List[Order] = random.sample(
             self.order_full_set, min(len(self.order_full_set), order_cancel_num)
         )
@@ -468,6 +459,52 @@ class Simulator:
             order.update_settled_status()
 
         self.update_global_orderbook(order_to_cancel)
+
+    def operations_in_a_time_round(
+        self,
+        peer_arr_num: int,
+        peer_dept_num: int,
+        order_arr_num: int,
+        order_cancel_num: int,
+    ) -> None:
+        """
+        This method runs normal operations at a particular time point.
+        It includes peer/order dept/arrival, order status update, and peer's order acceptance,
+        storing, and sharing.
+        :param peer_arr_num: number of peers arriving the system
+        :param peer_dept_num: number of peers departing the system
+        :param order_arr_num: number of orders arriving the system
+        :param order_cancel_num: number of orders which are canceled
+        :return: None
+        """
+
+        # peers leave
+        self.group_of_peers_departure_helper(peer_dept_num)
+
+        # existing peers adjust clock
+        for peer in self.peer_full_set:
+            peer.local_clock += 1
+            if peer.local_clock != self.cur_time:
+                raise RuntimeError("Clock system in a mass.")
+
+        # new peers come in
+        self.group_of_peers_arrival_helper(peer_arr_num)
+
+        # Now, if the system does not have any peers, stop operations in this round.
+        # The simulator can still run, hoping that in the next round peers will appear.
+        if not self.peer_full_set:
+            return
+
+        # if there are only free-riders, then there will be no new order arrival.
+        # However, other operations will continue.
+        if self.peer_full_set == self.peer_type_set_mapping["free_rider"]:
+            order_arr_num = 0  # all are free-riders
+
+        # external orders arrival
+        self.group_of_orders_arrival_helper(order_arr_num)
+
+        # existing orders canceled, orders settled, and global orderbook updated
+        self.group_of_orders_cancellation_and_update_status(order_cancel_num)
 
         # peer operations
         self.check_adding_neighbor()
@@ -479,7 +516,7 @@ class Simulator:
                     for beneficiary_peer in neighbors_to_share:
                         beneficiary_peer.receive_order_internal(peer, internal_order)
 
-    def run(self) -> SingleRunPerformanceResult:
+    def single_run_execution(self) -> SingleRunPerformanceResult:
         """
         This is the method that runs the simulator for one time, including setup, and growth and
         stable periods.
@@ -497,9 +534,9 @@ class Simulator:
         for order_set in self.order_type_set_mapping.values():
             order_set.clear()
 
-        # Initialization, orders are only held by creators.
+        # Create intial peers and orders. Orders are only held by creators.
         # Peers do not exchange orders at this moment.
-        self.setup()
+        self.create_initial_peers_orders()
         self.update_global_orderbook()
 
         # initiate vectors of each event happening count in each time round
