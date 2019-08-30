@@ -28,7 +28,8 @@ def arrange_for_test(
     order_spreading_sheet: List[List[int]],
 ) -> Tuple[List[Order], List[Peer]]:
     """
-    This is a helper function for arrangement for test functions.
+    This is a helper function for arrangement for test functions. It creates a set of orders and
+    a set of peers, sets up birth times for the orders, and propagates them to the peers.
     :param scenario: Scenario instance.
     :param engine: Engine instance.
     :param num_peer: number of peers to create
