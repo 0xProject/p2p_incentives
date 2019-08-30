@@ -152,9 +152,8 @@ def test_tit_for_tat__no_zero_contributors(
     neighbor_peers = create_test_peers(scenario, engine, num_neighbors)
     for i in range(num_neighbors):
         neighbor_peers[i].seq = i
-        # HACK (weijiewu8): need to change when the old PR is merged.
-        peer.should_add_neighbor(neighbor_peers[i])
-        neighbor_peers[i].should_add_neighbor(peer)
+        peer.add_neighbor(neighbor_peers[i])
+        neighbor_peers[i].add_neighbor(peer)
         # make sure no one is having a score of zero
         peer.peer_neighbor_mapping[neighbor_peers[i]].score = i + 300
 
@@ -203,17 +202,15 @@ def test_tit_for_tat__zero_contributors(scenario, engine, monkeypatch):
     neighbor_peers = create_test_peers(scenario, engine, 10)
     for i in range(5):
         neighbor_peers[i].seq = i
-        # HACK (weijiewu8): need to change when the old PR is merged.
-        peer.should_add_neighbor(neighbor_peers[i])
-        neighbor_peers[i].should_add_neighbor(peer)
+        peer.add_neighbor(neighbor_peers[i])
+        neighbor_peers[i].add_neighbor(peer)
         # making sure everyone is having a score of zero
         peer.peer_neighbor_mapping[neighbor_peers[i]].score = 0
 
     for i in range(5, 10):
         neighbor_peers[i].seq = i
-        # HACK (weijiewu8): need to change when the old PR is merged.
-        peer.should_add_neighbor(neighbor_peers[i])
-        neighbor_peers[i].should_add_neighbor(peer)
+        peer.add_neighbor(neighbor_peers[i])
+        neighbor_peers[i].add_neighbor(peer)
         # making sure no one is having a score of zero
         peer.peer_neighbor_mapping[neighbor_peers[i]].score = i + 300
 

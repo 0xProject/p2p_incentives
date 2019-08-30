@@ -35,10 +35,8 @@ def test_store_first__multi_orderinfo(scenario: Scenario, engine: Engine) -> Non
     for neighbor in neighbor_list:
         neighbor.receive_order_external(order)
         neighbor.store_orders()
-
-        # HACK (weijiewu8): this one should change after the previous PR is merged.
-        peer.should_add_neighbor(neighbor)
-        neighbor.should_add_neighbor(peer)
+        peer.add_neighbor(neighbor)
+        neighbor.add_neighbor(peer)
 
         peer.receive_order_internal(neighbor, order)
 

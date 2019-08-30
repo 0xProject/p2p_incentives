@@ -38,9 +38,8 @@ def test_weighted_sum(scenario, engine):
     neighbor_list: List[Peer] = create_test_peers(scenario, engine, 2)
     neighbor_instance_list: List[Neighbor] = list()
     for neighbor_peer in neighbor_list:
-        # HACK (weijiewu8): need to change to add_neighbor() after the PR is merged.
-        peer.should_add_neighbor(neighbor_peer)
-        neighbor_peer.should_add_neighbor(peer)
+        peer.add_neighbor(neighbor_peer)
+        neighbor_peer.add_neighbor(peer)
         neighbor_instance_list.append(peer.peer_neighbor_mapping[neighbor_peer])
 
     # Set neighbors lazy record. Neighbor 0's lazy_round will be reset to 0 after this round,
