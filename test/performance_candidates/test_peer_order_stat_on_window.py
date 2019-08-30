@@ -28,6 +28,8 @@ def arrange_for_test(
 ) -> Tuple[Peer, List[Order]]:
     """
     This is a helper function for arrangement for test functions.
+    It creates the peer, stores a set of orders for the peer, and put a (sub)set of the
+    orders into a list for statistics. Finally it returns the peer and the orders for statistics.
     :param scenario: Scenario instance.
     :param engine: Engine instance.
     :param num_order: number of orders.
