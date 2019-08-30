@@ -18,6 +18,11 @@ from .__init__ import (
     create_a_test_peer,
 )
 
+# The arrange helper function needed in this module is exactly the same as in
+# test_single_peer_order_receipt_ratio.py so we import it.
+
+from .test_single_peer_order_receipt_ratio import arrange_for_test
+
 
 class CaseType(NamedTuple):
     """
@@ -90,22 +95,14 @@ def test_single_peer_satisfaction_neutral__normal(
     """
 
     # Arrange
-
-    # create the peer
-    peer: Peer = create_a_test_peer(scenario, engine)[0]
-
-    # create the orders
-    order_list: List[Order] = create_test_orders(scenario, num_order)
-    for idx in range(num_order):
-        order_list[idx].birth_time = order_birth_time_list[idx]
-
-    # let the peer store corresponding orders
-    for order_id in order_id_owned_by_peer:
-        peer.receive_order_external(order_list[order_id])
-    peer.store_orders()
-
-    # prepare the set of orders for statistics
-    order_set: Set[Order] = set(order_list[idx] for idx in order_id_in_stat)
+    peer, order_set = arrange_for_test(
+        scenario,
+        engine,
+        num_order,
+        order_birth_time_list,
+        order_id_owned_by_peer,
+        order_id_in_stat,
+    )
 
     # Act
     satisfaction = performance_candidates.single_peer_satisfaction_neutral(
@@ -147,22 +144,14 @@ def test_single_peer_satisfaction_neutral__negative_age(
     """
 
     # Arrange
-
-    # create the peer
-    peer: Peer = create_a_test_peer(scenario, engine)[0]
-
-    # create the orders
-    order_list: List[Order] = create_test_orders(scenario, num_order)
-    for idx in range(num_order):
-        order_list[idx].birth_time = order_birth_time_list[idx]
-
-    # let the peer store corresponding orders
-    for order_id in order_id_owned_by_peer:
-        peer.receive_order_external(order_list[order_id])
-    peer.store_orders()
-
-    # prepare the set of orders for statistics
-    order_set: Set[Order] = set(order_list[idx] for idx in order_id_in_stat)
+    peer, order_set = arrange_for_test(
+        scenario,
+        engine,
+        num_order,
+        order_birth_time_list,
+        order_id_owned_by_peer,
+        order_id_in_stat,
+    )
 
     # Act and Asset.
     with pytest.raises(ValueError, match="Some order age is negative."):
@@ -202,22 +191,14 @@ def test_single_peer_satisfaction_neutral__no_order(
     """
 
     # Arrange
-
-    # create the peer
-    peer: Peer = create_a_test_peer(scenario, engine)[0]
-
-    # create the orders
-    order_list: List[Order] = create_test_orders(scenario, num_order)
-    for idx in range(num_order):
-        order_list[idx].birth_time = order_birth_time_list[idx]
-
-    # let the peer store corresponding orders
-    for order_id in order_id_owned_by_peer:
-        peer.receive_order_external(order_list[order_id])
-    peer.store_orders()
-
-    # prepare the set of orders for statistics
-    order_set: Set[Order] = set(order_list[idx] for idx in order_id_in_stat)
+    peer, order_set = arrange_for_test(
+        scenario,
+        engine,
+        num_order,
+        order_birth_time_list,
+        order_id_owned_by_peer,
+        order_id_in_stat,
+    )
 
     # Act and Asset.
     with pytest.raises(
