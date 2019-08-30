@@ -159,7 +159,7 @@ def test_peer_order_stat_on_window__normal(
     order_for_stat_idx_list: List[int],
     extra_order_num: int,
     expected_output: List[int],
-):
+) -> None:
 
     """
     This function tests peer_order_stat_on_window() in normal cases.
@@ -210,7 +210,7 @@ def test_peer_order_stat_on_window__negative_age(
     order_for_stat_idx_list: List[int],
     extra_order_num: int,
     _expected_output: List[int],
-):
+) -> None:
     """
     This tests negative order age.
     """
