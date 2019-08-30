@@ -3,7 +3,7 @@ This module contains test functions for order_spreading_ratio_stat()
 """
 
 import copy
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Tuple
 import pytest
 from node import Peer
 from message import Order
@@ -19,6 +19,40 @@ from .__init__ import (
 )
 
 
+def arrange_for_test(
+    scenario: Scenario,
+    engine: Engine,
+    num_peer: int,
+    num_order: int,
+    order_birth_time_list: List[int],
+    order_spreading_sheet: List[List[int]],
+) -> Tuple[List[Order], List[Peer]]:
+    """
+    This is a helper function for arrangement for test functions.
+    :param scenario: Scenario instance.
+    :param engine: Engine instance.
+    :param num_peer: number of peers to create
+    :param num_order: number of orders to create
+    :param order_birth_time_list: list of orders' birth times
+    :param order_spreading_sheet: list of list, each sublist corresponds to a certain order in
+    place, and contains the indices of the peers that has the corresponding order.
+    :return: list of orders, list of peers.
+    """
+
+    # Prepare peers and orders.
+    peer_list: List[Peer] = create_test_peers(scenario, engine, num_peer)
+    order_list: List[Order] = create_test_orders(scenario, num_order)
+
+    # Setup birth time and spread orders to peers.
+    for i in range(num_order):
+        order_list[i].birth_time = order_birth_time_list[i]
+        for peer_index in order_spreading_sheet[i]:
+            peer_list[peer_index].receive_order_external(order_list[i])
+            peer_list[peer_index].store_orders()  # now order.holder should include peer
+
+    return order_list, peer_list
+
+
 class CaseType(NamedTuple):
     """
     Data type for test cases in this module.
@@ -28,11 +62,12 @@ class CaseType(NamedTuple):
     engine: Engine
     num_order: int
     num_peer: int
-    order_spreading_sheet: List[
-        List[int]
-    ]  # List, each element corresponding to a list of peer
+    # List, each element corresponding to a list of peer
+    order_spreading_sheet: List[List[int]]
     # indices that stores this order
-    order_birth_time_list: List[int]  # list of birth times of input orders
+    order_birth_time_list: List[
+        int
+    ]  # List, each element corresponding to a list of peer
     max_age: int  # max_age_to_track for order_num_stat_on_age()
     statistical_window: int  # statistical_window for order_num_stat_on_age()
     expected_result: SpreadingRatio  # expected output from order_spreading_ratio_stat()
@@ -112,23 +147,20 @@ def test_order_spreading__normal(
     max_age: int,
     statistical_window: int,
     expected_result: SpreadingRatio,
-):
+) -> None:
     """
     Test normal cases for the function.
     """
 
     # Arrange.
-
-    # Prepare peers and orders.
-    peer_list: List[Peer] = create_test_peers(scenario, engine, num_peer)
-    order_list: List[Order] = create_test_orders(scenario, num_order)
-
-    # Setup birth time and spread orders to peers.
-    for i in range(num_order):
-        order_list[i].birth_time = order_birth_time_list[i]
-        for peer_index in order_spreading_sheet[i]:
-            peer_list[peer_index].receive_order_external(order_list[i])
-            peer_list[peer_index].store_orders()  # now order.holder should include peer
+    order_list, peer_list = arrange_for_test(
+        scenario=scenario,
+        engine=engine,
+        num_peer=num_peer,
+        num_order=num_order,
+        order_birth_time_list=order_birth_time_list,
+        order_spreading_sheet=order_spreading_sheet,
+    )
 
     # Act.
     order_spreading_result: SpreadingRatio = performance_candidates.order_spreading_ratio_stat(
@@ -170,23 +202,20 @@ def test_order_spreading__negative_age(
     max_age: int,
     statistical_window: int,
     _expected_result: SpreadingRatio,
-):
+) -> None:
     """
     Test negative order age.
     """
 
     # Arrange.
-
-    # Prepare peers and orders.
-    peer_list: List[Peer] = create_test_peers(scenario, engine, num_peer)
-    order_list: List[Order] = create_test_orders(scenario, num_order)
-
-    # Setup birth time and spread orders to peers.
-    for i in range(num_order):
-        order_list[i].birth_time = order_birth_time_list[i]
-        for peer_index in order_spreading_sheet[i]:
-            peer_list[peer_index].receive_order_external(order_list[i])
-            peer_list[peer_index].store_orders()  # now order.holder should include peer
+    order_list, peer_list = arrange_for_test(
+        scenario,
+        engine,
+        num_peer,
+        num_order,
+        order_birth_time_list,
+        order_spreading_sheet,
+    )
 
     # Act and Assert
     with pytest.raises(ValueError, match="Order age should not be negative."):

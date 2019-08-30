@@ -10,6 +10,26 @@ import performance_candidates
 from .__init__ import SCENARIO_SAMPLE, create_test_orders
 
 
+def arrange_for_test(
+    scenario: Scenario, order_birth_time_list: List[int]
+) -> List[Order]:
+    """
+    Helper function for arrangement for test functions. Create the list of orders and set up
+    their birth time.
+    :param scenario: Scenario instance.
+    :param order_birth_time_list: List of order birth time.
+    :return: List of orders.
+    """
+
+    num_order: int = len(order_birth_time_list)
+    order_list: List[Order] = create_test_orders(scenario, num_order)
+
+    for i in range(num_order):
+        order_list[i].birth_time = order_birth_time_list[i]
+
+    return order_list
+
+
 class CaseType(NamedTuple):
     """
     Data type for test cases in this module.
@@ -52,24 +72,6 @@ CASE_2 = CaseType(
     # calculated based on intervals [0, 9], [10, 19], ..., [90, 99], [100, 100] for ages.
     expected_result=[3, 0, 1, 1, 0, 0, 0, 1, 1, 3, 1],
 )
-
-
-def arrange_for_test(scenario: Scenario, order_birth_time_list: List[int]) -> List[Order]:
-    """
-    Helper function for arrangement for test functions. Create the list of orders and set up
-    their birth time.
-    :param scenario: Scenario instance.
-    :param order_birth_time_list: List of order birth time.
-    :return: List of orders.
-    """
-
-    num_order: int = len(order_birth_time_list)
-    order_list: List[Order] = create_test_orders(scenario, num_order)
-
-    for i in range(num_order):
-        order_list[i].birth_time = order_birth_time_list[i]
-
-    return order_list
 
 
 @pytest.mark.parametrize(
