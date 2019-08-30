@@ -35,7 +35,7 @@ class LintCommand(distutils.command.build_py.build_py):
 
     def run(self):
         """Run linter shell commands."""
-        files = " ".join(glob.glob("./*.py"))
+        files = " ".join(glob.glob("./**/*.py", recursive=True))
         lint_commands = [
             # # formatter:
             ("black --line-length 88 --check --diff " + files).split(),
