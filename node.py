@@ -4,7 +4,7 @@ Note that sometimes we use "node" and "peer" interchangeably in the comment.
 """
 
 import collections
-from typing import Deque, Set, Dict, List, TYPE_CHECKING
+from typing import Deque, Set, Dict, List, Tuple, TYPE_CHECKING
 from message import OrderInfo, Order
 from data_types import PeerTypeName, Preference, NameSpacing, Priority
 
@@ -152,27 +152,27 @@ class Peer:
         It accepts or rejects the request only.
         """
 
-        if requester in self.peer_neighbor_mapping:
-            raise ValueError("You are my neighbor. No need to request again.")
+        if requester in self.peer_neighbor_mapping or requester == self:
+            raise ValueError("Called by a wrong peer.")
 
-        return len(self.peer_neighbor_mapping) < self.engine.neighbor_min
+        return len(self.peer_neighbor_mapping) < self.engine.neighbor_max
 
-    def should_add_neighbor(self, peer: "Peer") -> bool:
+    def add_neighbor(self, peer: "Peer") -> None:
         """
         This method establishes a neighborhood relationship.
-        Different from other methods that can be called by a peer anywhere in the simulator,
-        this method can only be called in method add_new_links_helper() in class Simulator.
+        This method can only be called in method add_new_links_helper() in class Simulator.
+        Once it is called, a neighborhood relationship should be ready for establishment;
+        otherwise, it is an error (e.g., one party has already had the other party as a neighbor).
         :param peer: the peer instance of the node to be added as a neighbor.
-        :return: True if normal, or False if it is already my neighbor.
+        :return: None
         """
-        if peer in self.peer_neighbor_mapping:
-            return False
+        if peer in self.peer_neighbor_mapping or peer == self:
+            raise ValueError("Function called by a wrong peer.")
         # create new neighbor in my local storage
         new_neighbor = Neighbor(
             engine=self.engine, peer=peer, master=self, est_time=self.local_clock
         )
         self.peer_neighbor_mapping[peer] = new_neighbor
-        return True
 
     def accept_neighbor_cancellation(self, requester: "Peer") -> None:
         """
@@ -204,14 +204,17 @@ class Peer:
             raise ValueError("This peer is not my neighbor. Unable to delete.")
 
         # if remove_order is True, delete all orders whose previous owner is this neighbor
+
         if remove_order:
-            for order, orderinfo in self.order_orderinfo_mapping.items():
+            for order in list(self.order_orderinfo_mapping):
+                orderinfo = self.order_orderinfo_mapping[order]
                 if orderinfo.prev_owner == peer:
                     order.holders.remove(self)
                     self.new_order_set.discard(order)
                     del self.order_orderinfo_mapping[order]
 
-            for order, orderinfo_list in self.order_pending_orderinfo_mapping.items():
+            for order in list(self.order_pending_orderinfo_mapping):
+                orderinfo_list = self.order_pending_orderinfo_mapping[order]
                 for idx, orderinfo in enumerate(orderinfo_list):
                     if orderinfo.prev_owner == peer:
                         del orderinfo_list[idx]
@@ -237,13 +240,9 @@ class Peer:
         :return: None
         """
         if order in self.order_pending_orderinfo_mapping:
-            raise ValueError(
-                "Duplicated external order. This order is in my pending table."
-            )
+            raise ValueError("Duplicated external order in pending table.")
         if order in self.order_orderinfo_mapping:
-            raise ValueError(
-                "Duplicated external order. This order is in my local storage."
-            )
+            raise ValueError("Duplicated external order in local storage.")
 
         if self.engine.should_accept_external_order(self, order):
             # create the orderinfo instance and add it into the local mapping table
@@ -276,9 +275,7 @@ class Peer:
             self not in peer.peer_neighbor_mapping
             or peer not in self.peer_neighbor_mapping
         ):
-            raise ValueError(
-                "Order transmission cannot be performed between non-neighbors."
-            )
+            raise ValueError("Receiving order from non-neighbor.")
 
         neighbor: Neighbor = self.peer_neighbor_mapping[peer]
 
@@ -331,6 +328,9 @@ class Peer:
             if peer == existing_orderinfo.prev_owner:
                 # This neighbor is sending duplicates to me in a short period of time. Likely to
                 # be a malicious one.
+                # Penalty is imposed to this neighbor. But please be noted that this peer's
+                # previous copy is still in the pending list, and if it is finally stored,
+                # this peer will still get a reward for the order being stored.
                 neighbor.share_contribution[-1] += self.engine.penalty_b
                 return
 
@@ -355,7 +355,7 @@ class Peer:
 
         # Now store an orderinfo if necessary
 
-        for (order, orderinfo_list) in self.order_pending_orderinfo_mapping.items():
+        for order, orderinfo_list in self.order_pending_orderinfo_mapping.items():
 
             # Sort the list of pending orderinfo with the same order instance, so that if
             # there is some order to be stored, it will be the first one.
@@ -395,8 +395,7 @@ class Peer:
                 for pending_orderinfo in orderinfo_list[1:]:
                     if pending_orderinfo.storage_decision:
                         raise ValueError(
-                            "Should not store multiple orders. Wrong in order store "
-                            "decision process."
+                            "Should not store multiple copies of same orders."
                         )
                     # internal order, sender is still neighbor
                     if pending_orderinfo.prev_owner in self.peer_neighbor_mapping:
@@ -408,12 +407,12 @@ class Peer:
         # clear the pending mapping table
         self.order_pending_orderinfo_mapping.clear()
 
-    def share_orders(self) -> None:
+    def share_orders(self) -> Tuple[Set[Order], Set["Peer"]]:
         """
         This method determines which orders to be shared to which neighbors.
-        It will call internal order receiving method of the receiver peer.
+        It will return the set of orders to share, and the set of neighboring peers to share.
         This method is only called by each peer proactively at the end of a batch period.
-        :return: None.
+        :return: Tuple[set of orders to share, set of peers to share]
         """
 
         if (self.local_clock - self.birth_time) % self.engine.batch != 0:
@@ -424,7 +423,7 @@ class Peer:
         # free riders do not share any order.
         if self.is_free_rider:
             self.new_order_set.clear()
-            return
+            return set(), set()
 
         # Otherwise, this function has to go through order by order and neighbor by neighbor.
 
@@ -439,10 +438,7 @@ class Peer:
             self.local_clock, self
         )
 
-        # call receiver node to accept the orders
-        for peer in peer_to_share_set:
-            for order in order_to_share_set:
-                peer.receive_order_internal(self, order)
+        return order_to_share_set, peer_to_share_set
 
     def del_order(self, order: Order) -> None:
         """
@@ -465,7 +461,7 @@ class Peer:
         This method ranks neighbors according to their scores. It is called by internal method
         share_orders().
         :return: a list peer instances ranked by the scores of their corresponding neighbor
-        instances.
+        instances, from top to down.
         """
         self.engine.score_neighbors(self)
         peer_list: List["Peer"] = list(self.peer_neighbor_mapping)

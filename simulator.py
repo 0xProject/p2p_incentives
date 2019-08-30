@@ -330,10 +330,8 @@ class Simulator:
                     and candidate.should_accept_neighbor_request(requester)
                 ):
                     # mutual add neighbors
-                    if not candidate.should_add_neighbor(
-                        requester
-                    ) or not requester.should_add_neighbor(candidate):
-                        raise RuntimeError("Existing neighbors are being connected.")
+                    candidate.add_neighbor(requester)
+                    requester.add_neighbor(candidate)
                     links_added += 1
                     links_added_this_round += 1
 
@@ -476,7 +474,10 @@ class Simulator:
         for peer in self.peer_full_set:
             if (self.cur_time - peer.birth_time) % self.engine.batch == 0:
                 peer.store_orders()
-                peer.share_orders()
+                (orders_to_share, neighbors_to_share) = peer.share_orders()
+                for internal_order in orders_to_share:
+                    for beneficiary_peer in neighbors_to_share:
+                        beneficiary_peer.receive_order_internal(peer, internal_order)
 
     def run(self) -> SingleRunPerformanceResult:
         """
