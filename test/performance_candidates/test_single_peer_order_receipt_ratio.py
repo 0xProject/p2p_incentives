@@ -3,7 +3,7 @@ This module contains test functions for single_peer_order_receipt_ratio()
 """
 
 import copy
-from typing import List, NamedTuple, Set
+from typing import List, NamedTuple, Set, Tuple
 import pytest
 from node import Peer
 from message import Order
@@ -17,6 +17,47 @@ from .__init__ import (
     create_test_orders,
     create_a_test_peer,
 )
+
+
+def arrange_for_test(
+    scenario: Scenario,
+    engine: Engine,
+    num_order: int,
+    order_birth_time_list: List[int],
+    order_id_owned_by_peer: List[int],
+    order_id_in_stat: List[int],
+) -> Tuple[Peer, Set[Order]]:
+    """
+    This is a helper function for arrangement for test functions.
+    It creates the peer, the full set of orders, stores orders according to
+    order_id_owned_by_peer, puts the (sub)set of orders according to order_id_in_stat,
+    and finally, returns the peer and the (sub)set of orders.
+    :param scenario: Scenario instance
+    :param engine: Engine instance
+    :param num_order: total number of orders that will be created
+    :param order_birth_time_list: birth time for these orders
+    :param order_id_owned_by_peer: IDs of the orders that this peer owns
+    :param order_id_in_stat: IDs of orders in statistics.
+    :return: the peer instance, and the set of orders for statistics.
+    """
+
+    # create the peer
+    peer: Peer = create_a_test_peer(scenario, engine)[0]
+
+    # create the orders
+    order_list: List[Order] = create_test_orders(scenario, num_order)
+    for idx in range(num_order):
+        order_list[idx].birth_time = order_birth_time_list[idx]
+
+    # let the peer store corresponding orders
+    for order_id in order_id_owned_by_peer:
+        peer.receive_order_external(order_list[order_id])
+    peer.store_orders()
+
+    # prepare the set of orders for statistics
+    order_set: Set[Order] = set(order_list[idx] for idx in order_id_in_stat)
+
+    return peer, order_set
 
 
 class CaseType(NamedTuple):
@@ -105,22 +146,14 @@ def test_single_peer_order_receipt_ratio__normal(
     """
 
     # Arrange
-
-    # create the peer
-    peer: Peer = create_a_test_peer(scenario, engine)[0]
-
-    # create the orders
-    order_list: List[Order] = create_test_orders(scenario, num_order)
-    for idx in range(num_order):
-        order_list[idx].birth_time = order_birth_time_list[idx]
-
-    # let the peer store corresponding orders
-    for order_id in order_id_owned_by_peer:
-        peer.receive_order_external(order_list[order_id])
-    peer.store_orders()
-
-    # prepare the set of orders for statistics
-    order_set: Set[Order] = set(order_list[idx] for idx in order_id_in_stat)
+    peer, order_set = arrange_for_test(
+        scenario=scenario,
+        engine=engine,
+        num_order=num_order,
+        order_birth_time_list=order_birth_time_list,
+        order_id_owned_by_peer=order_id_owned_by_peer,
+        order_id_in_stat=order_id_in_stat,
+    )
 
     # Act
     receipt_ratio = performance_candidates.single_peer_order_receipt_ratio(
@@ -168,22 +201,14 @@ def test_single_peer_order_receipt_ratio__negative_age(
     """
 
     # Arrange
-
-    # create the peer
-    peer: Peer = create_a_test_peer(scenario, engine)[0]
-
-    # create the orders
-    order_list: List[Order] = create_test_orders(scenario, num_order)
-    for idx in range(num_order):
-        order_list[idx].birth_time = order_birth_time_list[idx]
-
-    # let the peer store corresponding orders
-    for order_id in order_id_owned_by_peer:
-        peer.receive_order_external(order_list[order_id])
-    peer.store_orders()
-
-    # prepare the set of orders for statistics
-    order_set: Set[Order] = set(order_list[idx] for idx in order_id_in_stat)
+    peer, order_set = arrange_for_test(
+        scenario=scenario,
+        engine=engine,
+        num_order=num_order,
+        order_birth_time_list=order_birth_time_list,
+        order_id_owned_by_peer=order_id_owned_by_peer,
+        order_id_in_stat=order_id_in_stat,
+    )
 
     # Act and Asset.
     with pytest.raises(ValueError, match="Some order age is negative."):
