@@ -31,10 +31,6 @@ class SingleRun:
     time. For example, initialization of the system, and operations in each time round.
     """
 
-    # HACK (weijiewu8): In current implementation we assume there is only one order type.
-    # There are hard-coded lines of orders of type 'default', subject to future change when there
-    # are more than one type of orders.
-
     def __init__(
         self, scenario: "Scenario", engine: "Engine", performance: "Performance"
     ) -> None:
@@ -92,6 +88,8 @@ class SingleRun:
         """
 
         # HACK (weijiewu8): There is only one type of orders (default) and it is hard coded.
+        # This appears not only in this method, but need to check "default" for the entire code
+        # base.
 
         # order sequence number should start from zero, but can be customized
         order_seq: int = self.latest_order_seq
@@ -214,7 +212,13 @@ class SingleRun:
             # But the new peer has not been initiated, so we set the creator to be None temporarily.
             # We will modify it when the peer is initiated.
             # This is tricky and informal, but I don't have a better way of doing it right now.
-            new_order = Order(self.scenario, order_seq, self.cur_time, None, expiration)
+            new_order = Order(
+                scenario=self.scenario,
+                seq=order_seq,
+                birth_time=self.cur_time,
+                creator=None,
+                expiration=expiration,
+            )
             self.order_full_set.add(new_order)
             self.order_type_set_mapping["default"].add(new_order)
             cur_order_set.add(new_order)
@@ -222,7 +226,12 @@ class SingleRun:
 
         # create the new peer, and add it to the table
         new_peer = Peer(
-            self.engine, peer_seq, self.cur_time, cur_order_set, None, peer_type
+            engine=self.engine,
+            seq=peer_seq,
+            birth_time=self.cur_time,
+            init_orders=cur_order_set,
+            namespacing=None,
+            peer_type=peer_type,
         )
         self.peer_full_set.add(new_peer)
         self.peer_type_set_mapping[peer_type].add(new_peer)
@@ -266,7 +275,11 @@ class SingleRun:
         # create a new order
         new_order_seq: int = self.latest_order_seq
         new_order = Order(
-            self.scenario, new_order_seq, self.cur_time, target_peer, expiration
+            scenario=self.scenario,
+            seq=new_order_seq,
+            birth_time=self.cur_time,
+            creator=target_peer,
+            expiration=expiration,
         )
 
         # update the set of orders for the SingleRun
@@ -362,9 +375,9 @@ class SingleRun:
             cur_neighbor_size: int = len(peer.peer_neighbor_mapping)
             if cur_neighbor_size < self.engine.neighbor_min:
                 self.add_new_links_helper(
-                    peer,
-                    self.engine.neighbor_max - cur_neighbor_size,
-                    self.engine.neighbor_min - cur_neighbor_size,
+                    requester=peer,
+                    demand=self.engine.neighbor_max - cur_neighbor_size,
+                    minimum=self.engine.neighbor_min - cur_neighbor_size,
                 )
 
     def group_of_peers_departure_helper(self, peer_dept_num: int) -> None:
@@ -422,6 +435,7 @@ class SingleRun:
         # Decide which peers to hold these orders.
         # The probability for any peer to get an order is proportional to its init orderbook size.
         # Free riders will not be candidates since they don't have init orderbook.
+
         candidate_peer_list: List[Peer] = list(self.peer_full_set)
         peer_capacity_weight: List[int] = list(
             item.init_orderbook_size for item in candidate_peer_list
@@ -534,7 +548,7 @@ class SingleRun:
         for order_set in self.order_type_set_mapping.values():
             order_set.clear()
 
-        # Create intial peers and orders. Orders are only held by creators.
+        # Create initial peers and orders. Orders are only held by creators.
         # Peers do not exchange orders at this moment.
         self.create_initial_peers_orders()
         self.update_global_orderbook()

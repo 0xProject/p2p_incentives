@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class MultiRunInParallel:
     """
     This class contains functions that runs the simulator multiple times, using a multiprocessing
-    manner, and finally, average the performance measures and output corresponding figures.
+    manner, and finally, calculates the performance measures for each run.
     The need of running the simulator multiple times comes from randomness. Due to randomness,
     each time the simulator is run, the result can be quite different, so figures are not smooth.
     Since each time the simulator running is totally independent, we use multiprocessing to reduce
@@ -49,14 +49,14 @@ class MultiRunInParallel:
         args: Tuple["Scenario", "Engine", "Performance"]
     ) -> SingleRunPerformanceResult:
         """
-        This is a helper method called by method run(), to realize multi-processing.
-        It actually runs the run() function in SingleRun.
+        This is a helper method called by method parallel_run(), to realize multi-processing.
+        It actually runs the single_run_execution() function in SingleRun.
         :param args: arbitrary inputs.
         :return: SingleRun.run()
         """
         return SingleRun(*args).single_run_execution()
 
-    def parallel_run(self) -> MultiRunPerformanceResult:
+    def multi_run_execution(self) -> MultiRunPerformanceResult:
         """
         This method runs the simulator for a number of "self.rounds" times in parallel,
         using "self.multi_pools" processes. It also re-organizes the performance
@@ -85,7 +85,6 @@ class MultiRunInParallel:
 
         for measure_key, value_list in multi_run_performance_by_measure.items():
             for item in performance_result_list:
-                # we don't do type check for value, but will check its type in the following lines.
                 value = getattr(item, measure_key)
                 # the isinstance() judgement should always pass and it is only to make mypy work
                 if not isinstance(value_list, list):
