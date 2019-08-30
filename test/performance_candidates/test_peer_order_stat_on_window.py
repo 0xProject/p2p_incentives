@@ -3,7 +3,7 @@ This module contains test functions for peer_order_stat_on_window()
 """
 
 import copy
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Tuple
 import pytest
 from node import Peer
 from message import Order
@@ -16,6 +16,50 @@ from .__init__ import (
     create_test_orders,
     create_a_test_peer,
 )
+
+
+def arrange_for_test(
+    scenario: Scenario,
+    engine: Engine,
+    num_order: int,
+    birth_time_list: List[int],
+    order_for_stat_idx_list: List[int],
+    extra_order_num: int,
+) -> Tuple[Peer, List[Order]]:
+    """
+    This is a helper function for arrangement for test functions.
+    :param scenario: Scenario instance.
+    :param engine: Engine instance.
+    :param num_order: number of orders.
+    :param birth_time_list: list of birth times for orders.
+    :param order_for_stat_idx_list: list of IDs of orders in statistics.
+    :param extra_order_num: number of extra orders (not in peer's storage) in statistics.
+    :return: the peer instance, and list of orders for statistics.
+    """
+    # Create the peer, clear the storage, and store the new orders.
+
+    peer: Peer = create_a_test_peer(scenario, engine)[0]
+    for order in list(peer.order_orderinfo_mapping):
+        peer.del_order(order)
+
+    # Prepare the order list for the peer, and store them.
+    order_list: List[Order] = create_test_orders(scenario, num_order)
+    for idx in range(num_order):
+        order_list[idx].birth_time = birth_time_list[idx]
+        peer.receive_order_external(order_list[idx])
+    peer.store_orders()
+
+    # Put a subset of these orders into the order-for-statistics list in peer_order_stat_on_window()
+    order_for_stat_list: List[Order] = list()
+    for idx in order_for_stat_idx_list:
+        order_for_stat_list.append(order_list[idx])
+
+    # Put extra orders into the order-for-statistics list
+    # This is allowed by the function but this procedure should have no effect at all.
+    extra_order_list: List[Order] = create_test_orders(scenario, extra_order_num)
+    order_for_stat_list += extra_order_list
+
+    return peer, order_for_stat_list
 
 
 class CaseType(NamedTuple):
@@ -123,28 +167,14 @@ def test_peer_order_stat_on_window__normal(
 
     # Arrange.
 
-    # Create the peer, clear the storage, and store the new orders.
-
-    peer: Peer = create_a_test_peer(scenario, engine)[0]
-    for order in list(peer.order_orderinfo_mapping):
-        peer.del_order(order)
-
-    # Prepare the order list for the peer, and store them.
-    order_list: List[Order] = create_test_orders(scenario, num_order)
-    for idx in range(num_order):
-        order_list[idx].birth_time = birth_time_list[idx]
-        peer.receive_order_external(order_list[idx])
-    peer.store_orders()
-
-    # Put a subset of these orders into the order-for-statistics list in peer_order_stat_on_window()
-    order_for_stat_list: List[Order] = list()
-    for idx in order_for_stat_idx_list:
-        order_for_stat_list.append(order_list[idx])
-
-    # Put extra orders into the order-for-statistics list
-    # This is allowed by the function but this procedure should have no effect at all.
-    extra_order_list: List[Order] = create_test_orders(scenario, extra_order_num)
-    order_for_stat_list += extra_order_list
+    peer, order_for_stat_list = arrange_for_test(
+        scenario=scenario,
+        engine=engine,
+        num_order=num_order,
+        birth_time_list=birth_time_list,
+        order_for_stat_idx_list=order_for_stat_idx_list,
+        extra_order_num=extra_order_num,
+    )
 
     # Act.
     order_stat: List[int] = performance_candidates.peer_order_stat_on_window(
@@ -186,28 +216,16 @@ def test_peer_order_stat_on_window__negative_age(
     """
     # Arrange.
 
-    # Create the peer, clear the storage, and store the new orders.
+    # Arrange.
 
-    peer: Peer = create_a_test_peer(scenario, engine)[0]
-    for order in list(peer.order_orderinfo_mapping):
-        peer.del_order(order)
-
-    # Prepare the order list for the peer, and store them.
-    order_list: List[Order] = create_test_orders(scenario, num_order)
-    for idx in range(num_order):
-        order_list[idx].birth_time = birth_time_list[idx]
-        peer.receive_order_external(order_list[idx])
-    peer.store_orders()
-
-    # Put a subset of these orders into the order-for-statistics list in peer_order_stat_on_window()
-    order_for_stat_list: List[Order] = list()
-    for idx in order_for_stat_idx_list:
-        order_for_stat_list.append(order_list[idx])
-
-    # Put extra orders into the order-for-statistics list
-    # This is allowed by the function but this procedure should have no effect at all.
-    extra_order_list: List[Order] = create_test_orders(scenario, extra_order_num)
-    order_for_stat_list += extra_order_list
+    peer, order_for_stat_list = arrange_for_test(
+        scenario=scenario,
+        engine=engine,
+        num_order=num_order,
+        birth_time_list=birth_time_list,
+        order_for_stat_idx_list=order_for_stat_idx_list,
+        extra_order_num=extra_order_num,
+    )
 
     # Act and Assert.
     with pytest.raises(ValueError, match="Order age should not be negative."):
