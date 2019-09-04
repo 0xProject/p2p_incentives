@@ -192,6 +192,10 @@ class SingleRun:
         :return: None
         """
 
+        # free riders must have no orders
+        if peer_type == "free_rider" and num_orders:
+            raise ValueError("Free riders do not have orders.")
+
         # decide this peer's sequence number
         peer_seq: int = self.latest_peer_seq
 
