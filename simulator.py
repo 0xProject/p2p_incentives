@@ -251,6 +251,9 @@ class SingleRun:
         :return: None.
         """
 
+        if peer not in list(self.peer_full_set):
+            raise ValueError("No such peer to depart.")
+
         # update number of replicas of all stored/pending orders with this peer
         for order in peer.order_orderinfo_mapping:
             order.holders.remove(peer)
