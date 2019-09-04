@@ -133,9 +133,7 @@ ENGINE_SAMPLE = Engine(
 
 
 PERFORMANCE_SAMPLE = Performance(
-    PerformanceParameters(
-        max_age_to_track=50, adult_age=30, statistical_window=5
-    ),
+    PerformanceParameters(max_age_to_track=50, adult_age=30, statistical_window=5),
     PerformanceOptions(
         spreading_option=SpreadingOption(method="Ratio"),
         satisfaction_option=SatisfactionOption(method="Neutral"),
