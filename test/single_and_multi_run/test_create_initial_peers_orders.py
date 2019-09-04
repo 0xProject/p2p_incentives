@@ -140,9 +140,8 @@ def test_create_initial_peers_orders(scenario, engine, performance, monkeypatch)
     # Calculate the expected order sequence number update
     expected_order_nums = 0
     for peer_type in scenario.peer_type_property:
-        expected_order_nums += (
-            expected_peer_nums[peer_type]
-            * int(scenario.peer_type_property[peer_type].initial_orderbook_size.mean)
+        expected_order_nums += expected_peer_nums[peer_type] * int(
+            scenario.peer_type_property[peer_type].initial_orderbook_size.mean
         )
     # Assert the order sequence number update
     assert single_run_instance.latest_order_seq == expected_order_nums
