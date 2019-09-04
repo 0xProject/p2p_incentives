@@ -46,20 +46,21 @@ from scenario import Scenario
 from engine import Engine
 from performance import Performance
 
-# Note that the following two instances of scenario and engine are mostly arbitrarily created,
-# with legal but no-specific meaning values for attributes.
+# Note that the following instances are mostly arbitrarily created, with legal but no-specific
+# meaning values for attributes.
 # Right now I don't foresee any reason of setting them in a specific way - they are needed merely
 # to create peer and order instances, and value of attributes don't really matter.
 # However, in order to leave space for extensions of future tests, we will pass these instances
 # to test functions using parametrization, rather than hard coding them into the test function
 # code.
 
+# This is a scenario example, where num_peers * ratio are all integers.
 
 SCENARIO_SAMPLE_1 = Scenario(
     ScenarioParameters(
         order_type_property=OrderTypePropertyDict(
             default=OrderProperty(
-                ratio=1.0, expiration=Distribution(mean=500.0, var=0.0)
+                ratio=1.0, expiration=Distribution(mean=500.0, var=3.0)
             )
         ),
         peer_type_property=PeerTypePropertyDict(
@@ -70,7 +71,7 @@ SCENARIO_SAMPLE_1 = Scenario(
                 ratio=0.1, initial_orderbook_size=Distribution(0, 0)
             ),
         ),
-        init_state=SystemInitialState(num_peers=11, birth_time_span=20),
+        init_state=SystemInitialState(num_peers=10, birth_time_span=20),
         growth_period=SystemEvolution(
             rounds=30,
             peer_arrival=3.0,
@@ -90,6 +91,8 @@ SCENARIO_SAMPLE_1 = Scenario(
         event=EventOption(method="Poisson"), settle=SettleOption(method="Never")
     ),
 )
+
+# This is a scenario example, where num_peers * ratio are NOT integers.
 
 SCENARIO_SAMPLE_2 = Scenario(
     ScenarioParameters(
@@ -100,13 +103,13 @@ SCENARIO_SAMPLE_2 = Scenario(
         ),
         peer_type_property=PeerTypePropertyDict(
             normal=PeerProperty(
-                ratio=0.9, initial_orderbook_size=Distribution(mean=6.0, var=0.0)
+                ratio=0.52, initial_orderbook_size=Distribution(mean=7.5, var=4.0)
             ),
             free_rider=PeerProperty(
-                ratio=0.1, initial_orderbook_size=Distribution(0, 0)
+                ratio=0.48, initial_orderbook_size=Distribution(0, 0)
             ),
         ),
-        init_state=SystemInitialState(num_peers=11, birth_time_span=20),
+        init_state=SystemInitialState(num_peers=29, birth_time_span=20),
         growth_period=SystemEvolution(
             rounds=30,
             peer_arrival=3.0,
@@ -126,7 +129,6 @@ SCENARIO_SAMPLE_2 = Scenario(
         event=EventOption(method="Poisson"), settle=SettleOption(method="Never")
     ),
 )
-
 
 
 ENGINE_SAMPLE = Engine(

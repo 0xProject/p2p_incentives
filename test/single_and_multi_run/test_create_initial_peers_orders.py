@@ -7,7 +7,12 @@ from typing import List, Dict
 import pytest
 
 from simulator import SingleRun
-from .__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
+from .__init__ import (
+    SCENARIO_SAMPLE_1,
+    SCENARIO_SAMPLE_2,
+    ENGINE_SAMPLE,
+    PERFORMANCE_SAMPLE,
+)
 
 
 def mock_random_choice(candidates: List, weights: List[float], k: int) -> List:
@@ -65,7 +70,10 @@ def fake_gauss(mean: float, _var: float) -> int:
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [
+        (SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE),
+        (SCENARIO_SAMPLE_2, ENGINE_SAMPLE, PERFORMANCE_SAMPLE),
+    ],
 )
 def test_create_initial_peers_orders(scenario, engine, performance, monkeypatch):
     """
@@ -134,7 +142,7 @@ def test_create_initial_peers_orders(scenario, engine, performance, monkeypatch)
     for peer_type in scenario.peer_type_property:
         expected_order_nums += (
             expected_peer_nums[peer_type]
-            * scenario.peer_type_property[peer_type].initial_orderbook_size.mean
+            * int(scenario.peer_type_property[peer_type].initial_orderbook_size.mean)
         )
     # Assert the order sequence number update
     assert single_run_instance.latest_order_seq == expected_order_nums
