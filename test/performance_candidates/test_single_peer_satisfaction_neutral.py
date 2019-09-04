@@ -113,7 +113,7 @@ def test_single_peer_satisfaction_neutral__normal(
         order_set=order_set,
     )
 
-    # Asset.
+    # Assert.
     assert satisfaction == expected_result
 
 

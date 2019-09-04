@@ -1,11 +1,9 @@
 """
 This module contains test functions for performance_candidates.py
 
+# HACK(weijiewu8):
 This init file contains exactly the same content as other modules (e.g., node.py).
-Later we will need to find a better place to place it.
-
-# HACK(weijiewu8): Re-organize __init__.py files.
-
+Later we will need to find a better place for it.
 """
 
 from typing import List, Set, Tuple

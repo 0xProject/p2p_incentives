@@ -164,7 +164,7 @@ def test_single_peer_order_receipt_ratio__normal(
         order_set=order_set,
     )
 
-    # Asset.
+    # Assert.
     assert len(receipt_ratio) == len(expected_result)
     length = len(receipt_ratio)
     for idx in range(length):
@@ -210,7 +210,7 @@ def test_single_peer_order_receipt_ratio__negative_age(
         order_id_in_stat=order_id_in_stat,
     )
 
-    # Act and Asset.
+    # Act and Assert.
     with pytest.raises(ValueError, match="Some order age is negative."):
         performance_candidates.single_peer_order_receipt_ratio(
             cur_time=100,
