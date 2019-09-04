@@ -7,6 +7,10 @@ from typing import Dict
 import pytest
 
 from simulator import SingleRun
+from engine import Engine
+from performance import Performance
+from scenario import Scenario
+
 from .__init__ import (
     SCENARIO_SAMPLE_1,
     SCENARIO_SAMPLE_2,
@@ -24,7 +28,9 @@ from .__init__ import (
         (SCENARIO_SAMPLE_2, ENGINE_SAMPLE, PERFORMANCE_SAMPLE),
     ],
 )
-def test_create_initial_peers_orders(scenario, engine, performance, monkeypatch):
+def test_create_initial_peers_orders(
+    scenario: Scenario, engine: Engine, performance: Performance, monkeypatch
+) -> None:
     """
     This is the unit test for function create_initial_peers_orders(). We test if the initial
     peers and orders are properly created.

@@ -3,6 +3,11 @@ This module contains unit tests for peer_arrival().
 """
 import pytest
 
+from scenario import Scenario
+from engine import Engine
+from performance import Performance
+from node import Peer
+
 from simulator import SingleRun
 from .__init__ import SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
@@ -11,7 +16,9 @@ from .__init__ import SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
     "scenario, engine, performance",
     [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
-def test_peer_arrival__normal(scenario, engine, performance):
+def test_peer_arrival__normal(
+    scenario: Scenario, engine: Engine, performance: Performance
+) -> None:
     """
     This function tests peer_arrival for a normal peer.
     """
@@ -27,7 +34,7 @@ def test_peer_arrival__normal(scenario, engine, performance):
     # Only one peer is added
     assert len(single_run_instance.peer_full_set) == 1
     assert len(single_run_instance.peer_type_set_mapping["normal"]) == 1
-    peer = single_run_instance.peer_full_set.pop()
+    peer: Peer = single_run_instance.peer_full_set.pop()
 
     # Assert the peer properties
     assert peer.peer_type == "normal"
@@ -44,7 +51,9 @@ def test_peer_arrival__normal(scenario, engine, performance):
     "scenario, engine, performance",
     [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
-def test_peer_arrival__free_rider(scenario, engine, performance):
+def test_peer_arrival__free_rider(
+    scenario: Scenario, engine: Engine, performance: Performance
+) -> None:
     """
     This function tests peer_arrival for a free rider.
     """
@@ -60,7 +69,7 @@ def test_peer_arrival__free_rider(scenario, engine, performance):
     # Only one peer is added
     assert len(single_run_instance.peer_full_set) == 1
     assert len(single_run_instance.peer_type_set_mapping["free_rider"]) == 1
-    peer = single_run_instance.peer_full_set.pop()
+    peer: Peer = single_run_instance.peer_full_set.pop()
 
     # Assert the peer properties
     assert peer.peer_type == "free_rider"
@@ -75,7 +84,9 @@ def test_peer_arrival__free_rider(scenario, engine, performance):
     "scenario, engine, performance",
     [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
-def test_peer_arrival__free_rider_error(scenario, engine, performance):
+def test_peer_arrival__free_rider_error(
+    scenario: Scenario, engine: Engine, performance: Performance
+) -> None:
     """
     This function tests peer_arrival for a free rider.
     """
