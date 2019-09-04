@@ -55,7 +55,43 @@ from performance import Performance
 # code.
 
 
-SCENARIO_SAMPLE = Scenario(
+SCENARIO_SAMPLE_1 = Scenario(
+    ScenarioParameters(
+        order_type_property=OrderTypePropertyDict(
+            default=OrderProperty(
+                ratio=1.0, expiration=Distribution(mean=500.0, var=0.0)
+            )
+        ),
+        peer_type_property=PeerTypePropertyDict(
+            normal=PeerProperty(
+                ratio=0.9, initial_orderbook_size=Distribution(mean=6.0, var=2.0)
+            ),
+            free_rider=PeerProperty(
+                ratio=0.1, initial_orderbook_size=Distribution(0, 0)
+            ),
+        ),
+        init_state=SystemInitialState(num_peers=11, birth_time_span=20),
+        growth_period=SystemEvolution(
+            rounds=30,
+            peer_arrival=3.0,
+            peer_dept=0.0,
+            order_arrival=15.0,
+            order_cancel=15.0,
+        ),
+        stable_period=SystemEvolution(
+            rounds=50,
+            peer_arrival=2.0,
+            peer_dept=2.0,
+            order_arrival=15.0,
+            order_cancel=15.0,
+        ),
+    ),
+    ScenarioOptions(
+        event=EventOption(method="Poisson"), settle=SettleOption(method="Never")
+    ),
+)
+
+SCENARIO_SAMPLE_2 = Scenario(
     ScenarioParameters(
         order_type_property=OrderTypePropertyDict(
             default=OrderProperty(
@@ -90,6 +126,8 @@ SCENARIO_SAMPLE = Scenario(
         event=EventOption(method="Poisson"), settle=SettleOption(method="Never")
     ),
 )
+
+
 
 ENGINE_SAMPLE = Engine(
     EngineParameters(
