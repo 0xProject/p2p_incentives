@@ -3,13 +3,15 @@ This module contains unit tests for create_initial_peer_orders().
 
 """
 import random
-from typing import Dict
+from typing import Dict, cast
 import pytest
 
 from simulator import SingleRun
 from engine import Engine
 from performance import Performance
 from scenario import Scenario
+
+from data_types import PeerTypeName
 
 from .__init__ import (
     SCENARIO_SAMPLE_1,
@@ -55,13 +57,15 @@ def test_create_initial_peers_orders(
     # it follows the logic in mock_random_choice().
     expected_peer_nums: Dict[str, int] = dict()
     for peer_type in scenario.peer_type_property:
+        peer_type = cast(PeerTypeName, peer_type)
         expected_peer_nums[peer_type] = int(
             scenario.init_size * scenario.peer_type_property[peer_type].ratio
         )
 
     if sum(num for num in expected_peer_nums.values()) < scenario.init_size:
-        max_peer_type = "normal"
+        max_peer_type: PeerTypeName = "normal"
         for peer_type in scenario.peer_type_property:
+            peer_type = cast(PeerTypeName, peer_type)
             if (
                 scenario.peer_type_property[peer_type].ratio
                 > scenario.peer_type_property[max_peer_type].ratio
@@ -75,6 +79,7 @@ def test_create_initial_peers_orders(
     assert len(single_run_instance.peer_full_set) == scenario.init_size
     # Assert the peer numbers of each type.
     for peer_type in scenario.peer_type_property:
+        peer_type = cast(PeerTypeName, peer_type)
         assert (
             len(single_run_instance.peer_type_set_mapping[peer_type])
             == expected_peer_nums[peer_type]
@@ -95,6 +100,7 @@ def test_create_initial_peers_orders(
     # Calculate the expected order sequence number update
     expected_order_nums = 0
     for peer_type in scenario.peer_type_property:
+        peer_type = cast(PeerTypeName, peer_type)
         expected_order_nums += expected_peer_nums[peer_type] * int(
             scenario.peer_type_property[peer_type].initial_orderbook_size.mean
         )
