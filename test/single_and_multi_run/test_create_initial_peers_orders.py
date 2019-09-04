@@ -13,7 +13,7 @@ from .__init__ import (
     ENGINE_SAMPLE,
     PERFORMANCE_SAMPLE,
     mock_random_choice,
-    fake_gauss
+    fake_gauss,
 )
 
 
