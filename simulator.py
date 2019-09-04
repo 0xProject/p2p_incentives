@@ -251,7 +251,7 @@ class SingleRun:
         :return: None.
         """
 
-        if peer not in list(self.peer_full_set):
+        if peer not in self.peer_full_set:
             raise ValueError("No such peer to depart.")
 
         # update number of replicas of all stored/pending orders with this peer
@@ -278,6 +278,9 @@ class SingleRun:
         :param expiration: expiration for this order.
         :return: None
         """
+
+        if target_peer not in self.peer_full_set:
+            raise ValueError("Cannot find target peer.")
 
         # create a new order
         new_order_seq: int = self.latest_order_seq
