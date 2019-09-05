@@ -342,9 +342,7 @@ class SingleRun:
         """
 
         if demand <= 0 or minimum < 0 or demand < minimum:
-            raise ValueError(
-                "Wrong in requested number(s) or range for adding neighbors."
-            )
+            raise ValueError("Input value is invalid.")
 
         candidates_pool: Set[Peer] = self.peer_full_set - {requester}
         selection_size: int = demand
