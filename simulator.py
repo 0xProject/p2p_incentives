@@ -300,17 +300,17 @@ class SingleRun:
         # update the order info to the target peer
         target_peer.receive_order_external(new_order)
 
-    def update_global_orderbook(self, order_cancel_set: List[Order] = None) -> None:
+    def update_global_orderbook(self, order_cancel_list: List[Order] = None) -> None:
         """
         This method takes a set of orders to cancel as input, deletes them, and deletes all other
         invalid orders from both order set of SingleRun instance, and all peers' pending table and
         storage.
-        :param order_cancel_set: a set of orders to be canceled
+        :param order_cancel_list: a list of orders to be canceled
         :return: None.
         """
 
-        if order_cancel_set:
-            for order in order_cancel_set:
+        if order_cancel_list:
+            for order in order_cancel_list:
                 order.is_canceled = True
 
         for order in list(self.order_full_set):
