@@ -87,7 +87,7 @@ class SingleRun:
         :return: None
         """
 
-        # NOTE: Since the code logic is very simple (mainly calling
+        # Note: Since the code logic is very simple (mainly calling
         # group_of_peers_arrival_helper() and check_adding_neighbor() methods), we will not have
         # unit test for this method, but we will make sure the methods it calls are correct.
 
@@ -404,6 +404,9 @@ class SingleRun:
         canceled, this method randomly selects the orders to cancel, and then update the status
         of the rest orders and update the global orderbook status.
         """
+
+        # Note: This method is pretty simply so we don't write unit test for it.
+
         order_to_cancel: List[Order] = random.sample(
             self.order_full_set, min(len(self.order_full_set), order_cancel_num)
         )

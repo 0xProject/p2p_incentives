@@ -261,7 +261,7 @@ def create_test_peers(scenario: Scenario, engine: Engine, nums: int) -> List[Pee
     return peer_list
 
 
-def mock_random_choice(candidates: List, weights: List[float], k: int) -> List:
+def mock_random_choice(candidates: List, weights: List[float], *, k: int) -> List:
     """
     This is a mock function for random.choice(). It generates a deterministic sequence of the
     candidates, each one with frequency weights[i] (count: int(len(candidates) * k). If the
@@ -272,6 +272,11 @@ def mock_random_choice(candidates: List, weights: List[float], k: int) -> List:
     :param k: total number of output list.
     :return: a list of items in the candidates.
     """
+
+    # normalization
+
+    sum_of_weights = sum(weights)
+    weights = [weight / sum_of_weights for weight in weights]
 
     counts: List[int] = [int(k * weights[i]) for i in range(len(weights))]
 

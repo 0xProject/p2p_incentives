@@ -2,7 +2,6 @@
 This module contains unit tests for group_of_peers_arrival_helper().
 """
 
-
 import random
 from typing import Dict, cast
 import pytest
@@ -41,7 +40,7 @@ from .__init__ import (
         ),
     ],
 )
-def test_group_of_orders_arrival_helper(
+def test_group_of_peers_arrival_helper(
     scenario: Scenario,
     engine: Engine,
     performance: Performance,
