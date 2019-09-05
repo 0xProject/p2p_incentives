@@ -379,6 +379,9 @@ class SingleRun:
         time round.
         :return: None
         """
+
+        # Note: this method is simply in logic so we don't have a unit test for it.
+
         for peer in self.peer_full_set:
             cur_neighbor_size: int = len(peer.peer_neighbor_mapping)
             if cur_neighbor_size < self.engine.neighbor_min:
@@ -393,6 +396,9 @@ class SingleRun:
         This is a helper method for operations_in_a_time_round(). Given a certain number of
         peers to depart, this method randomly selects the peers and let them depart.
         """
+
+        # Note: this method is simple in logic so we don't have a unit test for it.
+
         for peer_to_depart in random.sample(
             self.peer_full_set, min(len(self.peer_full_set), peer_dept_num)
         ):
