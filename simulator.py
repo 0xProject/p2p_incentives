@@ -87,98 +87,19 @@ class SingleRun:
         :return: None
         """
 
-        # HACK (weijiewu8): There is only one type of orders (default) and it is hard coded.
-        # This appears not only in this method, but need to check "default" for the entire code
-        # base.
+        # NOTE: Since the code logic is very simple (mainly calling
+        # group_of_peers_arrival_helper() and check_adding_neighbor() methods), we will not have
+        # unit test for this method, but we will make sure the methods it calls are correct.
 
-        # order sequence number should start from zero, but can be customized
-        order_seq: int = self.latest_order_seq
-        peer_seq: int = self.latest_peer_seq  # same as above
+        # Call function group_of_peers_arrival_helper() to create the initial peers.
+        self.group_of_peers_arrival_helper(self.scenario.init_size)
 
-        # determine the peer types
+        # Only special thing in the init, comparing to a normal group of peers arrival,
+        # is to randomize the peer's birth time and set up their local clocks.
+        for peer in self.peer_full_set:
+            peer.birth_time = random.randint(0, self.scenario.birth_time_span - 1)
+            peer.local_clock = self.scenario.birth_time_span - 1
 
-        peer_type_candidates: List[PeerTypeName] = []
-        peer_weights: List[float] = []
-        for peer_type, peer_property in self.scenario.peer_type_property.items():
-            # This is similar to the cast in __init__ function of this class.
-            # peer_type is certainly of type PeerTypeName, since PeerTypeName is the literal
-            # containing all keys in order_type_property. However mypy doesn't know that. We have to
-            # use a cast.
-            peer_type_candidates.append(cast(PeerTypeName, peer_type))
-
-            # this check is only to help mypy judge data types. Not expected to raise an error.
-            if isinstance(peer_property, PeerProperty):
-                peer_weights.append(peer_property.ratio)
-            else:
-                raise RuntimeError("Data type in a mass.")
-
-        peer_type_vector: List[PeerTypeName] = random.choices(
-            peer_type_candidates, weights=peer_weights, k=self.scenario.init_size
-        )
-
-        # first create all peer instances with no neighbors
-
-        for peer_type in peer_type_vector:
-
-            # decide the birth time for this peer. Randomized over [0, birth_time_span] to avoid
-            # sequentiality issue.
-            birth_time: int = random.randint(0, self.scenario.birth_time_span - 1)
-
-            # decide the number of orders for this peer
-
-            num_mean: float = self.scenario.peer_type_property[
-                peer_type
-            ].initial_orderbook_size.mean
-
-            num_var: float = self.scenario.peer_type_property[
-                peer_type
-            ].initial_orderbook_size.var
-            num_orders: int = max(0, round(random.gauss(num_mean, num_var)))
-
-            # create all order instances, and the initial orderbooks
-            cur_order_set: Set["Order"] = set()
-
-            for _ in range(num_orders):
-                # decide the max expiration for this order
-                expiration_mean: float = self.scenario.order_type_property[
-                    "default"
-                ].expiration.mean
-                expiration_var: float = self.scenario.order_type_property[
-                    "default"
-                ].expiration.var
-                expiration: int = max(
-                    0, round(random.gauss(expiration_mean, expiration_var))
-                )
-
-                # create the order. Order's birth time is cur_time, different from peer's birth
-                # time. Order's creator is set to be None since the peer is not initiated,
-                # but will be changed in the peer's initiation function.
-
-                new_order = Order(
-                    self.scenario, order_seq, self.cur_time, None, expiration
-                )
-                self.order_full_set.add(new_order)
-                self.order_type_set_mapping["default"].add(new_order)
-                cur_order_set.add(new_order)
-                order_seq += 1
-
-            # create the peer instance. Neighbor set is empty.
-            new_peer = Peer(
-                self.engine, peer_seq, birth_time, cur_order_set, None, peer_type
-            )
-            new_peer.local_clock = self.scenario.birth_time_span - 1
-            self.peer_full_set.add(new_peer)
-            self.peer_type_set_mapping[peer_type].add(new_peer)
-            peer_seq += 1
-
-        # update the latest order sequence number and latest peer sequence number
-        self.latest_order_seq = order_seq
-        self.latest_peer_seq = peer_seq
-
-        # add neighbors to the peers. Use shuffle function to avoid preference of forming
-        # neighbors for peers with small sequence number.
-        peer_list: List["Peer"] = list(self.peer_full_set)
-        random.shuffle(peer_list)
         self.check_adding_neighbor()
 
     def peer_arrival(self, peer_type: PeerTypeName, num_orders: int) -> None:
@@ -191,6 +112,10 @@ class SingleRun:
         :param num_orders: number of orders that this peer brings to the system initially.
         :return: None
         """
+
+        # HACK (weijiewu8): There is only one type of orders (default) and it is hard coded.
+        # This appears not only in this method, but need to check "default" for the entire code
+        # base.
 
         # free riders must have no orders
         if peer_type == "free_rider" and num_orders:
