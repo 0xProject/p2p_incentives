@@ -6,12 +6,7 @@ from typing import List
 import pytest
 
 from simulator import SingleRun
-from .__init__ import (
-    SCENARIO_SAMPLE_1,
-    SCENARIO_SAMPLE_2,
-    ENGINE_SAMPLE,
-    PERFORMANCE_SAMPLE,
-)
+from .__init__ import SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
 
 def fake_generate_events(rate: float, length: int) -> List[int]:
