@@ -57,8 +57,9 @@ class MultiRunInParallel:
         return SingleRun(*args).single_run_execution()
 
     @staticmethod
-    def reorganize_performance_results(performance_result_list: List[SingleRunPerformanceResult])\
-            -> MultiRunPerformanceResult:
+    def reorganize_performance_results(
+        performance_result_list: List[SingleRunPerformanceResult]
+    ) -> MultiRunPerformanceResult:
         """
         This methods takes a list of single_run performance results, reorganizes them and returns a
         tuple in forms of MultiRunPerformanceResult, where each element is a list of the
