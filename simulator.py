@@ -477,7 +477,7 @@ class SingleRun:
     ) -> Tuple[List[int], List[int], List[int], List[int]]:
         """
         This function generates the number of events during each time interval of the single_run
-        process.
+        process. This is a helper method to single_run_execution().
         :return: Tuple, each element being a list of integers, representing the number of counts
         of peer arrival, departure, order arrival, cancellation, during each time interval. The
         time interval start from the first one of the growth period till the last one of the
@@ -522,6 +522,9 @@ class SingleRun:
         :return: Performance evaluation results in terms of a tuple, each element being the result
         of one particular metric (or None if not applicable).
         """
+
+        # Note: This method is simple in logic (mostly calling other methods) and we made sure
+        # other methods are correct. So we don't have unit test for this method.
 
         # Create initial peers and orders. Orders are only held by creators.
         # Peers do not exchange orders at this moment.

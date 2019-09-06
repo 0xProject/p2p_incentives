@@ -56,26 +56,14 @@ class MultiRunInParallel:
         """
         return SingleRun(*args).single_run_execution()
 
-    def multi_run_execution(self) -> MultiRunPerformanceResult:
+    @staticmethod
+    def reorganize_performance_results(performance_result_list: List[SingleRunPerformanceResult])\
+            -> MultiRunPerformanceResult:
         """
-        This method runs the simulator for a number of "self.rounds" times in parallel,
-        using "self.multi_pools" processes. It also re-organizes the performance
-        evaluation results in a dictionary, where the value for performance_measure[key] is a
-        list of performance results in all runs for metric "key."
-        :return: performance results.
+        This methods takes a list of single_run performance results, reorganizes them and returns a
+        tuple in forms of MultiRunPerformanceResult, where each element is a list of the
+        performance results from all runs, associated with a certain key.
         """
-
-        # Run multiple times in parallel
-        with Pool(self.multi_pools) as my_pool:
-            performance_result_list: List[SingleRunPerformanceResult] = my_pool.map(
-                self.single_run_helper,
-                [
-                    (self.scenario, self.engine, self.performance)
-                    for _ in range(self.rounds)
-                ],
-            )
-
-        # re-organize performance results
         multi_run_performance_by_measure = MultiRunPerformanceResult(
             order_spreading=[],
             normal_peer_satisfaction=[],
@@ -94,5 +82,27 @@ class MultiRunInParallel:
                     )
                 if value is not None:
                     value_list.append(value)
-
         return multi_run_performance_by_measure
+
+    def multi_run_execution(self) -> MultiRunPerformanceResult:
+        """
+        This method runs the simulator for a number of "self.rounds" times in parallel,
+        using "self.multi_pools" processes. It also re-organizes the performance
+        evaluation results in a dictionary, where the value for performance_measure[key] is a
+        list of performance results in all runs for metric "key."
+        :return: performance results.
+        """
+
+        # Note: this method is simple so we don't have a unit test for it.
+
+        # Run multiple times in parallel
+        with Pool(self.multi_pools) as my_pool:
+            performance_result_list: List[SingleRunPerformanceResult] = my_pool.map(
+                self.single_run_helper,
+                [
+                    (self.scenario, self.engine, self.performance)
+                    for _ in range(self.rounds)
+                ],
+            )
+
+        return self.reorganize_performance_results(performance_result_list)
