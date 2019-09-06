@@ -480,16 +480,6 @@ class SingleRun:
         of one particular metric (or None if not applicable).
         """
 
-        self.cur_time = 0  # the current system time
-        self.latest_order_seq = 0  # the next order sequence number that can be used
-        self.latest_peer_seq = 0  # the next peer sequence number that can be used
-        self.peer_full_set.clear()  # for each round of simulation, clear everything
-        for peer_set in self.peer_type_set_mapping.values():
-            peer_set.clear()
-        self.order_full_set.clear()
-        for order_set in self.order_type_set_mapping.values():
-            order_set.clear()
-
         # Create initial peers and orders. Orders are only held by creators.
         # Peers do not exchange orders at this moment.
         self.create_initial_peers_orders()
