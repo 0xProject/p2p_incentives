@@ -3,20 +3,13 @@ This module contains test functions for single_peer_satisfaction_neutral()
 """
 
 import copy
-from typing import List, NamedTuple, Set
+from typing import List, NamedTuple
 import pytest
-from node import Peer
-from message import Order
 from scenario import Scenario
 from engine import Engine
 import performance_candidates
 
-from .__init__ import (
-    SCENARIO_SAMPLE,
-    ENGINE_SAMPLE,
-    create_test_orders,
-    create_a_test_peer,
-)
+from .__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE
 
 # The arrange helper function needed in this module is exactly the same as in
 # test_single_peer_order_receipt_ratio.py so we import it.
