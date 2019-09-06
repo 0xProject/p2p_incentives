@@ -7,7 +7,7 @@ This module contains the SingleRun class only.
 # PR is approved.
 
 import random
-from typing import Dict, Set, List, TYPE_CHECKING, cast
+from typing import Dict, Set, List, TYPE_CHECKING, cast, Tuple
 import numpy
 from message import Order
 from node import Peer
@@ -472,18 +472,17 @@ class SingleRun:
                     for beneficiary_peer in neighbors_to_share:
                         beneficiary_peer.receive_order_internal(peer, internal_order)
 
-    def single_run_execution(self) -> SingleRunPerformanceResult:
+    def generate_events_during_whole_process(
+        self
+    ) -> Tuple[List[int], List[int], List[int], List[int]]:
         """
-        This is the method that runs the simulator for one time, including setup, and growth and
-        stable periods.
-        :return: Performance evaluation results in terms of a list, each element being the result
-        of one particular metric (or None if not applicable).
+        This function generates the number of events during each time interval of the single_run
+        process.
+        :return: Tuple, each element being a list of integers, representing the number of counts
+        of peer arrival, departure, order arrival, cancellation, during each time interval. The
+        time interval start from the first one of the growth period till the last one of the
+        stable period.
         """
-
-        # Create initial peers and orders. Orders are only held by creators.
-        # Peers do not exchange orders at this moment.
-        self.create_initial_peers_orders()
-        self.update_global_orderbook()
 
         # initiate vectors of each event happening count in each time round
         # This is very important since numpy.random is not multiprocessing safe in Hawkes Process.
@@ -509,7 +508,32 @@ class SingleRun:
             lambda x, y: list(x) + list(y), counts_growth, counts_stable
         )
 
-        # growth period and stable period
+        return (
+            peer_arrival_count,
+            peer_dept_count,
+            order_arrival_count,
+            order_dept_count,
+        )
+
+    def single_run_execution(self) -> SingleRunPerformanceResult:
+        """
+        This is the method that runs the simulator for one time, including setup, and growth and
+        stable periods.
+        :return: Performance evaluation results in terms of a tuple, each element being the result
+        of one particular metric (or None if not applicable).
+        """
+
+        # Create initial peers and orders. Orders are only held by creators.
+        # Peers do not exchange orders at this moment.
+        self.create_initial_peers_orders()
+        self.update_global_orderbook()
+
+        # Generate event counts.
+        peer_arrival_count, peer_dept_count, order_arrival_count, order_dept_count = (
+            self.generate_events_during_whole_process()
+        )
+
+        # Growth period and stable period. Run operations_in_a_time_round().
         self.cur_time = self.scenario.birth_time_span
         for i in range(self.scenario.growth_rounds + self.scenario.stable_rounds):
             self.operations_in_a_time_round(
