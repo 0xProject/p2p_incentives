@@ -40,9 +40,7 @@ class MultiRunInParallel:
         self.scenario: "Scenario" = scenario  # assumption
         self.engine: "Engine" = engine  # design choice
         self.performance: "Performance" = performance  # performance evaluation method
-
         self.rounds: int = rounds  # how many times the simulator is run. Typically 40.
-        self.multi_pools: int = multi_pools  # how many processes we have. Typically 16 or 32.
 
     @staticmethod
     def single_run_helper(
@@ -62,7 +60,7 @@ class MultiRunInParallel:
     ) -> MultiRunPerformanceResult:
         """
         This methods takes a list of single_run performance results, reorganizes them and returns a
-        tuple in forms of MultiRunPerformanceResult, where each element is a list of the
+        tuple in the form of MultiRunPerformanceResult, where each element is a list of the
         performance results from all runs, associated with a certain key.
         """
         multi_run_performance_by_measure = MultiRunPerformanceResult(
@@ -97,7 +95,7 @@ class MultiRunInParallel:
         # Note: this method is simple so we don't have a unit test for it.
 
         # Run multiple times in parallel
-        with Pool(self.multi_pools) as my_pool:
+        with Pool() as my_pool:
             performance_result_list: List[SingleRunPerformanceResult] = my_pool.map(
                 self.single_run_helper,
                 [
