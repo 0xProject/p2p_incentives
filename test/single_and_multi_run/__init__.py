@@ -171,6 +171,45 @@ ENGINE_SAMPLE = Engine(
     ),
 )
 
+ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN = Engine(
+    EngineParameters(
+        batch_length=1,
+        topology=Topology(max_neighbor_size=30, min_neighbor_size=20),
+        incentive=Incentive(
+            score_sheet_length=3,
+            reward_a=2,
+            reward_b=3,
+            reward_c=5,
+            reward_d=7,
+            reward_e=11,
+            penalty_a=-13,
+            penalty_b=-17,
+        ),
+    ),
+    EngineOptions(
+        preference=PreferenceOption(method="Passive"),
+        priority=PriorityOption(method="Passive"),
+        external=ExternalOption(method="Always"),
+        internal=InternalOption(method="Always"),
+        store=StoreOption(method="First"),
+        share=AllNewSelectedOld(
+            method="AllNewSelectedOld", max_to_share=5000, old_share_prob=0.5
+        ),
+        score=Weighted(
+            method="Weighted",
+            lazy_length_threshold=6,
+            lazy_contribution_threshold=2,
+            weights=[1.0, 1.0, 1.0],
+        ),
+        beneficiary=TitForTat(
+            method="TitForTat",
+            baby_ending_age=100,
+            mutual_helpers=30,
+            optimistic_choices=10,
+        ),
+        rec=RecommendationOption(method="Random"),
+    ),
+)
 
 PERFORMANCE_SAMPLE = Performance(
     PerformanceParameters(max_age_to_track=50, adult_age=30, statistical_window=5),

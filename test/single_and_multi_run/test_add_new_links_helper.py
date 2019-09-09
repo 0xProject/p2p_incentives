@@ -13,7 +13,27 @@ from performance import Performance
 from .__init__ import SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
 
-def setup_help(
+@pytest.fixture(autouse=True)
+def temporary_change_of_neighbor_size(engine):
+    """
+    This function is to temporarily change the expected neighborhood size for the test functions
+    to use in this module.
+    """
+
+    # Setup
+    original_neighbor_max = engine.neighbor_max
+    original_neighbor_min = engine.neighbor_min
+    engine.neighbor_max = 6
+    engine.neighbor_min = 3
+
+    yield
+
+    # Tear down
+    engine.neighbor_max = original_neighbor_max
+    engine.neighbor_min = original_neighbor_min
+
+
+def create_single_run_instance_and_peers(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> Tuple[SingleRun, List[Peer]]:
     """
@@ -60,12 +80,10 @@ def test_add_new_links_helper__normal(
 
     # Arrange
 
-    # Change the minimum/maximal neighborhood size as 3 and 6
-    engine.neighbor_max = 6
-    engine.neighbor_min = 3
-
     # Create the single_run instance and peers
-    single_run_instance, peer_list = setup_help(scenario, engine, performance)
+    single_run_instance, peer_list = create_single_run_instance_and_peers(
+        scenario, engine, performance
+    )
 
     # Act.
 
@@ -77,6 +95,12 @@ def test_add_new_links_helper__normal(
     assert 1 <= len(peer_list[7].peer_neighbor_mapping) <= 3
     for any_peer in peer_list[0:7]:
         assert any_peer not in peer_list[7].peer_neighbor_mapping
+
+    """
+    # tear down
+    engine.neighbor_max = original_neighbor_max
+    engine.neighbor_min = original_neighbor_min
+    """
 
 
 @pytest.mark.parametrize(
@@ -93,12 +117,10 @@ def test_add_new_links_helper__all_to_add(
 
     # Arrange
 
-    # Change the minimum/maximal neighborhood size as 3 and 6
-    engine.neighbor_max = 6
-    engine.neighbor_min = 3
-
     # Create the single_run instance and peers
-    single_run_instance, peer_list = setup_help(scenario, engine, performance)
+    single_run_instance, peer_list = create_single_run_instance_and_peers(
+        scenario, engine, performance
+    )
 
     # Act.
 
@@ -129,12 +151,10 @@ def test_add_new_links_helper__tried_the_best(
 
     # Arrange
 
-    # Change the minimum/maximal neighborhood size as 3 and 6
-    engine.neighbor_max = 6
-    engine.neighbor_min = 3
-
     # Create the single_run instance and peers
-    single_run_instance, peer_list = setup_help(scenario, engine, performance)
+    single_run_instance, peer_list = create_single_run_instance_and_peers(
+        scenario, engine, performance
+    )
 
     # Act.
 
@@ -164,7 +184,9 @@ def test_add_new_links_helper__error_input(
     # Arrange
 
     # Create the single_run instance and peers
-    single_run_instance, peer_list = setup_help(scenario, engine, performance)
+    single_run_instance, peer_list = create_single_run_instance_and_peers(
+        scenario, engine, performance
+    )
 
     # Act and Assert.
 
