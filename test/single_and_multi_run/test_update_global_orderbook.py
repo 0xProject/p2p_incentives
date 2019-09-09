@@ -14,7 +14,7 @@ from performance import Performance
 from .__init__ import SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
 
-def setup_helper(
+def create_an_instance_with_one_peer_one_order(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> Tuple[SingleRun, Peer, Order]:
     """
@@ -46,7 +46,9 @@ def test_update_global_orderbook__active_order(
     """
 
     # Arrange.
-    single_run_instance, peer, order = setup_helper(scenario, engine, performance)
+    single_run_instance, peer, order = create_an_instance_with_one_peer_one_order(
+        scenario, engine, performance
+    )
 
     # Act.
     single_run_instance.update_global_orderbook()
@@ -69,7 +71,9 @@ def test_update_global_orderbook__order_no_count(
     """
 
     # Arrange.
-    single_run_instance, _peer, order = setup_helper(scenario, engine, performance)
+    single_run_instance, _peer, order = create_an_instance_with_one_peer_one_order(
+        scenario, engine, performance
+    )
 
     # manually remove the order holders and hesitators
     order.hesitators.clear()
@@ -94,7 +98,9 @@ def test_update_global_orderbook__expired(
     """
 
     # Arrange.
-    single_run_instance, peer, order = setup_helper(scenario, engine, performance)
+    single_run_instance, peer, order = create_an_instance_with_one_peer_one_order(
+        scenario, engine, performance
+    )
 
     # manually change expiration, birth time, etc.
     single_run_instance.cur_time = 100
@@ -123,7 +129,9 @@ def test_update_global_orderbook__settled(
     """
 
     # Arrange.
-    single_run_instance, peer, order = setup_helper(scenario, engine, performance)
+    single_run_instance, peer, order = create_an_instance_with_one_peer_one_order(
+        scenario, engine, performance
+    )
 
     # manually change is_settled
     order.is_settled = True
@@ -150,7 +158,9 @@ def test_update_global_orderbook__canceled(
     """
 
     # Arrange.
-    single_run_instance, peer, order = setup_helper(scenario, engine, performance)
+    single_run_instance, peer, order = create_an_instance_with_one_peer_one_order(
+        scenario, engine, performance
+    )
 
     # Act.
     single_run_instance.update_global_orderbook([order])
