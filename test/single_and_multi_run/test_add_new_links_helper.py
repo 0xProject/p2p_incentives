@@ -96,12 +96,6 @@ def test_add_new_links_helper__normal(
     for any_peer in peer_list[0:7]:
         assert any_peer not in peer_list[7].peer_neighbor_mapping
 
-    """
-    # tear down
-    engine.neighbor_max = original_neighbor_max
-    engine.neighbor_min = original_neighbor_min
-    """
-
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",

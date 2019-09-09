@@ -2,8 +2,8 @@
 This module contains unit tests for operations_in_a_time_round().
 """
 
-import pytest
 import random
+import pytest
 
 from simulator import SingleRun
 from scenario import Scenario
@@ -35,6 +35,10 @@ def mock_or_fake_functions(monkeypatch) -> None:
 def create_single_run_with_initial_peers(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> SingleRun:
+    """
+    Helper function to create a single run instance and call create_initial_peers_orders()
+    function, return this instance.
+    """
     single_run_instance = SingleRun(scenario, engine, performance)
     single_run_instance.create_initial_peers_orders()
     single_run_instance.cur_time = single_run_instance.scenario.birth_time_span
@@ -46,7 +50,7 @@ def create_single_run_with_initial_peers(
     [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_order_number(
-    scenario: Scenario, engine: Engine, performance: Performance, monkeypatch
+    scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
 
     """
@@ -87,7 +91,7 @@ def test_operations_in_a_time_round__assert_order_number(
     [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_peer_number_normal(
-    scenario: Scenario, engine: Engine, performance: Performance, monkeypatch
+    scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
     This is the unit test for operations_in_a_time_round().
@@ -112,7 +116,7 @@ def test_operations_in_a_time_round__assert_peer_number_normal(
     [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_peer_number_all_peers_departed(
-    scenario: Scenario, engine: Engine, performance: Performance, monkeypatch
+    scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
 
     """
@@ -141,7 +145,7 @@ def test_operations_in_a_time_round__assert_peer_number_all_peers_departed(
     [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_neighborhood(
-    scenario: Scenario, engine: Engine, performance: Performance, monkeypatch
+    scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
 
     """
@@ -178,7 +182,7 @@ def test_operations_in_a_time_round__assert_neighborhood(
     [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_store_and_share_must_happen(
-    scenario, engine, performance, monkeypatch
+    scenario, engine, performance
 ) -> None:
     """
     This is the unit test for operations_in_a_time_round().
@@ -212,7 +216,7 @@ def test_operations_in_a_time_round__assert_store_and_share_must_happen(
     [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_store_and_share_might_happen(
-    scenario: Scenario, engine: Engine, performance: Performance, monkeypatch
+    scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
     This is the unit test for operations_in_a_time_round().
