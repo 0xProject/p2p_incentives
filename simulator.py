@@ -80,7 +80,7 @@ class SingleRun:
 
     def create_initial_peers_orders(self) -> None:
         """
-        This method creates the initial orders and peers for a SingleRun instance, and maintain
+        This method creates the initial orders and peers for a SingleRun instance, and maintains
         their references in two sets.
         Sequence numbers of peers and neighbors begin from 0 and increase by 1 each time.
         Right now there is no use for the sequence numbers but we keep them for potential future use
@@ -305,7 +305,7 @@ class SingleRun:
         :return: None
         """
 
-        # Note: this method is simply in logic so we don't have a unit test for it.
+        # Note: this method is simple so we don't have a unit test for it.
 
         for peer in self.peer_full_set:
             cur_neighbor_size: int = len(peer.peer_neighbor_mapping)
@@ -319,10 +319,10 @@ class SingleRun:
     def group_of_peers_departure_helper(self, peer_dept_num: int) -> None:
         """
         This is a helper method for operations_in_a_time_round(). Given a certain number of
-        peers to depart, this method randomly selects the peers and let them depart.
+        peers to depart, this method randomly selects the peers and lets them depart.
         """
 
-        # Note: this method is simple in logic so we don't have a unit test for it.
+        # Note: this method is simple so we don't have a unit test for it.
 
         for peer_to_depart in random.sample(
             self.peer_full_set, min(len(self.peer_full_set), peer_dept_num)
@@ -333,7 +333,7 @@ class SingleRun:
         """
         This is a helper method for operations_in_a_time_round(). Given a certain number of
         peers to arrive, this method determines the peers' types according to their weights in
-        the system, and the values of attributes of each peer, and create them.
+        the system, and the values of attributes of each peer, and creates them.
         """
 
         peer_type_candidates: List[PeerTypeName] = []
@@ -367,8 +367,8 @@ class SingleRun:
     def group_of_orders_arrival_helper(self, order_arr_num):
         """
         This is a helper method for operations_in_a_time_round(). Given a certain number of
-        order arrival, this method determines the initial holders (peers) of these orders, and
-        the values of attributes of the orders, and create them.
+        order arrivals, this method determines the initial holders (peers) of these orders, and
+        the values of attributes of the orders, and creates them.
         """
 
         # Decide which peers to hold these orders.
@@ -401,8 +401,8 @@ class SingleRun:
     def group_of_orders_cancellation_and_update_status(self, order_cancel_num):
         """
         This is a helper method for operations_in_a_time_round(). Given a number of orders to be
-        canceled, this method randomly selects the orders to cancel, and then update the status
-        of the rest orders and update the global orderbook status.
+        canceled, this method randomly selects the orders to cancel, then updates the status
+        of the rest orders, and updates the global orderbook status.
         """
 
         # Note: This method is pretty simply so we don't write unit test for it.
@@ -479,8 +479,8 @@ class SingleRun:
         This function generates the number of events during each time interval of the single_run
         process. This is a helper method to single_run_execution().
         :return: Tuple, each element being a list of integers, representing the number of counts
-        of peer arrival, departure, order arrival, cancellation, during each time interval. The
-        time interval start from the first one of the growth period till the last one of the
+        of peer arrivals, departures, order arrivals, cancellations, during each time interval. The
+        time interval starts from the first one of the growth period till the last one of the
         stable period.
         """
 
@@ -523,7 +523,7 @@ class SingleRun:
         of one particular metric (or None if not applicable).
         """
 
-        # Note: This method is simple in logic (mostly calling other methods) and we made sure
+        # Note: This method is simple (mostly calling other methods) and we made sure
         # other methods are correct. So we don't have unit test for this method.
 
         # Create initial peers and orders. Orders are only held by creators.

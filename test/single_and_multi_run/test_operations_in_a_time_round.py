@@ -23,7 +23,7 @@ from .__init__ import (
 def mock_or_fake_functions(monkeypatch) -> None:
     """
     This is a fixture function that mocks/fakes some functions for test functions to use.
-    It is set "autouse" so that every test function in this module will call it.
+    It is set to "autouse" so that every test function in this module will call it.
     """
 
     # Use a fake Gauss distribution, by returning the mean only.

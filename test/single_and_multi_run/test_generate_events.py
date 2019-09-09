@@ -9,7 +9,7 @@ from simulator import SingleRun
 from .__init__ import SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
 
-def fake_generate_events(rate: float, length: int) -> List[int]:
+def generate_fake_events(rate: float, length: int) -> List[int]:
     """
     This is a fake function for generating events. Given a rate and a length, this function
     generate "rate" number of events for every time slot, and the number of time slots is "length".
@@ -32,7 +32,7 @@ def test_generate_events_during_whole_process(
 
     # Mocking generate_event_counts_over_time()
     monkeypatch.setattr(
-        scenario, "generate_event_counts_over_time", fake_generate_events
+        scenario, "generate_event_counts_over_time", generate_fake_events
     )
 
     single_run_instance = SingleRun(scenario, engine, performance)

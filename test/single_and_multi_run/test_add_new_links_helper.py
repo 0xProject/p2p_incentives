@@ -18,6 +18,7 @@ def temporary_change_of_neighbor_size(engine):
     """
     This function is to temporarily change the expected neighborhood size for the test functions
     to use in this module.
+    It is set to autouse so all functions in this module will call it.
     """
 
     # Setup
