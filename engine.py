@@ -226,6 +226,9 @@ class Engine:
         if self.score_option["method"] == "Weighted":
             # cast used again due to same reason as the case above.
             my_score_option: Weighted = cast(Weighted, self.score_option)
+            # input argument check
+            if self.score_length != len(my_score_option["weights"]):
+                raise ValueError("Wrong length in weights.")
             engine_candidates.weighted_sum(
                 lazy_contribution=my_score_option["lazy_contribution_threshold"],
                 lazy_length=my_score_option["lazy_length_threshold"],

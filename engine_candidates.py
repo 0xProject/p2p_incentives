@@ -126,6 +126,9 @@ def weighted_sum(
     :return: None. The score is recorded in neighbor.score
     """
 
+    # HACK (weijiewu): Need to move out the operation of deleting neighbors from this function.
+    # It is totally independent to calculating scores.
+
     # neighboring_peer is the peer instance for a neighbor
     # neighbor is the neighbor instance for a neighbor
     for neighboring_peer in list(peer.peer_neighbor_mapping):
