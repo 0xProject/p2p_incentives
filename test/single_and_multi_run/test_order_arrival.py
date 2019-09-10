@@ -37,12 +37,13 @@ def test_order_arrival__normal(
     peer.order_pending_orderinfo_mapping.clear()
 
     # Act.
-    single_run_instance.order_arrival(target_peer=peer, expiration=300)
+    expiration_value = 300
+    single_run_instance.order_arrival(target_peer=peer, expiration=expiration_value)
 
     # Assert.
     assert len(peer.order_pending_orderinfo_mapping) == 1
     order = next(iter(peer.order_pending_orderinfo_mapping))
-    assert order.expiration == 300
+    assert order.expiration == expiration_value
     assert order in single_run_instance.order_full_set
     assert single_run_instance.latest_order_seq == 1
 

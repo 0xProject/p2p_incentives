@@ -34,7 +34,6 @@ class MultiRunInParallel:
         engine: "Engine",
         performance: "Performance",
         rounds: int = 40,
-        multi_pools: int = 32,
     ) -> None:
 
         self.scenario: "Scenario" = scenario  # assumption

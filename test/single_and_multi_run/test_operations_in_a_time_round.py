@@ -75,14 +75,20 @@ def test_operations_in_a_time_round__assert_order_number(
     # We let the peer arrival number be the same as scenario.init_size, so that we expect the
     # order arrival number is also initial_order_number.
 
+    order_arr_num = 39
+    order_cancel_num = 19
+
     single_run_instance.operations_in_a_time_round(
         peer_arr_num=scenario.init_size,
         peer_dept_num=0,
-        order_arr_num=37,
-        order_cancel_num=19,
+        order_arr_num=order_arr_num,
+        order_cancel_num=order_cancel_num,
     )
 
-    assert len(single_run_instance.order_full_set) == 2 * initial_order_number + 37 - 19
+    assert (
+        len(single_run_instance.order_full_set)
+        == 2 * initial_order_number + order_arr_num - order_cancel_num
+    )
     assert len(single_run_instance.peer_full_set) == 2 * scenario.init_size
 
 
@@ -104,8 +110,16 @@ def test_operations_in_a_time_round__assert_peer_number_normal(
     )
 
     # Act.
+    peer_arr_num = 37
+    peer_dept_num = 5
+    order_arr_num = 8
+    order_cancel_num = 12
+
     single_run_instance.operations_in_a_time_round(
-        peer_arr_num=37, peer_dept_num=5, order_arr_num=8, order_cancel_num=12
+        peer_arr_num=peer_arr_num,
+        peer_dept_num=peer_dept_num,
+        order_arr_num=order_arr_num,
+        order_cancel_num=order_cancel_num,
     )
 
     assert len(single_run_instance.peer_full_set) == scenario.init_size - 5 + 37
@@ -130,14 +144,19 @@ def test_operations_in_a_time_round__assert_peer_number_all_peers_departed(
     )
 
     # Act.
+
+    peer_arr_num = 37
+    order_arr_num = 8
+    order_cancel_num = 12
+
     single_run_instance.operations_in_a_time_round(
-        peer_arr_num=37,
+        peer_arr_num=peer_arr_num,
         peer_dept_num=(scenario.init_size + 1),
-        order_arr_num=8,
-        order_cancel_num=12,
+        order_arr_num=order_arr_num,
+        order_cancel_num=order_cancel_num,
     )
 
-    assert len(single_run_instance.peer_full_set) == 37
+    assert len(single_run_instance.peer_full_set) == peer_arr_num
 
 
 @pytest.mark.parametrize(
@@ -159,6 +178,7 @@ def test_operations_in_a_time_round__assert_neighborhood(
     )
 
     # Act.
+
     single_run_instance.operations_in_a_time_round(
         peer_arr_num=37, peer_dept_num=5, order_arr_num=8, order_cancel_num=12
     )

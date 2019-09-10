@@ -58,8 +58,9 @@ def test_group_of_orders_arrival_helper(
     monkeypatch.setattr(random, "gauss", fake_gauss)
 
     # create the instance and 10 peers.
+    total_num_peers = 10
     single_run_instance = SingleRun(scenario, engine, performance)
-    for _ in range(10):
+    for _ in range(total_num_peers):
         single_run_instance.peer_arrival("normal", 0)
 
     single_run_instance.order_full_set.clear()
@@ -89,7 +90,7 @@ def test_group_of_orders_arrival_helper(
     sum_orderbook_size = sum(peer.init_orderbook_size for peer in peer_list)
     expected_order_nums: List[int] = [0] * len(peer_list)
 
-    for idx in range(10):
+    for idx in range(total_num_peers):
         expected_order_nums[idx] = int(
             num_arrival * peer_list[idx].init_orderbook_size / sum_orderbook_size
         )
@@ -107,7 +108,7 @@ def test_group_of_orders_arrival_helper(
     # Assert the total number of orders created.
     assert len(single_run_instance.order_full_set) == num_arrival
     # Assert the number of orders each peer has.
-    for idx in range(10):
+    for idx in range(total_num_peers):
         assert (
             len(peer_list[idx].order_pending_orderinfo_mapping)
             == expected_order_nums[idx]

@@ -27,7 +27,8 @@ def test_peer_arrival__normal(
     single_run_instance = SingleRun(scenario, engine, performance)
 
     # Act.
-    single_run_instance.peer_arrival("normal", 20)
+    order_number = 20
+    single_run_instance.peer_arrival("normal", order_number)
 
     # Assert.
 
@@ -38,13 +39,13 @@ def test_peer_arrival__normal(
 
     # Assert the peer properties
     assert peer.peer_type == "normal"
-    assert len(peer.order_orderinfo_mapping) == 20
+    assert len(peer.order_orderinfo_mapping) == order_number
     for order in peer.order_orderinfo_mapping:
         assert order.creator == peer
 
     # Assert the sequence numbers.
     assert single_run_instance.latest_peer_seq == 1
-    assert single_run_instance.latest_order_seq == 20
+    assert single_run_instance.latest_order_seq == order_number
 
 
 @pytest.mark.parametrize(
@@ -96,4 +97,4 @@ def test_peer_arrival__free_rider_error(
 
     # Act and Assert
     with pytest.raises(ValueError, match="Free riders do not have orders."):
-        single_run_instance.peer_arrival("free_rider", 20)
+        single_run_instance.peer_arrival("free_rider", 1)

@@ -27,7 +27,8 @@ def create_an_instance_with_one_peer_one_order(
     peer: Peer = next(iter(single_run_instance.peer_full_set))
     peer.order_pending_orderinfo_mapping.clear()
 
-    # create an order and let it be held by peer
+    # create an order and let it be held by peer.
+    # 300 is arbitrarily set. As long as it is large, it is okay.
     single_run_instance.order_arrival(target_peer=peer, expiration=300)
     order: Order = next(iter(single_run_instance.order_full_set))
 
@@ -102,7 +103,7 @@ def test_update_global_orderbook__expired(
         scenario, engine, performance
     )
 
-    # manually change expiration, birth time, etc.
+    # manually change expiration, birth time, etc. Let every order expire.
     single_run_instance.cur_time = 100
     order.birth_time = 50
     order.expiration = 30
