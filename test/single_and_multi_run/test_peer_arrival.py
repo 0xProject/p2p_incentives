@@ -8,7 +8,7 @@ from engine import Engine
 from performance import Performance
 from node import Peer
 
-from simulator import SingleRun
+from single_run import SingleRun
 from .__init__ import SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
 

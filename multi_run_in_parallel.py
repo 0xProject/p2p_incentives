@@ -2,14 +2,10 @@
 This module contains class MultiRunInParallel only.
 """
 
-# HACK (weijiewu8): Propose to change the name of the module to "multi_run_in_parallel.py"
-# If I change the name now, no comparison of changes can be seen. So I will change it after the
-# PR is approved.
-
 from multiprocessing import Pool
 from typing import List, Tuple, TYPE_CHECKING
 
-from simulator import SingleRun
+from single_run import SingleRun
 from data_types import SingleRunPerformanceResult, MultiRunPerformanceResult
 
 if TYPE_CHECKING:

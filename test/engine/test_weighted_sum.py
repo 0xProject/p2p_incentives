@@ -3,7 +3,7 @@ This module test weighted_sum().
 
 In fact, I think I'll need to re-write weighted_sum() by splitting the operations on calculating the
 scores and deleting inactive neighbors. However, revising it will lead to changes in node.py,
-engine.py and simulator.py. I will do it in a future PR.
+engine.py and single_run.py. I will do it in a future PR.
 """
 
 # HACK (weijiewu8): Need to change this test when weighted_sum() is re-written

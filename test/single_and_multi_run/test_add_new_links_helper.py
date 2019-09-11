@@ -5,7 +5,7 @@ This module contains unit tests for add_new_links_helper().
 from typing import List, Tuple
 import pytest
 
-from simulator import SingleRun
+from single_run import SingleRun
 from node import Peer
 from scenario import Scenario
 from engine import Engine

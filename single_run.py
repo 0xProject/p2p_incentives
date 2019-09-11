@@ -2,10 +2,6 @@
 This module contains the SingleRun class only.
 """
 
-# HACK (weijiewu8): Propose to change the name of the module to "single_run".
-# If I change the name now, no comparison of changes can be seen. So I will change it after the
-# PR is approved.
-
 import random
 from typing import Dict, Set, List, TYPE_CHECKING, cast, Tuple
 import numpy

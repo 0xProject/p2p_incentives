@@ -234,7 +234,8 @@ class Performance:
         # For reason (a) we don't do anything. For reason (b) we leave a print message once it
         # happens. If it always happens due to reason (b), then we are supposed to perform some
         # evaluation according to multiple runs of the simulator, but there will be none in any
-        # run. This error will be caught in execution.run().
+        # run. This error will be caught in
+        # multi_run_in_parallel.MultiRunInParallel.multi_run_execution().
 
         # Generating order spreading measure over all orders
 

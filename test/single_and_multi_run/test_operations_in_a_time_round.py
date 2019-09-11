@@ -5,7 +5,7 @@ This module contains unit tests for operations_in_a_time_round().
 import random
 import pytest
 
-from simulator import SingleRun
+from single_run import SingleRun
 from scenario import Scenario
 from engine import Engine
 from performance import Performance
