@@ -14,10 +14,10 @@ from performance import Performance
 from ..__init__ import (
     SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
+    PERFORMANCE_SAMPLE,
     create_a_test_order,
     create_a_test_peer,
 )
-from .__init__ import PERFORMANCE_SAMPLE
 
 
 @pytest.mark.parametrize(

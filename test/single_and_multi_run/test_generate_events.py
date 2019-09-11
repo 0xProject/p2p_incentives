@@ -6,8 +6,7 @@ from typing import List
 import pytest
 
 from single_run import SingleRun
-from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE
-from .__init__ import PERFORMANCE_SAMPLE
+from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
 
 def generate_fake_events(rate: float, length: int) -> List[int]:

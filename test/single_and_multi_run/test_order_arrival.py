@@ -10,8 +10,12 @@ from performance import Performance
 from node import Peer
 
 from single_run import SingleRun
-from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE, create_a_test_peer
-from .__init__ import PERFORMANCE_SAMPLE
+from ..__init__ import (
+    SCENARIO_SAMPLE,
+    ENGINE_SAMPLE,
+    create_a_test_peer,
+    PERFORMANCE_SAMPLE,
+)
 
 
 @pytest.mark.parametrize(

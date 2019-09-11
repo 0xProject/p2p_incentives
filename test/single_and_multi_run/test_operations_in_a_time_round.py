@@ -9,13 +9,13 @@ from single_run import SingleRun
 from scenario import Scenario
 from engine import Engine
 from performance import Performance
-from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE
-from .__init__ import (
+from ..__init__ import (
+    SCENARIO_SAMPLE,
+    ENGINE_SAMPLE,
     ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN,
     PERFORMANCE_SAMPLE,
-    fake_gauss,
-    mock_random_choice,
 )
+from .__init__ import fake_gauss, mock_random_choice
 
 
 @pytest.fixture(autouse=True)

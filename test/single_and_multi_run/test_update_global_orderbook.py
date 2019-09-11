@@ -11,8 +11,7 @@ from message import Order
 from scenario import Scenario
 from engine import Engine
 from performance import Performance
-from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE
-from .__init__ import PERFORMANCE_SAMPLE
+from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
 
 def create_an_instance_with_one_peer_one_order(

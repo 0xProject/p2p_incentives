@@ -10,13 +10,13 @@ from engine import Engine
 from performance import Performance
 from scenario import Scenario
 
-from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE
-from .__init__ import (
+from ..__init__ import (
+    SCENARIO_SAMPLE,
+    ENGINE_SAMPLE,
     SCENARIO_SAMPLE_NON_INT,
     PERFORMANCE_SAMPLE,
-    mock_random_choice,
-    fake_gauss,
 )
+from .__init__ import mock_random_choice, fake_gauss
 
 
 @pytest.mark.parametrize(

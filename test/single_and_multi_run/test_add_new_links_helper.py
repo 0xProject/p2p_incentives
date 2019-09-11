@@ -10,8 +10,7 @@ from node import Peer
 from scenario import Scenario
 from engine import Engine
 from performance import Performance
-from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE
-from .__init__ import PERFORMANCE_SAMPLE
+from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
 
 @pytest.fixture(autouse=True)
