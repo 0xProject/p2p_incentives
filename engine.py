@@ -36,7 +36,7 @@ class Engine:
     They include our possible choices on neighbor establishment, order operations and incentives,
     scoring system, etc.
     Such choices are viable, and one can change any/some of them to test the performance.
-    Later the Simulator class will call methods from this Engine class for a particular
+    Later the SingleRun class will call methods from this Engine class for a particular
     realization of implementation.
     """
 
@@ -273,8 +273,8 @@ class Engine:
         self, requester: "Peer", base: Set["Peer"], target_number: int
     ) -> Set["Peer"]:
         """
-        This method is run by the Simulator (or conceptually, centralized tracker).
-        It is called by the method add_new_links_helper() in Simulator class.
+        This method is run by the SingleRun instance (or conceptually, centralized tracker).
+        It is called by the method add_new_links_helper() in SingleRun class.
         Upon request of increasing its neighbors, the tracker selects some peers from the base
         peer set, for the requesting peer to form neighborhoods.
         :param requester: the peer instance of the node who requests to increase its neighbor size

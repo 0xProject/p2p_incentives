@@ -47,7 +47,7 @@ peer, but with some extra local information.
 - Module data_processing contains some data processing functions that will be used by functions
 elsewhere.
 
-- Class Simulator contains all system functions for the simulator to run.
+- Class SingleRun contains all system functions for the simulator to run once.
 
 - Class Execution contains functions that run the simulator in multi-processing manner and generates
 the result.
@@ -93,12 +93,12 @@ Execution for each input.
 	called by order sharing or external order arrival, at any time. These functions will 
 	determine whether or not to put the orders into the pending table.
     
-	- Order storing: This function can only be called from the Simulator class proactively. 
+	- Order storing: This function can only be called from the SingleRun class proactively. 
 	No other function calls it.
     It runs only at the end of a batch period. It will decide whether to put pending orders into the
     local storage. Pending table will be cleared.
     
-	- Order sharing: This function can only be called from the Simulator class proactively, 
+	- Order sharing: This function can only be called from the SingleRun class proactively, 
 	following order storing.
     No other function calls it. It runs only at the end of a batch period.
     It will decide whether to share any stored order to any neighbor.

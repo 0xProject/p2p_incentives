@@ -173,6 +173,16 @@ def tit_for_tat(
     if (
         time_now - peer.birth_time <= baby_ending
     ):  # This is a new peer. Random select neighbors.
+        # HACK (weijiewu8): There is a minor issue here. Note that we have birth_time_span
+        # in scenario instance, where the initial peers can have birth times of any value over
+        # [0, birth_time_span). Immediately after that, say, if a new peer was born at
+        # birth_time_span, then it should still be considered as a baby peer since it knows
+        # nothing about its neighbors, but it is possible that birth_time_span - peer.birth_time
+        # > baby_ending. So strictly speaking, we should have the if judgment as:
+        # ```if time_now - max(peer.birth_time, scenario.birth_time_span] <= baby_ending```
+        # However, we require some changes in codes to make it and I prefer leaving it to the
+        # next PR.
+
         selected_peer_set |= set(
             random.sample(
                 list(peer.peer_neighbor_mapping),

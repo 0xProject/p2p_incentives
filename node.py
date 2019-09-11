@@ -17,7 +17,7 @@ class Neighbor:
     Each peer maintains a set of neighbors. Note, a neighbor is physically also a node,
     but a neighbor instance is not a peer instance; instead, it has specialized information
     from a peer's viewpoint. For information stored in the Peer instance,
-    refer to the mapping table in the Simulator and find the corresponding Peer instance.
+    refer to the mapping table in the SingleRun instance and find the corresponding Peer instance.
     """
 
     def __init__(
@@ -160,7 +160,7 @@ class Peer:
     def add_neighbor(self, peer: "Peer") -> None:
         """
         This method establishes a neighborhood relationship.
-        This method can only be called in method add_new_links_helper() in class Simulator.
+        This method can only be called in method add_new_links_helper() in class SingleRun.
         Once it is called, a neighborhood relationship should be ready for establishment;
         otherwise, it is an error (e.g., one party has already had the other party as a neighbor).
         :param peer: the peer instance of the node to be added as a neighbor.
@@ -233,7 +233,7 @@ class Peer:
 
     def receive_order_external(self, order: Order) -> None:
         """
-        This method is called by method order_arrival() in class Simulator.
+        This method is called by method order_arrival() in class SingleRun.
         An OrderInfo instance will be created and put into pending table (just to keep consistent
         with method receive_order_internal(), though most likely it will be accepted).
         :param order: the order instance of the order arrived externally.
@@ -261,7 +261,7 @@ class Peer:
         self, peer: "Peer", order: Order, novelty_update: bool = False
     ) -> None:
         """
-        The method is called by method share_order() in class Simulator.
+        The method is called by method share_order() in class SingleRun.
         It will immediately decide whether to put the order from the peer (who is my neighbor)
         into my pending table.
         :param peer: the peer instance of the node who sends the order

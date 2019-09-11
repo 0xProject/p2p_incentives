@@ -28,6 +28,11 @@ def hawkes(rate: HawkesArrivalRate, max_time: int) -> List[int]:
     of Hawkes process with exponentially decaying intensity,' published in Electron. Commun. Probab.
     18 (2013) no. 62, 1-13.
     It is believed to be running faster than other methods.
+
+    Please note that it is very difficult to write unit test for this function due to randomness.
+    Right now we just leave it without unit tests. It is pretty safe since we simply copied the
+    logic from the original paper.
+
     :param rate: see above for explanation.
     :param max_time: maximal time to generate events.
     :return: One realization, in terms of a list, each element being number of events in each time
