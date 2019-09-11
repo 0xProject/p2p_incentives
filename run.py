@@ -3,14 +3,14 @@ This is the single main file that runs the simulator.
 """
 
 import example
-import execution
+import multi_run_in_parallel
 import plot
 
 if __name__ == "__main__":
     for my_scenario in example.SCENARIOS:
         for my_engine in example.ENGINES:
             for my_performance in example.PERFORMANCES:
-                multi_run_result = execution.MultiRunInParallel(
+                multi_run_result = multi_run_in_parallel.MultiRunInParallel(
                     scenario=my_scenario,
                     engine=my_engine,
                     performance=my_performance,

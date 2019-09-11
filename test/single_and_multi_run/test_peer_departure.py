@@ -5,7 +5,7 @@ This module contains unit tests for peer_departure().
 from typing import Iterator
 import pytest
 
-from simulator import SingleRun
+from single_run import SingleRun
 from node import Peer
 from message import Order
 from scenario import Scenario

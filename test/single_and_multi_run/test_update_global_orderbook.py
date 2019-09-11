@@ -5,7 +5,7 @@ This module contains unit tests for update_global_orderbook().
 from typing import Tuple
 import pytest
 
-from simulator import SingleRun
+from single_run import SingleRun
 from node import Peer
 from message import Order
 from scenario import Scenario

@@ -3,7 +3,7 @@ This module contains test functions for reorganize_performance_results() in mult
 """
 
 from data_types import SingleRunPerformanceResult, MultiRunPerformanceResult
-from execution import MultiRunInParallel
+from multi_run_in_parallel import MultiRunInParallel
 
 
 SINGLE_RESULT_1 = SingleRunPerformanceResult(

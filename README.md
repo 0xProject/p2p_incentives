@@ -47,15 +47,14 @@ peer, but with some extra local information.
 - Module data_processing contains some data processing functions that will be used by functions
 elsewhere.
 
-- Class SingleRun contains all system functions for the simulator to run once.
+- Class SingleRun contains all system functions for the simulator to run one time.
 
-- Class Execution contains functions that run the simulator in multi-processing manner and generates
-the result.
+- Class MultiRunInParallel contains functions that run the simulator in multi-processing manner and generates the result.
 
 - Module example generates an example of the simulator input. It contains all testing points by
 constructing instances for Scenario, Engine, and Performance classes.
 
-- Module run is the main file that runs the simulator. It gets inputs from Example, and runs the
+- Module run is the main file that runs the simulator. It gets inputs from Example, and runs the 
 Execution for each input.
 
 - Module data_types defines data types for use of type hints through the entire code base.

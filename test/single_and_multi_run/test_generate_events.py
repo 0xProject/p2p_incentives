@@ -5,7 +5,7 @@ This module contains functions to test generate_events_during_whole_process().
 from typing import List
 import pytest
 
-from simulator import SingleRun
+from single_run import SingleRun
 from .__init__ import SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
 
