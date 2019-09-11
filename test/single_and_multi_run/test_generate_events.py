@@ -6,7 +6,8 @@ from typing import List
 import pytest
 
 from single_run import SingleRun
-from .__init__ import SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
+from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE
+from .__init__ import PERFORMANCE_SAMPLE
 
 
 def generate_fake_events(rate: float, length: int) -> List[int]:
@@ -19,7 +20,7 @@ def generate_fake_events(rate: float, length: int) -> List[int]:
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_generate_events_during_whole_process(
     scenario, engine, performance, monkeypatch

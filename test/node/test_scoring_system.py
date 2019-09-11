@@ -9,7 +9,7 @@ import pytest
 
 from message import Order
 from node import Peer
-from .__init__ import (
+from ..__init__ import (
     SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
     create_a_test_order,

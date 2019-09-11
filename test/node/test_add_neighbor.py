@@ -8,7 +8,7 @@ import pytest
 
 from node import Peer, Neighbor
 
-from .__init__ import (
+from ..__init__ import (
     ENGINE_SAMPLE,
     SCENARIO_SAMPLE,
     create_a_test_peer,

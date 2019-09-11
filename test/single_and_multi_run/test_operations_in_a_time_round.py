@@ -9,9 +9,8 @@ from single_run import SingleRun
 from scenario import Scenario
 from engine import Engine
 from performance import Performance
+from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE
 from .__init__ import (
-    SCENARIO_SAMPLE_1,
-    ENGINE_SAMPLE,
     ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN,
     PERFORMANCE_SAMPLE,
     fake_gauss,
@@ -47,7 +46,7 @@ def create_single_run_with_initial_peers(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_order_number(
     scenario: Scenario, engine: Engine, performance: Performance
@@ -94,7 +93,7 @@ def test_operations_in_a_time_round__assert_order_number(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_peer_number_normal(
     scenario: Scenario, engine: Engine, performance: Performance
@@ -127,7 +126,7 @@ def test_operations_in_a_time_round__assert_peer_number_normal(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_peer_number_all_peers_departed(
     scenario: Scenario, engine: Engine, performance: Performance
@@ -161,7 +160,7 @@ def test_operations_in_a_time_round__assert_peer_number_all_peers_departed(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_neighborhood(
     scenario: Scenario, engine: Engine, performance: Performance
@@ -199,7 +198,7 @@ def test_operations_in_a_time_round__assert_neighborhood(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_store_and_share_must_happen(
     scenario, engine, performance
@@ -233,7 +232,7 @@ def test_operations_in_a_time_round__assert_store_and_share_must_happen(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_store_and_share_might_happen(
     scenario: Scenario, engine: Engine, performance: Performance

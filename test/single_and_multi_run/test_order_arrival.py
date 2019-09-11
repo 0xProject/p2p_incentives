@@ -10,17 +10,13 @@ from performance import Performance
 from node import Peer
 
 from single_run import SingleRun
-from .__init__ import (
-    SCENARIO_SAMPLE_1,
-    ENGINE_SAMPLE,
-    PERFORMANCE_SAMPLE,
-    create_a_test_peer,
-)
+from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE, create_a_test_peer
+from .__init__ import PERFORMANCE_SAMPLE
 
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_order_arrival__normal(
     scenario: Scenario, engine: Engine, performance: Performance
@@ -50,7 +46,7 @@ def test_order_arrival__normal(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_order_arrival__error(
     scenario: Scenario, engine: Engine, performance: Performance

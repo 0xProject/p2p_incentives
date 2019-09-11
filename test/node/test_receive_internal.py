@@ -7,7 +7,7 @@ import pytest
 
 from node import Peer
 from message import Order
-from .__init__ import (
+from ..__init__ import (
     create_test_peers,
     create_a_test_order,
     SCENARIO_SAMPLE,

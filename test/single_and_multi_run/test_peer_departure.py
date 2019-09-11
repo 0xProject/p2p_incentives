@@ -11,18 +11,18 @@ from message import Order
 from scenario import Scenario
 from engine import Engine
 from performance import Performance
-from .__init__ import (
-    SCENARIO_SAMPLE_1,
+from ..__init__ import (
+    SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
-    PERFORMANCE_SAMPLE,
     create_a_test_order,
     create_a_test_peer,
 )
+from .__init__ import PERFORMANCE_SAMPLE
 
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_peer_departure__normal(
     scenario: Scenario, engine: Engine, performance: Performance
@@ -68,7 +68,7 @@ def test_peer_departure__normal(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_peer_departure__error(
     scenario: Scenario, engine: Engine, performance: Performance

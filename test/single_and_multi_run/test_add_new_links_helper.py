@@ -10,7 +10,8 @@ from node import Peer
 from scenario import Scenario
 from engine import Engine
 from performance import Performance
-from .__init__ import SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
+from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE
+from .__init__ import PERFORMANCE_SAMPLE
 
 
 @pytest.fixture(autouse=True)
@@ -76,7 +77,7 @@ def create_single_run_instance_and_peers(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_add_new_links_helper__normal(
     scenario: Scenario, engine: Engine, performance: Performance
@@ -116,7 +117,7 @@ def test_add_new_links_helper__normal(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_add_new_links_helper__all_to_add(
     scenario: Scenario, engine: Engine, performance: Performance
@@ -156,7 +157,7 @@ def test_add_new_links_helper__all_to_add(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_add_new_links_helper__tried_the_best(
     scenario: Scenario, engine: Engine, performance: Performance
@@ -197,7 +198,7 @@ def test_add_new_links_helper__tried_the_best(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_add_new_links_helper__error_input(
     scenario: Scenario, engine: Engine, performance: Performance

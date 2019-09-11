@@ -10,7 +10,7 @@ from scenario import Scenario
 from engine import Engine
 import engine_candidates
 
-from .__init__ import (
+from ..__init__ import (
     SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
     create_a_test_peer,

@@ -7,7 +7,7 @@ import pytest
 from message import Order
 from scenario import Scenario
 import performance_candidates
-from .__init__ import SCENARIO_SAMPLE, create_test_orders
+from ..__init__ import SCENARIO_SAMPLE, create_test_orders
 
 
 def arrange_for_test(

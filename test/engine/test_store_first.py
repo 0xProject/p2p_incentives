@@ -12,7 +12,7 @@ from engine import Engine
 
 import engine_candidates
 
-from .__init__ import (
+from ..__init__ import (
     ENGINE_SAMPLE,
     SCENARIO_SAMPLE,
     create_a_test_order,

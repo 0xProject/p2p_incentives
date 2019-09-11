@@ -6,7 +6,7 @@ from typing import List
 import pytest
 
 from node import Peer
-from .__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE, create_test_peers
+from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE, create_test_peers
 
 
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])

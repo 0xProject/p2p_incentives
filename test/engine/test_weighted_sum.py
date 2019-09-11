@@ -15,7 +15,7 @@ from node import Peer, Neighbor
 import engine_candidates
 
 
-from .__init__ import (
+from ..__init__ import (
     create_a_test_peer,
     create_test_peers,
     ENGINE_SAMPLE,

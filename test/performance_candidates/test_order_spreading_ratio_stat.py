@@ -11,7 +11,7 @@ from scenario import Scenario
 from engine import Engine
 from data_types import SpreadingRatio
 import performance_candidates
-from .__init__ import (
+from ..__init__ import (
     SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
     create_test_orders,
