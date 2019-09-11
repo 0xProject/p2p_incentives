@@ -24,13 +24,13 @@ from .__init__ import mock_random_choice, fake_gauss
 @pytest.mark.parametrize(
     "scenario, engine, performance, num_arrival",
     [
-        (SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE, SCENARIO_SAMPLE.init_size),
         (
             SCENARIO_SAMPLE_NON_INT,
             ENGINE_SAMPLE,
             PERFORMANCE_SAMPLE,
             SCENARIO_SAMPLE_NON_INT.init_size,
         ),
+        (SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE, SCENARIO_SAMPLE.init_size),
     ],
 )
 def test_group_of_peers_arrival_helper(

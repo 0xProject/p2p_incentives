@@ -1,10 +1,17 @@
+[SIMILARITIES]
+
+# Minimum lines number of a similarity.
+min-similarity-lines=6
+
+# Ignore imports when computing similarities.
+ignore-imports=yes
+
 [MESSAGES CONTROL]
-disable=C0330,R0401,R0902,R0903,R0913,R0801
+
+disable=C0330,R0401,R0902,R0903,R0913
+
 # C0330: bad-continuation
 # R0401: cyclic-import
 # R0902: too-many-instance-attributes
 # R0903: too-few-public-methods
 # R0913: too-many-arguments
-# R0801: duplicate-code
-
-# We will need to remove R0801 eventually. Now the issue is with duplicate __init__.py files.

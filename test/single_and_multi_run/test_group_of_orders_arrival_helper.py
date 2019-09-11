@@ -39,16 +39,14 @@ def test_group_of_orders_arrival_helper(
     monkeypatch,
 ) -> None:
     """
-    This is the unit test for function group_of_peers_arrival_helper(). We test if the group of
-    peers and their orders are properly created.
-    There are a lot of randomness here, and we fake/mock them.
+    This is the unit test for function group_of_orders_arrival_helper(). We test if the group of
+    orders are properly created.
     """
 
     # Arrange.
 
-    # This is to mock random.choice(). Please refer to the explanation in mock_random_choice().
+    # Mock/fake functions. Similar to test_group_of_peers_arrival_helper.py.
     monkeypatch.setattr(random, "choices", mock_random_choice)
-    # This is to fake random.gauss() by returning the integer of mean.
     monkeypatch.setattr(random, "gauss", fake_gauss)
 
     # create the instance and 10 peers.

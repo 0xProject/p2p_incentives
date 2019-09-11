@@ -13,25 +13,25 @@ from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE
 
 # The arrange helper function needed in this module is exactly the same as in
 # test_single_peer_order_receipt_ratio.py so we import it.
-
-from .test_single_peer_order_receipt_ratio import arrange_for_test
+# We will be using the same CASE_3 as in test_single_peer_order_receipt_ratio.py so we import it.
+from .test_single_peer_order_receipt_ratio import arrange_for_test, CASE_3
 
 
 class CaseType(NamedTuple):
     """
-    Data type for test cases in this module.
+    Data type for test cases in this module. All elements are the same as CaseType in
+    test_single_peer_order_receipt_ratio.py except the last one.
     """
 
     scenario: Scenario
     engine: Engine
     num_order: int
-    order_birth_time_list: List[int]  # list of birth times of input orders
-    order_id_owned_by_peer: List[int]  # list of ids of orders that this peer stores
-    # list of ids of orders that will be in order_set for statistics
+    order_birth_time_list: List[int]
+    order_id_owned_by_peer: List[int]
     order_id_in_stat: List[int]
-    max_age: int  # max_age_to_track
-    window: int  # statistical_window
-    expected_result: float  # expected receipt ratio
+    max_age: int
+    window: int
+    expected_result: float  # expected satisfaction result.
 
 
 # Case 1 is very similar to case 1 in test_single_peer_order_receipt_ratio.py.
@@ -76,7 +76,9 @@ def test_single_peer_satisfaction_neutral__normal(
     scenario: Scenario,
     engine: Engine,
     num_order: int,
-    order_birth_time_list: List[int],
+    order_birth_time_list: List[
+        int
+    ],  # all order birth time will be normal in this test.
     order_id_owned_by_peer: List[int],
     order_id_in_stat: List[int],
     max_age: int,
@@ -112,12 +114,9 @@ def test_single_peer_satisfaction_neutral__normal(
 
 # Case 3 is the same as case 3 in test_single_peer_order_receipt_ratio.py. Some error expected.
 
-CASE_3 = copy.deepcopy(CASE_2)
-CASE_3.order_birth_time_list[-1] = 101
-
 
 @pytest.mark.parametrize(
-    "scenario, engine, num_order, order_birth_time_list, order_id_owned_by_peer, "
+    "scenario, engine, num_order, order_birth_time_list_abnormal, order_id_owned_by_peer, "
     "order_id_in_stat, max_age, window, _expected_result",
     [CASE_3],
 )
@@ -125,7 +124,9 @@ def test_single_peer_satisfaction_neutral__negative_age(
     scenario: Scenario,
     engine: Engine,
     num_order: int,
-    order_birth_time_list: List[int],
+    order_birth_time_list_abnormal: List[
+        int
+    ],  # one birth time will be abnormal (> cur_time)
     order_id_owned_by_peer: List[int],
     order_id_in_stat: List[int],
     max_age: int,
@@ -141,7 +142,7 @@ def test_single_peer_satisfaction_neutral__negative_age(
         scenario,
         engine,
         num_order,
-        order_birth_time_list,
+        order_birth_time_list_abnormal,
         order_id_owned_by_peer,
         order_id_in_stat,
     )
@@ -165,7 +166,7 @@ CASE_4.order_id_in_stat.clear()
 
 @pytest.mark.parametrize(
     "scenario, engine, num_order, order_birth_time_list, order_id_owned_by_peer, "
-    "order_id_in_stat, max_age, window, _expected_result",
+    "order_id_in_stat_empty, max_age, window, _expected_result",
     [CASE_4],
 )
 def test_single_peer_satisfaction_neutral__no_order(
@@ -174,7 +175,7 @@ def test_single_peer_satisfaction_neutral__no_order(
     num_order: int,
     order_birth_time_list: List[int],
     order_id_owned_by_peer: List[int],
-    order_id_in_stat: List[int],
+    order_id_in_stat_empty: List[int],  # This will be empty
     max_age: int,
     window: int,
     _expected_result: float,
@@ -190,7 +191,7 @@ def test_single_peer_satisfaction_neutral__no_order(
         num_order,
         order_birth_time_list,
         order_id_owned_by_peer,
-        order_id_in_stat,
+        order_id_in_stat_empty,
     )
 
     # Act and Asset.
