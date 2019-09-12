@@ -32,25 +32,10 @@ def mock_random_sample(peers: List[Peer], number: int) -> List[Peer]:
     return list_of_peers[:number]
 
 
-def fake_score_neighbors(_peer):
-    """
-    This is a fake function to disable engine.score_neighbors(). In our current design
-    engine.score_neighbors() is called by peer.rank_neighbors(). In our unit tests here we will
-    need to call peer.rank_neighbors() but we have manually set scores for neighbors; we don't
-    want the function engine.score_neighbors() to change the scores again when it is called by
-    peer.rank_neighbors() so we use the fake function to disable the scores from being calculated
-    and updated again.
-    """
-    # HACK (weijiewu8): This is a temporary treatment. Consider changing engine.score_neighbors()
-    # to be moved out of peer.rank_neighbors() so they become independent of each other.
-    # If we do it, all fake_score_neighbors() can be deleted.
-
-
 class CaseType(NamedTuple):
     """
     This is a date type defined for the test cases in this module.
     The first six attributes are inputs to the test function, and the last two are expected outputs.
-
     """
 
     scenario: Scenario  # a scenario instance to create peers/orders
@@ -158,7 +143,6 @@ def test_tit_for_tat__no_zero_contributors(
         peer.peer_neighbor_mapping[neighbor_peers[i]].score = i + 300
 
     monkeypatch.setattr(random, "sample", mock_random_sample)
-    monkeypatch.setattr(engine, "score_neighbors", fake_score_neighbors)
 
     # Act
     selected_peer_set = engine_candidates.tit_for_tat(
@@ -215,7 +199,6 @@ def test_tit_for_tat__zero_contributors(scenario, engine, monkeypatch):
         peer.peer_neighbor_mapping[neighbor_peers[i]].score = i + 300
 
     monkeypatch.setattr(random, "sample", mock_random_sample)
-    monkeypatch.setattr(engine, "score_neighbors", fake_score_neighbors)
 
     # Act
     selected_peer_set = engine_candidates.tit_for_tat(

@@ -71,7 +71,7 @@ def test_scoring_system_penalty_a(scenario, engine, monkeypatch) -> None:
     # store orders
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
-    my_peer.rank_neighbors()
+    my_peer.score_neighbors()
 
     # Assert.
     assert my_peer.peer_neighbor_mapping[neighbor].score == -13
@@ -121,7 +121,7 @@ def test_scoring_system_reward_a(scenario, engine, monkeypatch) -> None:
     # store orders
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
-    my_peer.rank_neighbors()
+    my_peer.score_neighbors()
 
     # Assert.
     assert my_peer.peer_neighbor_mapping[neighbor].score == 2
@@ -174,7 +174,7 @@ def test_scoring_system_reward_b(scenario, engine, monkeypatch) -> None:
     # store orders
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
-    my_peer.rank_neighbors()
+    my_peer.score_neighbors()
 
     # Assert.
     assert my_peer.peer_neighbor_mapping[neighbor].score == 3
@@ -223,7 +223,7 @@ def test_scoring_system_penalty_b(scenario, engine, monkeypatch) -> None:
     # store orders
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
-    my_peer.rank_neighbors()
+    my_peer.score_neighbors()
 
     # Assert.
 
@@ -273,7 +273,7 @@ def test_scoring_system_reward_c(scenario, engine, monkeypatch) -> None:
     # store orders
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
-    my_peer.rank_neighbors()
+    my_peer.score_neighbors()
 
     # Assert.
 
@@ -336,7 +336,7 @@ def test_scoring_system_reward_d(scenario, engine, monkeypatch) -> None:
     # store orders
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
-    my_peer.rank_neighbors()
+    my_peer.score_neighbors()
 
     # Assert.
     assert my_peer.peer_neighbor_mapping[neighbor].score == 7
@@ -398,7 +398,7 @@ def test_scoring_system_reward_e(scenario, engine, monkeypatch) -> None:
     # store orders
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
-    my_peer.rank_neighbors()
+    my_peer.score_neighbors()
 
     # Assert.
 
