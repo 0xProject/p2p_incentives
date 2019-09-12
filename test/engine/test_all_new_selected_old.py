@@ -48,7 +48,8 @@ class CaseType(NamedTuple):
     new: int  # number of new orders
     max_share: int  # maximal number of orders that can be shared
     old_prob: float  # old_prob in all_new_selected_old()
-    expected_result: Tuple[int, int, int]  # numbers of total/new/old orders that are selected
+    # numbers of total/new/old orders that are selected
+    expected_result: Tuple[int, int, int]
 
 
 CASE_1 = CaseType(

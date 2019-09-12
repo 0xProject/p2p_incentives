@@ -16,6 +16,7 @@ from ..__init__ import (
     create_a_test_peer,
 )
 
+
 def always_store_orders(peer):
     """
     This is a fake function for store_or_discard_orders(), and it always store orders.
