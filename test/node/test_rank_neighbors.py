@@ -10,21 +10,12 @@ from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE, create_test_peers
 
 
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
-def test_rank_neighbors(scenario, engine, monkeypatch) -> None:
+def test_rank_neighbors(scenario, engine) -> None:
     """
-    This function tests rank_neighbors(). We disable score_neighbors() function which will
-    change the score of neighbors, and use a mocked one to replace it.
+    This function tests rank_neighbors().
     """
 
     # Arrange.
-
-    # Disable score_neighbors() function. Otherwise rank_neighbors() will change the scores that
-    # we have specifically set for this test.
-
-    def fake_score_neighbors(_peer):
-        pass
-
-    monkeypatch.setattr(engine, "score_neighbors", fake_score_neighbors)
 
     # create peer list
     peer_list: List[Peer] = create_test_peers(scenario, engine, 4)
