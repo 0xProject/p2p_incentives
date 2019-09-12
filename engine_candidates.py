@@ -148,7 +148,7 @@ def weighted_sum(
 
 
 def tit_for_tat(
-    baby_ending: int, mutual: int, optimistic: int, time_now: int, peer: "Peer"
+    baby_ending: int, mutual: int, optimistic: int, time_now: int, peer: "Peer", time_start: int
 ) -> Set["Peer"]:
     """
     This is a candidate design to select beneficiaries from neighbors.
@@ -166,12 +166,16 @@ def tit_for_tat(
     :param optimistic: see explanation above.
     :param time_now: current time.
     :param peer: the peer instance of the node who is making the decision.
+    :param time_start: the peer's starting time. Normally it is peer's birth time; a special
+    case is for initial peers in the simulator, their birth times span over [0, birth_time_span),
+    but we will use birth_time_span - 1 as their starting time for judgment on whether they are baby
+    peers or not.
     :return: set of peer instances of the nodes selected as beneficiaries.
     """
 
     selected_peer_set: Set["Peer"] = set()
     if (
-        time_now - peer.birth_time <= baby_ending
+        time_now - time_start <= baby_ending
     ):  # This is a new peer. Random select neighbors.
         # HACK (weijiewu8): There is a minor issue here. Note that we have birth_time_span
         # in scenario instance, where the initial peers can have birth times of any value over
