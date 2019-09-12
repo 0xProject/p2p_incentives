@@ -1,5 +1,5 @@
 """
-This module contains unit tests for settle_concave().
+This module contains unit tests of settle_concave().
 """
 
 import math
