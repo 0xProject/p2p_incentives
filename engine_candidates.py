@@ -148,7 +148,12 @@ def weighted_sum(
 
 
 def tit_for_tat(
-    baby_ending: int, mutual: int, optimistic: int, time_now: int, peer: "Peer", time_start: int
+    baby_ending: int,
+    mutual: int,
+    optimistic: int,
+    time_now: int,
+    peer: "Peer",
+    time_start: int,
 ) -> Set["Peer"]:
     """
     This is a candidate design to select beneficiaries from neighbors.

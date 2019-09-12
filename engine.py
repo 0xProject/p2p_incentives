@@ -240,7 +240,9 @@ class Engine:
                 f"No such option to calculate scores: {self.score_option['method']}"
             )
 
-    def find_neighbors_to_share(self, time_now: int, peer: "Peer", time_start: int) -> Set["Peer"]:
+    def find_neighbors_to_share(
+        self, time_now: int, peer: "Peer", time_start: int
+    ) -> Set["Peer"]:
         """
         This method determines the set of neighboring nodes to share the orders in this batch.
         :param time_now: the current time
