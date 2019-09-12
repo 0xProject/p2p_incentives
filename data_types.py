@@ -163,9 +163,9 @@ class ScenarioParameters(NamedTuple):
 # probability of an order being settled).
 #
 # Given the possibility of need to generalization, we use a TypedDict to represent an Option.
-# Though we have only one entry "method" for each of them right now, we do have a chance of need
-# of using inheritance in future. Please refer to the Options in Engine to see how complicated it
-# can be.
+# Though we have only one entry "method" for EventOption and two entries for SettleOption right
+# now, there is a chance we need to use inheritance in the future. Please refer to the Options in
+# Engine to see how complicated it can be.
 
 
 class EventOption(TypedDict):
@@ -179,11 +179,23 @@ class EventOption(TypedDict):
 
 class SettleOption(TypedDict):
     """
-    Option for how to settle an order. Now we don't have a real implementation and the only
-    choice is never settling an order.
+    Option for how to settle an order. Now we have a choice Never that does not settle an order,
+    and a choice ConcaveSettle that settles an order according to the number of replicas it has
+    in the Mesh system, with a probability of being settled concavely increasing w.r.t. the # of
+    replicas.
     """
 
-    method: Literal["Never"]
+    method: Literal["Never", "ConcaveSettle"]
+
+
+class ConcaveSettle(SettleOption):
+    """
+    Option of settling an order with a probability concavely increasing with respect to the
+    number of replicas in the Mesh.
+    """
+
+    sensitivity: float
+    max_prob: float
 
 
 class ScenarioOptions(NamedTuple):

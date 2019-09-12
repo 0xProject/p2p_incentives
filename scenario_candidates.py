@@ -93,3 +93,21 @@ def settle_dummy(_order: "Order") -> None:
     :return: None
     """
     return None
+
+
+def settle_concave(order, sensitivity: float, max_prob: float) -> None:
+    """
+    This function simulates the process of settling an order. The key idea is the more replicas
+    an order has in the Mesh, the more likely it is settled in one round.
+    We use a concave function to model this, in particular, the probability of settling an order is
+    prob = max_prob * (1 - math.exp(- sensitivity * len(order.holders))), so if there is no
+    replica, the probability of being settled is 0; if the number of replicas is very large,
+    then the probability approaches max_prob.
+    :param order: instance of the order, to consider whether is settled in this function
+    :param sensitivity: parameter to the exponential function.
+    :param max_prob: the maximal probability of being settled in this round
+    :return: None
+    """
+    prob: float = max_prob * (1 - math.exp(-sensitivity * len(order.holders)))
+    if random.random() < prob:
+        order.is_settled = True
