@@ -1,12 +1,12 @@
 """
-This module contains test functions for should_accept_neighbor_request().
+This module contains unit tests of should_accept_neighbor_request().
 """
 
 from typing import List
 import pytest
 
 from node import Peer
-from .__init__ import (
+from ..__init__ import (
     SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
     create_a_test_peer,
@@ -17,7 +17,7 @@ from .__init__ import (
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_should_accept_neighbor_request__true(scenario, engine) -> None:
     """
-    Test when it should return True.
+    This tests when it should return True.
     """
 
     # Arrange. Create two peers
@@ -31,7 +31,7 @@ def test_should_accept_neighbor_request__true(scenario, engine) -> None:
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_should_accept_neighbor_request__false(scenario, engine, monkeypatch) -> None:
     """
-    Test when it should return False.
+    This tests when it should return False.
     """
     # Arrange.
     # Create three peers. First two are neighbors.

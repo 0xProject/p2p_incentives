@@ -1,5 +1,5 @@
 """
-In this module we test store_first() in engine_candidate.
+This module contains unit tests of store_first().
 """
 
 from typing import List
@@ -12,7 +12,7 @@ from engine import Engine
 
 import engine_candidates
 
-from .__init__ import (
+from ..__init__ import (
     ENGINE_SAMPLE,
     SCENARIO_SAMPLE,
     create_a_test_order,
@@ -24,7 +24,7 @@ from .__init__ import (
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_store_first__multi_orderinfo(scenario: Scenario, engine: Engine) -> None:
     """
-    This test is for multiple orderinfo instances from different neighbors, in the pending table
+    Unit test of multiple orderinfo instances from different neighbors, in the pending table
     """
     # Arrange.
 
@@ -56,7 +56,7 @@ def test_store_first__multi_orderinfo(scenario: Scenario, engine: Engine) -> Non
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_store_first__single_orderinfo(scenario: Scenario, engine: Engine) -> None:
     """
-    This test is for multiple orderinfo instances from different neighbors, in the pending table
+    Unit test of multiple orderinfo instances from different neighbors, in the pending table
     """
 
     # Arrange.

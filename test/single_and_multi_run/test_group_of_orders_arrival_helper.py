@@ -1,5 +1,5 @@
 """
-This module contains unit tests for group_of_orders_arrival_helper().
+This module contains unit tests of group_of_orders_arrival_helper().
 """
 import random
 from typing import List
@@ -10,30 +10,24 @@ from engine import Engine
 from performance import Performance
 from scenario import Scenario
 
-from .__init__ import (
-    SCENARIO_SAMPLE_1,
-    SCENARIO_SAMPLE_2,
+from ..__init__ import (
+    SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
+    SCENARIO_SAMPLE_NON_INT,
     PERFORMANCE_SAMPLE,
-    mock_random_choice,
-    fake_gauss,
 )
+from .__init__ import mock_random_choice, fake_gauss
 
 
 @pytest.mark.parametrize(
     "scenario, engine, performance, num_arrival",
     [
+        (SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE, SCENARIO_SAMPLE.init_size),
         (
-            SCENARIO_SAMPLE_1,
+            SCENARIO_SAMPLE_NON_INT,
             ENGINE_SAMPLE,
             PERFORMANCE_SAMPLE,
-            SCENARIO_SAMPLE_1.init_size,
-        ),
-        (
-            SCENARIO_SAMPLE_2,
-            ENGINE_SAMPLE,
-            PERFORMANCE_SAMPLE,
-            SCENARIO_SAMPLE_2.init_size,
+            SCENARIO_SAMPLE_NON_INT.init_size,
         ),
     ],
 )
@@ -45,16 +39,14 @@ def test_group_of_orders_arrival_helper(
     monkeypatch,
 ) -> None:
     """
-    This is the unit test for function group_of_peers_arrival_helper(). We test if the group of
-    peers and their orders are properly created.
-    There are a lot of randomness here, and we fake/mock them.
+    This tests group_of_orders_arrival_helper().
+    We test if the group of orders are properly created.
     """
 
     # Arrange.
 
-    # This is to mock random.choice(). Please refer to the explanation in mock_random_choice().
+    # Mock/fake functions. Similar to test_group_of_peers_arrival_helper.py.
     monkeypatch.setattr(random, "choices", mock_random_choice)
-    # This is to fake random.gauss() by returning the integer of mean.
     monkeypatch.setattr(random, "gauss", fake_gauss)
 
     # create the instance and 10 peers.

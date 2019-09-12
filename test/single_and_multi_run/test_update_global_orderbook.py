@@ -1,5 +1,5 @@
 """
-This module contains unit tests for update_global_orderbook().
+This module contains unit tests of update_global_orderbook().
 """
 
 from typing import Tuple
@@ -11,7 +11,7 @@ from message import Order
 from scenario import Scenario
 from engine import Engine
 from performance import Performance
-from .__init__ import SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
+from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
 
 def create_an_instance_with_one_peer_one_order(
@@ -37,13 +37,13 @@ def create_an_instance_with_one_peer_one_order(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_update_global_orderbook__active_order(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test how the function treats an active order. Nothing should happen.
+    This tests how the function treats an active order. Nothing should happen.
     """
 
     # Arrange.
@@ -62,13 +62,13 @@ def test_update_global_orderbook__active_order(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_update_global_orderbook__order_no_count(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test if an order does not have any holder or hesitator. Should remove.
+    This tests if an order does not have any holder or hesitator. Should remove.
     """
 
     # Arrange.
@@ -89,13 +89,13 @@ def test_update_global_orderbook__order_no_count(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_update_global_orderbook__expired(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test when an order expires.
+    This tests when an order expires.
     """
 
     # Arrange.
@@ -120,13 +120,13 @@ def test_update_global_orderbook__expired(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_update_global_orderbook__settled(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test when an order is settled.
+    This tests when an order is settled.
     """
 
     # Arrange.
@@ -149,13 +149,13 @@ def test_update_global_orderbook__settled(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_update_global_orderbook__canceled(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test when an order is canceled.
+    This tests when an order is canceled.
     """
 
     # Arrange.

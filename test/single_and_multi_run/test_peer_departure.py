@@ -1,5 +1,5 @@
 """
-This module contains unit tests for peer_departure().
+This module contains unit tests of peer_departure().
 """
 
 from typing import Iterator
@@ -11,8 +11,8 @@ from message import Order
 from scenario import Scenario
 from engine import Engine
 from performance import Performance
-from .__init__ import (
-    SCENARIO_SAMPLE_1,
+from ..__init__ import (
+    SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
     PERFORMANCE_SAMPLE,
     create_a_test_order,
@@ -22,13 +22,13 @@ from .__init__ import (
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_peer_departure__normal(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test peer_departure() in normal case.
+    This tests peer_departure() in normal case.
     """
 
     # Arrange.
@@ -68,13 +68,13 @@ def test_peer_departure__normal(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_peer_departure__error(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test peer_departure() when the peer does not exist.
+    This tests peer_departure() when the peer does not exist.
     """
 
     # Arrange.

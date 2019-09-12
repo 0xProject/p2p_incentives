@@ -1,5 +1,5 @@
 """
-This module contains tests to function store_orders(). We should have these tests before testing
+This module contains unit tests of store_orders(). We should have these tests before testing
 receive_order_internal() because store_order() will be used during the test of
 receive_order_internal().
 """
@@ -9,7 +9,7 @@ import pytest
 
 from node import Peer
 from message import Order, OrderInfo
-from .__init__ import (
+from ..__init__ import (
     create_a_test_order,
     create_a_test_peer,
     create_test_peers,

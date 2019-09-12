@@ -9,7 +9,7 @@ import pytest
 
 from message import Order
 from node import Peer
-from .__init__ import (
+from ..__init__ import (
     SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
     create_a_test_order,
@@ -17,7 +17,6 @@ from .__init__ import (
 )
 
 
-# This helper function sets storage_decision as True for any orderinfo.
 def always_store_orders(peer):
     """
     This is a fake function for store_or_discard_orders(), and it always store orders.

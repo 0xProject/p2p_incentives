@@ -1,5 +1,5 @@
 """
-This module contains unit tests for operations_in_a_time_round().
+This module contains unit tests of operations_in_a_time_round().
 """
 
 import random
@@ -9,14 +9,13 @@ from single_run import SingleRun
 from scenario import Scenario
 from engine import Engine
 from performance import Performance
-from .__init__ import (
-    SCENARIO_SAMPLE_1,
+from ..__init__ import (
+    SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
     ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN,
     PERFORMANCE_SAMPLE,
-    fake_gauss,
-    mock_random_choice,
 )
+from .__init__ import fake_gauss, mock_random_choice
 
 
 @pytest.fixture(autouse=True)
@@ -47,14 +46,14 @@ def create_single_run_with_initial_peers(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_order_number(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
 
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts if the order number is correct after a time round of operations.
     """
 
@@ -94,13 +93,13 @@ def test_operations_in_a_time_round__assert_order_number(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_peer_number_normal(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts if the peer number is correct after a time round of operations.
     """
 
@@ -127,14 +126,14 @@ def test_operations_in_a_time_round__assert_peer_number_normal(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_peer_number_all_peers_departed(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
 
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts the scenario where all peers depart the system.
     """
 
@@ -161,14 +160,14 @@ def test_operations_in_a_time_round__assert_peer_number_all_peers_departed(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_neighborhood(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
 
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts the neighborhood connection establishment.
     """
 
@@ -199,13 +198,13 @@ def test_operations_in_a_time_round__assert_neighborhood(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_store_and_share_must_happen(
     scenario, engine, performance
 ) -> None:
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts the scenario where storing and sharing orders must happen.
     In order to do it, we pass a specific engine instance to it where batch == 1 and it forms
     a full mesh network; every peer will contribute to every neighbor.
@@ -233,13 +232,13 @@ def test_operations_in_a_time_round__assert_store_and_share_must_happen(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_store_and_share_might_happen(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts the scenario where storing and sharing orders might happen, in the general case.
     """
 

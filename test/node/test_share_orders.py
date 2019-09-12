@@ -1,5 +1,5 @@
 """
-This module contains test functions for share_order() function.
+This module contains unit tests of share_order().
 """
 
 import random
@@ -7,7 +7,7 @@ from typing import List
 import pytest
 
 from node import Peer
-from .__init__ import (
+from ..__init__ import (
     create_test_peers,
     create_a_test_peer,
     SCENARIO_SAMPLE,
@@ -72,7 +72,7 @@ def test_share_orders__normal(scenario, engine, monkeypatch) -> None:
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_share_orders__free_rider(scenario, engine) -> None:
     """
-    Test sharing behavior of a free rider. Should not share anything.
+    This tests sharing behavior of a free rider. Should not share anything.
     """
 
     # Arrange.

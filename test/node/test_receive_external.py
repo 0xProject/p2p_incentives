@@ -1,11 +1,11 @@
 """
-This module contains test functions for receive_order_external().
+This module contains unit tests of receive_order_external().
 """
 
 import pytest
 from node import Peer
 from message import Order
-from .__init__ import (
+from ..__init__ import (
     SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
     create_a_test_peer,

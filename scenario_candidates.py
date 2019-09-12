@@ -40,6 +40,7 @@ def hawkes(rate: HawkesArrivalRate, max_time: int) -> List[int]:
     """
 
     # pylint: disable=invalid-name
+    # pylint: disable=too-many-locals
     # Inside this function, variable names are kept the same as the original paper.
     # Fine to violate naming regulations merely inside this function.
 

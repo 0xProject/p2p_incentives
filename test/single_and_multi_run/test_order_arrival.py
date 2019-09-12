@@ -1,5 +1,5 @@
 """
-This module contains unit tests for order_arrival().
+This module contains unit tests of order_arrival().
 """
 
 import pytest
@@ -10,23 +10,23 @@ from performance import Performance
 from node import Peer
 
 from single_run import SingleRun
-from .__init__ import (
-    SCENARIO_SAMPLE_1,
+from ..__init__ import (
+    SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
-    PERFORMANCE_SAMPLE,
     create_a_test_peer,
+    PERFORMANCE_SAMPLE,
 )
 
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_order_arrival__normal(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test function order_arrival().
+    This tests order_arrival() in normal case.
     """
     # Arrange.
 
@@ -50,13 +50,13 @@ def test_order_arrival__normal(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE_1, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_order_arrival__error(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test function order_arrival().
+    This tests order_arrival() when the target peer does not exist.
     """
     # Arrange.
 

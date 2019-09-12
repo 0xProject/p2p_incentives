@@ -1,5 +1,5 @@
 """
-This module contains test functions for peer_order_stat_on_window()
+This module contains unit tests of peer_order_stat_on_window().
 """
 
 import copy
@@ -10,7 +10,7 @@ from message import Order
 from scenario import Scenario
 from engine import Engine
 import performance_candidates
-from .__init__ import (
+from ..__init__ import (
     SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
     create_test_orders,

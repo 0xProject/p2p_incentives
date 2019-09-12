@@ -1,13 +1,14 @@
 """
-This module contains functions to test del_order().
+This module contains unit tests of del_order().
 """
+
 from typing import List
 import pytest
 
 from node import Peer
 from message import Order
 
-from .__init__ import (
+from ..__init__ import (
     SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
     create_test_peers,

@@ -1,5 +1,5 @@
 """
-This module contains test functions for add_neighbor()
+This module contains unit tests of add_neighbor().
 """
 
 import collections
@@ -8,7 +8,7 @@ import pytest
 
 from node import Peer, Neighbor
 
-from .__init__ import (
+from ..__init__ import (
     ENGINE_SAMPLE,
     SCENARIO_SAMPLE,
     create_a_test_peer,
@@ -16,13 +16,10 @@ from .__init__ import (
 )
 
 
-# Please refer to __init__.py to see the reason of using parametrization.
-
-
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_add_neighbor__normal(scenario, engine) -> None:
     """
-    normal cases.
+    Unit test of normal case.
     """
 
     # Arrange.
@@ -58,7 +55,7 @@ def test_add_neighbor__normal(scenario, engine) -> None:
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_add_neighbor__add_an_existing_neighbor(scenario, engine):
     """
-    Test if one tries to add an existing neighbor
+    This tests if one tries to add an existing neighbor
     """
 
     # Arrange.
@@ -76,7 +73,7 @@ def test_add_neighbor__add_an_existing_neighbor(scenario, engine):
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_add_neighbor__add_self(scenario, engine):
     """
-    Test if one tries to add itself as a neighbor
+    This tests if one tries to add itself as a neighbor
     """
     # Arrange.
     peer: Peer = create_a_test_peer(scenario, engine)[0]

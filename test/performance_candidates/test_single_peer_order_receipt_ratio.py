@@ -1,5 +1,5 @@
 """
-This module contains test functions for single_peer_order_receipt_ratio()
+This module contains unit tests of single_peer_order_receipt_ratio().
 """
 
 import copy
@@ -11,7 +11,7 @@ from scenario import Scenario
 from engine import Engine
 import performance_candidates
 from data_types import SpreadingRatio
-from .__init__ import (
+from ..__init__ import (
     SCENARIO_SAMPLE,
     ENGINE_SAMPLE,
     create_test_orders,
@@ -126,7 +126,7 @@ CASE_2 = CaseType(
 
 
 @pytest.mark.parametrize(
-    "scenario, engine, num_order, order_birth_time_list, order_id_owned_by_peer, "
+    "scenario, engine, num_order, order_birth_time_list_normal, order_id_owned_by_peer, "
     "order_id_in_stat, max_age, window, expected_result",
     [CASE_1, CASE_2],
 )
@@ -134,7 +134,7 @@ def test_single_peer_order_receipt_ratio__normal(
     scenario: Scenario,
     engine: Engine,
     num_order: int,
-    order_birth_time_list: List[int],
+    order_birth_time_list_normal: List[int],  # this will be normal
     order_id_owned_by_peer: List[int],
     order_id_in_stat: List[int],
     max_age: int,
@@ -142,7 +142,7 @@ def test_single_peer_order_receipt_ratio__normal(
     expected_result: SpreadingRatio,
 ):
     """
-    This function tests for normal cases for single_peer_order_receipt_ratio()
+    This function tests normal cases.
     """
 
     # Arrange
@@ -150,7 +150,7 @@ def test_single_peer_order_receipt_ratio__normal(
         scenario=scenario,
         engine=engine,
         num_order=num_order,
-        order_birth_time_list=order_birth_time_list,
+        order_birth_time_list=order_birth_time_list_normal,
         order_id_owned_by_peer=order_id_owned_by_peer,
         order_id_in_stat=order_id_in_stat,
     )
@@ -181,7 +181,7 @@ CASE_3.order_birth_time_list[-1] = 101
 
 
 @pytest.mark.parametrize(
-    "scenario, engine, num_order, order_birth_time_list, order_id_owned_by_peer, "
+    "scenario, engine, num_order, order_birth_time_list_large, order_id_owned_by_peer, "
     "order_id_in_stat, max_age, window, _expected_result",
     [CASE_3],
 )
@@ -189,7 +189,9 @@ def test_single_peer_order_receipt_ratio__negative_age(
     scenario: Scenario,
     engine: Engine,
     num_order: int,
-    order_birth_time_list: List[int],
+    order_birth_time_list_large: List[
+        int
+    ],  # one birth time will be larger than cur_time
     order_id_owned_by_peer: List[int],
     order_id_in_stat: List[int],
     max_age: int,
@@ -197,7 +199,7 @@ def test_single_peer_order_receipt_ratio__negative_age(
     _expected_result: SpreadingRatio,
 ):
     """
-    This function tests for negative order age.
+    This function tests negative order age.
     """
 
     # Arrange
@@ -205,7 +207,7 @@ def test_single_peer_order_receipt_ratio__negative_age(
         scenario=scenario,
         engine=engine,
         num_order=num_order,
-        order_birth_time_list=order_birth_time_list,
+        order_birth_time_list=order_birth_time_list_large,
         order_id_owned_by_peer=order_id_owned_by_peer,
         order_id_in_stat=order_id_in_stat,
     )

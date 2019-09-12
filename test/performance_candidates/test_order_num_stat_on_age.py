@@ -1,5 +1,5 @@
 """
-This module contains test functions for order_num_stat_on_age()
+This module contains unit tests of order_num_stat_on_age().
 """
 
 from typing import List, NamedTuple
@@ -7,7 +7,7 @@ import pytest
 from message import Order
 from scenario import Scenario
 import performance_candidates
-from .__init__ import SCENARIO_SAMPLE, create_test_orders
+from ..__init__ import SCENARIO_SAMPLE, create_test_orders
 
 
 def arrange_for_test(
@@ -86,7 +86,7 @@ def test_order_num_stat_on_age__normal(
     expected_result: List[int],
 ) -> None:
     """
-    Tests for normal case.
+    This tests normal cases.
     Without loss of generality, we fix the cur_time as 100.
     """
 
@@ -131,7 +131,7 @@ def test_order_num_stat_on_age__negative_age(
     _expected_result: List[int],
 ) -> None:
     """
-    Test if an order's age is negative.
+    This tests if an order's age is negative.
     """
 
     # Arrange.

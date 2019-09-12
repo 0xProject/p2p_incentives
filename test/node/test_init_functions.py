@@ -1,5 +1,5 @@
 """
-This module contains test functions for peer and order initialization functions.
+This module contains unit tests of peer and order initialization functions.
 """
 
 from typing import Set
@@ -8,7 +8,7 @@ import pytest
 from message import Order
 from node import Peer
 
-from .__init__ import (
+from ..__init__ import (
     create_a_test_order,
     create_test_orders,
     create_a_test_peer,
