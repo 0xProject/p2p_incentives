@@ -173,7 +173,7 @@ class ScenarioParameters(NamedTuple):
 #
 # Given the possibility of need to generalization, we use a TypedDict to represent an Option.
 # Though we have only one entry "method" for EventOption and two entries for SettleOption right
-# now, we do have a chance of need of using inheritance in future. Please refer to the Options in
+# now, there is a chance we need to use inheritance in the future. Please refer to the Options in
 # Engine to see how complicated it can be.
 
 
