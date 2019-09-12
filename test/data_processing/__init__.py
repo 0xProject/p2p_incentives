@@ -1,6 +1,5 @@
 """
-tests for data_processing.py
-This init file contains input data for the unit tests.
+This init file contains input data for the unit tests of data_processing.py
 """
 
 from typing import List

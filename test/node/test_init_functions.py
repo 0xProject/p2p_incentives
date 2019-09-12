@@ -1,5 +1,5 @@
 """
-This module contains test functions for peer and order initialization functions.
+This module contains unit tests of peer and order initialization functions.
 """
 
 from typing import Set

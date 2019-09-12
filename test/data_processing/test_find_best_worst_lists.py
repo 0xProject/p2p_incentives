@@ -1,5 +1,5 @@
 """
-This module contains unit tests for find_best_worst_lists().
+This module contains unit tests of find_best_worst_lists().
 """
 
 from typing import List, Tuple

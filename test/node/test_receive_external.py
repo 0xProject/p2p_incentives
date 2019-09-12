@@ -1,5 +1,5 @@
 """
-This module contains test functions for receive_order_external().
+This module contains unit tests of receive_order_external().
 """
 
 import pytest

@@ -1,6 +1,7 @@
 """
-This module contains unit tests for peer_arrival().
+This module contains unit tests of peer_arrival().
 """
+
 import pytest
 
 from scenario import Scenario
@@ -20,7 +21,7 @@ def test_peer_arrival__normal(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This function tests peer_arrival for a normal peer.
+    This function tests peer_arrival() for a normal peer.
     """
 
     # Arrange.
@@ -56,7 +57,7 @@ def test_peer_arrival__free_rider(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This function tests peer_arrival for a free rider.
+    This function tests peer_arrival() for a free rider.
     """
 
     # Arrange.
@@ -89,7 +90,7 @@ def test_peer_arrival__free_rider_error(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This function tests peer_arrival for a free rider.
+    This function tests peer_arrival() for a free rider.
     """
 
     # Arrange.

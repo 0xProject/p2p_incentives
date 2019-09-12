@@ -1,5 +1,5 @@
 """
-This module contains unit tests for average_lists()
+This module contains unit tests of average_lists()
 """
 
 from typing import List, Tuple
@@ -28,7 +28,7 @@ def test_average_lists__normal(
     ratio_list: List[SpreadingRatio], expected_output: List[float]
 ) -> None:
     """
-    This function tests normal cases for average_lists()
+    This function tests normal cases of average_lists()
     :param ratio_list: List of SpreadingRatios
     :param expected_output: List[float]
     :return: None

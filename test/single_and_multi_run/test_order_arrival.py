@@ -1,5 +1,5 @@
 """
-This module contains unit tests for order_arrival().
+This module contains unit tests of order_arrival().
 """
 
 import pytest
@@ -26,7 +26,7 @@ def test_order_arrival__normal(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test function order_arrival().
+    This tests order_arrival() in normal case.
     """
     # Arrange.
 
@@ -56,7 +56,7 @@ def test_order_arrival__error(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test function order_arrival().
+    This tests order_arrival() when the target peer does not exist.
     """
     # Arrange.
 

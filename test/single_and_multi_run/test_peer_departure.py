@@ -1,5 +1,5 @@
 """
-This module contains unit tests for peer_departure().
+This module contains unit tests of peer_departure().
 """
 
 from typing import Iterator
@@ -28,7 +28,7 @@ def test_peer_departure__normal(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test peer_departure() in normal case.
+    This tests peer_departure() in normal case.
     """
 
     # Arrange.
@@ -74,7 +74,7 @@ def test_peer_departure__error(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is to test peer_departure() when the peer does not exist.
+    This tests peer_departure() when the peer does not exist.
     """
 
     # Arrange.

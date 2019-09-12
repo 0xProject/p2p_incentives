@@ -1,7 +1,7 @@
 """
 This module contains test functions.
 
-We also put some constants and helper functions here for unit tests to use.
+We also put some constants and helper functions in this __init__ file for unit tests to use.
 """
 
 from typing import List, Set, Tuple

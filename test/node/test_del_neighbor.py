@@ -1,9 +1,10 @@
 """
-This module contains test functions for del_neighbor()
+This module contains unit tests of del_neighbor().
+
 Note: we also need to test the "remove_order" option here. However, in order to test it we
 will need to use functions receive_order_internal() and store_orders().
 Thus, the test cases with "remove_oder" option turned on depends on the correctness of
-receive_order_internal() and store_orders() functions, which we test in spearate cases.
+receive_order_internal() and store_orders() functions, which we test in separate cases.
 """
 
 from typing import List
@@ -79,7 +80,7 @@ def test_del_neighbor__self(scenario, engine) -> None:
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_del_neighbor_with_remove_order__in_storage(scenario, engine) -> None:
     """
-    Test when there is an order from the deleted neighbor in the local storage.
+    This tests when there is an order from the deleted neighbor in the local storage.
     """
 
     # Arrange.
@@ -115,7 +116,7 @@ def test_del_neighbor_with_remove_order__single_pending_orderinfo(
     scenario, engine
 ) -> None:
     """
-    Test if there is a single orderinfo from the deleted neighbor in the pending table.
+    This tests if there is a single orderinfo from the deleted neighbor in the pending table.
     """
 
     # Arrange.

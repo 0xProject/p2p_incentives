@@ -1,5 +1,5 @@
 """
-This module contains a test function for rank_neighbors().
+This module contains unit test of rank_neighbors().
 """
 
 from typing import List

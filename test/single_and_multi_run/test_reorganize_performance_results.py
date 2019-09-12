@@ -1,5 +1,5 @@
 """
-This module contains test functions for reorganize_performance_results() in multi_run_in_parallel.py
+This module contains unit tests of reorganize_performance_results().
 """
 
 from data_types import SingleRunPerformanceResult, MultiRunPerformanceResult
@@ -43,7 +43,7 @@ EXPECTED_RESULT = MultiRunPerformanceResult(
 
 def test_reorganize_performance_results():
     """
-    This is the unit test for reorganize_performance_result() in multi_run_in_parallel.py
+    This tests reorganize_performance_result() in multi_run_in_parallel.py
     """
     real_result = MultiRunInParallel.reorganize_performance_results(SINGLE_RESULT_LIST)
     assert real_result == EXPECTED_RESULT

@@ -1,5 +1,5 @@
 """
-This module contains all test functions for tit_for_tat()
+This module contains unit tests of tit_for_tat().
 """
 import random
 from typing import NamedTuple, Tuple, List
@@ -59,14 +59,14 @@ class CaseType(NamedTuple):
     mutual: int  # mutual in tit-for-tat
     optimistic: int  # optimistic in tit-for-tat
     time_now: int  # time now
-    expected_length: int  # expected number of neighbors selected as beneficiaries, by tit-for-tat
-    expected_seqs: Tuple[
-        int, ...
-    ]  # tuple containing sequence numbers of neighbor selected
+    # expected number of neighbors selected as beneficiaries, by tit-for-tat
+    expected_length: int
+    # tuple containing sequence numbers of neighbor selected
+    expected_seqs: Tuple[int, ...]
 
 
 # Case 1 represents that a peer is still a baby (age < baby_ending, in all tests we fix
-# baby_ending = 10 and peer.birthtime = 0) so it will randomly choose (mutual + optimistic)
+# baby_ending = 10 and peer.birth_time = 0) so it will randomly choose (mutual + optimistic)
 # neighbors from the set.
 # Since we mocked the random.sample() function it will always choose the ones with the smallest
 # sequence numbers.
@@ -143,7 +143,7 @@ def test_tit_for_tat__no_zero_contributors(
 ):
     """
     Parameter explanation: please refer to CaseType data type definition.
-    This is to test tit_for_tat() when all neighbors have a positive score.
+    This tests tit_for_tat() when all neighbors have a positive score.
     """
     # Arrange
     peer = create_a_test_peer(scenario, engine)[0]
@@ -192,7 +192,7 @@ def test_tit_for_tat__no_zero_contributors(
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_tit_for_tat__zero_contributors(scenario, engine, monkeypatch):
     """
-    Test the most general case with a number of zero-contributors.
+    This tests the most general case with a number of zero-contributors.
     Zero-contributor can never be put into mutual helpers. But they can still be optimistically
     chosen.
     """

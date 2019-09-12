@@ -1,5 +1,5 @@
 """
-This module contains unit tests for add_new_links_helper().
+This module contains unit tests of add_new_links_helper().
 """
 
 from typing import List, Tuple

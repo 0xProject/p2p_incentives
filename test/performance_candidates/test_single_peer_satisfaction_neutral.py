@@ -1,5 +1,5 @@
 """
-This module contains test functions for single_peer_satisfaction_neutral()
+This module contains unit tests of single_peer_satisfaction_neutral().
 """
 
 import copy
@@ -76,9 +76,7 @@ def test_single_peer_satisfaction_neutral__normal(
     scenario: Scenario,
     engine: Engine,
     num_order: int,
-    order_birth_time_list: List[
-        int
-    ],  # all order birth time will be normal in this test.
+    order_birth_time_list: List[int],  # all birth times are normal
     order_id_owned_by_peer: List[int],
     order_id_in_stat: List[int],
     max_age: int,
@@ -86,7 +84,7 @@ def test_single_peer_satisfaction_neutral__normal(
     expected_result: float,
 ):
     """
-    This function tests for normal cases for single_peer_order_receipt_ratio()
+    This function tests normal cases.
     """
 
     # Arrange
@@ -124,9 +122,8 @@ def test_single_peer_satisfaction_neutral__negative_age(
     scenario: Scenario,
     engine: Engine,
     num_order: int,
-    order_birth_time_list_abnormal: List[
-        int
-    ],  # one birth time will be abnormal (> cur_time)
+    # one birth time will be abnormal (> cur_time)
+    order_birth_time_list_abnormal: List[int],
     order_id_owned_by_peer: List[int],
     order_id_in_stat: List[int],
     max_age: int,
@@ -134,7 +131,7 @@ def test_single_peer_satisfaction_neutral__negative_age(
     _expected_result: float,
 ):
     """
-    This function tests for negative order age.
+    This function tests negative order age.
     """
 
     # Arrange
@@ -181,7 +178,7 @@ def test_single_peer_satisfaction_neutral__no_order(
     _expected_result: float,
 ):
     """
-    This function tests for negative order age.
+    This function tests non-existence of orders.
     """
 
     # Arrange

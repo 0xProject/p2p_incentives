@@ -1,5 +1,5 @@
 """
-This module contains test functions for order_spreading_ratio_stat()
+This module contains unit tests of order_spreading_ratio_stat().
 """
 
 import copy
@@ -150,7 +150,7 @@ def test_order_spreading__normal(
     expected_result: SpreadingRatio,
 ) -> None:
     """
-    Test normal cases for the function.
+    This tests normal cases.
     """
 
     # Arrange.
@@ -205,7 +205,7 @@ def test_order_spreading__negative_age(
     _expected_result: SpreadingRatio,
 ) -> None:
     """
-    Test negative order age.
+    This tests negative order age.
     """
 
     # Arrange.

@@ -1,6 +1,7 @@
 """
-This module contains functions to test del_order().
+This module contains unit tests of del_order().
 """
+
 from typing import List
 import pytest
 

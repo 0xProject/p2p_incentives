@@ -1,5 +1,5 @@
 """
-This class contains all test functions for all_new_selected_old()
+This module contains unit tests of all_new_selected_old().
 """
 
 from typing import NamedTuple, Tuple, List
@@ -39,19 +39,17 @@ from ..__init__ import (
 
 class CaseType(NamedTuple):
     """
-    Data type for cases for test_all_new_selected_old.py.
+    Data type for test cases.
     """
 
     scenario: Scenario
     engine: Engine
-    total: int
-    new: int
-    max_share: int
-    old_prob: float
-    expected_result: Tuple[int, int, int]
+    total: int  # total number of orders in local storage
+    new: int  # number of new orders
+    max_share: int  # maximal number of orders that can be shared
+    old_prob: float  # old_prob in all_new_selected_old()
+    expected_result: Tuple[int, int, int]  # numbers of total/new/old orders that are selected
 
-
-# Please refer to explanations above for meanings of the cases.
 
 CASE_1 = CaseType(
     scenario=SCENARIO_SAMPLE,
@@ -88,7 +86,7 @@ CASE_3 = CaseType(
     "scenario,engine,total,new,max_share,old_prob,expected_results",
     [CASE_1, CASE_2, CASE_3],
 )
-def test_all_new_selected_old__many_new(
+def test_all_new_selected_old(
     scenario: Scenario,
     engine: Engine,
     total: int,
@@ -98,7 +96,7 @@ def test_all_new_selected_old__many_new(
     expected_results: Tuple[int, int, int],
 ) -> None:
     """
-    Unit tests for all_new_selected_old()
+    Unit tests for all_new_selected_old().
     """
 
     # Arrange.

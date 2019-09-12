@@ -1,5 +1,5 @@
 """
-This module contains test functions for peer_order_stat_on_window()
+This module contains unit tests of peer_order_stat_on_window().
 """
 
 import copy

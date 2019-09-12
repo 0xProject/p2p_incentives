@@ -1,5 +1,5 @@
 """
-This module contains test functions for single_peer_order_receipt_ratio()
+This module contains unit tests of single_peer_order_receipt_ratio().
 """
 
 import copy
@@ -142,7 +142,7 @@ def test_single_peer_order_receipt_ratio__normal(
     expected_result: SpreadingRatio,
 ):
     """
-    This function tests for normal cases for single_peer_order_receipt_ratio()
+    This function tests normal cases.
     """
 
     # Arrange
@@ -199,7 +199,7 @@ def test_single_peer_order_receipt_ratio__negative_age(
     _expected_result: SpreadingRatio,
 ):
     """
-    This function tests for negative order age.
+    This function tests negative order age.
     """
 
     # Arrange

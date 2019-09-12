@@ -1,5 +1,5 @@
 """
-This module test weighted_sum().
+This module contains unit tests of weighted_sum().
 
 In fact, I think I'll need to re-write weighted_sum() by splitting the operations on calculating the
 scores and deleting inactive neighbors. However, revising it will lead to changes in node.py,
@@ -26,7 +26,7 @@ from ..__init__ import (
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_weighted_sum(scenario, engine):
     """
-    Test function for weighted_sum()
+    Unit test of weighted_sum().
     In here we test everything for the current weighted_sum(): calculating scores and deleting
     neighbors.
     """

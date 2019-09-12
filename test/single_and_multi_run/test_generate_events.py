@@ -1,5 +1,5 @@
 """
-This module contains functions to test generate_events_during_whole_process().
+This module contains unit tests of generate_events_during_whole_process().
 """
 
 from typing import List
@@ -25,7 +25,7 @@ def test_generate_events_during_whole_process(
     scenario, engine, performance, monkeypatch
 ):
     """
-    To test generate_events_during_whole_process()
+    This tests generate_events_during_whole_process().
     """
 
     # Arrange.

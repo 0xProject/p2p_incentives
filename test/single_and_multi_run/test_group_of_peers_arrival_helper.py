@@ -1,5 +1,5 @@
 """
-This module contains unit tests for group_of_peers_arrival_helper().
+This module contains unit tests of group_of_peers_arrival_helper().
 """
 
 import random
@@ -41,8 +41,8 @@ def test_group_of_peers_arrival_helper(
     monkeypatch,
 ) -> None:
     """
-    This is the unit test for function group_of_peers_arrival_helper(). We test if the group of
-    peers and their orders are properly created.
+    This is the unit test of group_of_peers_arrival_helper(). We test if the group of peers and
+    their orders are properly created.
     There are a lot of randomness here, and we fake/mock them.
     """
 

@@ -1,5 +1,5 @@
 """
-This module contains test functions for receive_order_internal().
+This module contains unit tests of receive_order_internal().
 """
 
 from typing import List
@@ -18,7 +18,7 @@ from ..__init__ import (
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_receive_order_internal__from_non_neighbor(scenario, engine):
     """
-    Test receiving an internal order from a non-neighbor. Error expeceted.
+    This tests receiving an internal order from a non-neighbor. Error expeceted.
     """
 
     # Arrange.
@@ -35,7 +35,7 @@ def test_receive_order_internal__from_non_neighbor(scenario, engine):
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_receive_order_internal__normal(scenario, engine):
     """
-    Test receiving an internal order normally.
+    This tests receiving an internal order normally.
     """
 
     # Arrange.
@@ -56,7 +56,7 @@ def test_receive_order_internal__normal(scenario, engine):
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_receive_order_internal_not_accepted(scenario, engine, monkeypatch):
     """
-    Test receiving an internal order labeled as not to accept by the receiver.
+    This tests receiving an internal order labeled as not to accept by the receiver.
     """
 
     # Arrange.
@@ -86,7 +86,7 @@ def test_receive_order_internal_not_accepted(scenario, engine, monkeypatch):
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_receive_order_internal_duplicate_from_same_neighbor(scenario, engine):
     """
-    Test receiving the same internal order from the neighbor multiple times.
+    This tests receiving the same internal order from the neighbor multiple times.
     """
 
     # Arrange.
@@ -108,7 +108,7 @@ def test_receive_order_internal_duplicate_from_same_neighbor(scenario, engine):
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
 def test_receive_order_internal_duplicate_from_others(scenario, engine):
     """
-    Test receiving the same internal order from different neighbors for multiple times.
+    This tests receiving the same internal order from different neighbors for multiple times.
     """
 
     # Arrange.

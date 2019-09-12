@@ -1,5 +1,5 @@
 """
-This module contains unit tests for operations_in_a_time_round().
+This module contains unit tests of operations_in_a_time_round().
 """
 
 import random
@@ -53,7 +53,7 @@ def test_operations_in_a_time_round__assert_order_number(
 ) -> None:
 
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts if the order number is correct after a time round of operations.
     """
 
@@ -99,7 +99,7 @@ def test_operations_in_a_time_round__assert_peer_number_normal(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts if the peer number is correct after a time round of operations.
     """
 
@@ -133,7 +133,7 @@ def test_operations_in_a_time_round__assert_peer_number_all_peers_departed(
 ) -> None:
 
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts the scenario where all peers depart the system.
     """
 
@@ -167,7 +167,7 @@ def test_operations_in_a_time_round__assert_neighborhood(
 ) -> None:
 
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts the neighborhood connection establishment.
     """
 
@@ -204,7 +204,7 @@ def test_operations_in_a_time_round__assert_store_and_share_must_happen(
     scenario, engine, performance
 ) -> None:
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts the scenario where storing and sharing orders must happen.
     In order to do it, we pass a specific engine instance to it where batch == 1 and it forms
     a full mesh network; every peer will contribute to every neighbor.
@@ -238,7 +238,7 @@ def test_operations_in_a_time_round__assert_store_and_share_might_happen(
     scenario: Scenario, engine: Engine, performance: Performance
 ) -> None:
     """
-    This is the unit test for operations_in_a_time_round().
+    This tests operations_in_a_time_round().
     It asserts the scenario where storing and sharing orders might happen, in the general case.
     """
 

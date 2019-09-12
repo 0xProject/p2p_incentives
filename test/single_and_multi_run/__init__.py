@@ -1,6 +1,5 @@
 """
-Tests for single_run.py
-It contains specific mock/fake functions for this sub-module.
+This __init__.py file contains specific mock/fake functions for this sub-module.
 """
 
 from typing import List

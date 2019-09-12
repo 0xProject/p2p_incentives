@@ -1,5 +1,5 @@
 """
-This module contains unit tests for group_of_orders_arrival_helper().
+This module contains unit tests of group_of_orders_arrival_helper().
 """
 import random
 from typing import List
@@ -39,8 +39,8 @@ def test_group_of_orders_arrival_helper(
     monkeypatch,
 ) -> None:
     """
-    This is the unit test for function group_of_orders_arrival_helper(). We test if the group of
-    orders are properly created.
+    This tests group_of_orders_arrival_helper().
+    We test if the group of orders are properly created.
     """
 
     # Arrange.

@@ -1,5 +1,5 @@
 """
-This module contains unit tests for calculate_density().
+This module contains unit tests of calculate_density().
 """
 
 
