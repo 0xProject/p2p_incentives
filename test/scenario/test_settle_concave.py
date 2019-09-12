@@ -1,5 +1,5 @@
 """
-This module contains unit tests for settle_concave().
+This module contains unit tests of  settle_concave().
 """
 
 import math
@@ -22,7 +22,7 @@ from ..__init__ import (
 
 class CaseType(NamedTuple):
     """
-    Data type for test cases.
+    Data type of test cases.
     """
 
     scenario: Scenario
@@ -89,7 +89,7 @@ def test_settle_concave__normal(
     max_prob: float,
 ) -> None:
     """
-    Unit test for settle_concave().
+    Unit test of settle_concave().
     We will create an order for the test, and a set of peers that have this order (total number
     of the peers is `num_orders`). Then we will call the function settle_concave() for this
     order. With an expected probability of max_prob * (1 - math.exp(-sensitivity * num_holders)),
