@@ -150,6 +150,7 @@ def test_tit_for_tat__no_zero_contributors(
         mutual=mutual,
         optimistic=optimistic,
         time_now=time_now,
+        time_start=peer.birth_time,
         peer=peer,
     )
 
@@ -202,7 +203,12 @@ def test_tit_for_tat__zero_contributors(scenario, engine, monkeypatch):
 
     # Act
     selected_peer_set = engine_candidates.tit_for_tat(
-        baby_ending=10, mutual=7, optimistic=3, time_now=100, peer=peer
+        baby_ending=10,
+        mutual=7,
+        optimistic=3,
+        time_now=100,
+        time_start=peer.birth_time,
+        peer=peer,
     )
 
     # Assert
