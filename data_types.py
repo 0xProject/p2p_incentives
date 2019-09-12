@@ -370,20 +370,34 @@ class Weighted(ScoreOption):
     score sheet.
     """
 
-    # the threshold of score under which a neighbor node will be judged as a lazy one in any batch
-    # period.
-    lazy_contribution_threshold: int
-
-    # the threshold of the number of continuous "lazy" batch rounds beyond which a neighbor node
-    # will be judged as a permanent lazy one.
-    lazy_length_threshold: int
-
     weights: List[float]  # the list of weights for summing up the scores in the sheet.
+
+
+class RefreshOption(TypedDict):
+    """
+    Option for refreshing neighbors.
+    """
+
+    method: Literal["Never", "RemoveLazy"]
+
+
+class RemoveLazy(RefreshOption):
+    """
+    Sub-type of RefreshOption where the strategy is to remove the lazy neighbors.
+    """
+
+    # if the contribution in this round is below this value, the neighbor is considered as lazy
+    # in this round.
+    lazy_contribution: float
+
+    # if the contribution is below lazy_threshold for a continuum of lazy_length rounds,
+    # it is considered as permanently lazy.
+    lazy_length: int
 
 
 class BeneficiaryOption(TypedDict):
     """
-    Option for a peer to select the beneficiary nodes from neighbors to share orders
+    Option for a peer to select the beneficiary nodes from neighbors to share orders.
     """
 
     method: Literal["TitForTat"]
@@ -423,6 +437,7 @@ class EngineOptions(NamedTuple):
     store: StoreOption
     share: ShareOption
     score: ScoreOption
+    refresh: RefreshOption
     beneficiary: BeneficiaryOption
     rec: RecommendationOption
 

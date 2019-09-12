@@ -464,6 +464,7 @@ class SingleRun:
             if (self.cur_time - peer.birth_time) % self.engine.batch == 0:
                 peer.store_orders()
                 peer.score_neighbors()
+                peer.refresh_neighbors()
                 (orders_to_share, neighbors_to_share) = peer.share_orders()
                 for internal_order in orders_to_share:
                     for beneficiary_peer in neighbors_to_share:

@@ -464,6 +464,13 @@ class Peer:
         """
         self.engine.score_neighbors(self)
 
+    def refresh_neighbors(self) -> None:
+        """
+        This method eliminates unnecessary neighbors if any.
+        :return: None.
+        """
+        self.engine.neighbor_refreshment(self)
+
     def rank_neighbors(self) -> List["Peer"]:
         """
         This method ranks neighbors according to their scores. It is called by internal method

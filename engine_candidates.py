@@ -106,31 +106,38 @@ def share_all_new_selected_old(
     return selected_order_set
 
 
-def weighted_sum(
-    lazy_contribution: int, lazy_length: int, discount: List[float], peer: "Peer"
-) -> None:
+def weighted_sum(discount: List[float], peer: "Peer") -> None:
     """
-    This is a candidate design for calculating the scores of neighbors of the peer.
-    It is called by method score_neighbors() in class Engine.
-    The choice is: (1) calculate the current score by a weighted sum of all elements in the queue
-    (2) update the queue by moving one step forward and delete the oldest element, and
-    (3) delete a neighbor if it has been lazy for a long time.
-    If a neighbor's score is under self.lazy_contribution, it is "lazy" in this batch;
-    If a neighbor has been lazy for self.lazy_length batches, it is permanently lazy and gets
-    kicked off.
-    :param lazy_contribution: see explanation above.
-    :param lazy_length: see explanation above.
+    This is a candidate design for calculating the scores of neighbors of the peer. It calculates
+    the current score by a weighted sum of all elements in the queue.
+    Note, the queue is not updated here; it is updated in engine.find_neighbors_to_share().
     :param discount: a list of weights for each element of the score queue. The score is a
     weighted sum of the elements in the queue.
     :param peer: the peer instance of the node that does the calculation.
     :return: None. The score is recorded in neighbor.score
     """
+    for neighbor in peer.peer_neighbor_mapping.values():
+        neighbor.score = sum(
+            a * b for a, b in zip(neighbor.share_contribution, discount)
+        )
 
-    # HACK (weijiewu): Need to move out the operation of deleting neighbors from this function.
-    # It is totally independent to calculating scores.
 
-    # neighboring_peer is the peer instance for a neighbor
-    # neighbor is the neighbor instance for a neighbor
+def remove_lazy_neighbors(
+    lazy_contribution: float, lazy_length: int, peer: "Peer"
+) -> List["Peer"]:
+    """
+    This is a candidate design for neighborhood refreshment.
+    The choice is: delete a neighbor if it has been lazy for a long time.
+    If a neighbor's score is under lazy_contribution, it is "lazy" in this round;
+    If a neighbor has been lazy for lazy_length batches, it is permanently lazy and gets
+    kicked off.
+    :param lazy_contribution: see explanation above.
+    :param lazy_length: see explanation above.
+    :param peer: the peer instance to be executed
+    :return: the peer instances of the neighbors to be removed.
+    """
+    lazy_neighbor_list: List["Peer"] = []
+
     for neighboring_peer in list(peer.peer_neighbor_mapping):
         neighbor: "Neighbor" = peer.peer_neighbor_mapping[neighboring_peer]
         # update laziness
@@ -140,11 +147,8 @@ def weighted_sum(
             neighbor.lazy_round = 0
         # delete neighbor if necessary
         if neighbor.lazy_round >= lazy_length:
-            peer.del_neighbor(neighboring_peer)
-            continue
-        neighbor.score = sum(
-            a * b for a, b in zip(neighbor.share_contribution, discount)
-        )
+            lazy_neighbor_list.append(neighboring_peer)
+    return lazy_neighbor_list
 
 
 def tit_for_tat(
