@@ -235,19 +235,13 @@ def test_tit_for_tat__baby_peer(scenario, engine, monkeypatch):
         # making sure everyone is having a score of zero
         peer.peer_neighbor_mapping[neighbor_peers[i]].score = 0
 
-
     monkeypatch.setattr(random, "sample", mock_random_sample)
 
     # Act
     # Now this peer should be considered as a baby since time_now - time_start < baby_ending,
     # although time_now - peer.birth_time > baby_ending
     selected_peer_set = engine_candidates.tit_for_tat(
-        baby_ending=10,
-        mutual=7,
-        optimistic=3,
-        time_now=20,
-        time_start=19,
-        peer=peer,
+        baby_ending=10, mutual=7, optimistic=3, time_now=20, time_start=19, peer=peer
     )
 
     # Assert. All should be selected. In comparison, if it is not a baby peer, only 3 will be
