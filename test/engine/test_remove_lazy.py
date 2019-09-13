@@ -10,11 +10,8 @@ import engine_candidates
 from scenario import Scenario
 from engine import Engine
 
-
 from ..__init__ import ENGINE_SAMPLE, SCENARIO_SAMPLE
-
-# We will use the same helper function defined in test_weighted_sum.py.
-from .test_weighted_sum import create_a_peer_and_two_neighbors_helper
+from .__init__ import create_a_peer_and_two_neighbors_helper
 
 
 @pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
