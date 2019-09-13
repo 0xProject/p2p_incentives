@@ -407,11 +407,12 @@ class Peer:
         # clear the pending mapping table
         self.order_pending_orderinfo_mapping.clear()
 
-    def share_orders(self) -> Tuple[Set[Order], Set["Peer"]]:
+    def share_orders(self, birth_time_span) -> Tuple[Set[Order], Set["Peer"]]:
         """
         This method determines which orders to be shared to which neighbors.
         It will return the set of orders to share, and the set of neighboring peers to share.
         This method is only called by each peer proactively at the end of a batch period.
+        :param birth_time_span: scenario.birth_time_span
         :return: Tuple[set of orders to share, set of peers to share]
         """
 
@@ -435,7 +436,7 @@ class Peer:
 
         # peers to share
         peer_to_share_set: Set["Peer"] = self.engine.find_neighbors_to_share(
-            self.local_clock, self
+            self.local_clock, self, max(self.birth_time, birth_time_span - 1)
         )
 
         return order_to_share_set, peer_to_share_set

@@ -150,6 +150,7 @@ def test_tit_for_tat__no_zero_contributors(
         mutual=mutual,
         optimistic=optimistic,
         time_now=time_now,
+        time_start=peer.birth_time,
         peer=peer,
     )
 
@@ -202,10 +203,47 @@ def test_tit_for_tat__zero_contributors(scenario, engine, monkeypatch):
 
     # Act
     selected_peer_set = engine_candidates.tit_for_tat(
-        baby_ending=10, mutual=7, optimistic=3, time_now=100, peer=peer
+        baby_ending=10,
+        mutual=7,
+        optimistic=3,
+        time_now=100,
+        time_start=peer.birth_time,
+        peer=peer,
     )
 
     # Assert
     assert len(selected_peer_set) == 8
     for peer in selected_peer_set:
         assert peer.seq in (5, 6, 7, 8, 9, 0, 1, 2)
+
+
+@pytest.mark.parametrize("scenario,engine", [(SCENARIO_SAMPLE, ENGINE_SAMPLE)])
+def test_tit_for_tat__baby_peer(scenario, engine, monkeypatch):
+    """
+    This tests the most general case with a number of zero-contributors.
+    Zero-contributor can never be put into mutual helpers. But they can still be optimistically
+    chosen.
+    """
+    peer = create_a_test_peer(scenario, engine)[0]
+    peer.birth_time = 0
+
+    neighbor_peers = create_test_peers(scenario, engine, 10)
+    for i in range(10):
+        neighbor_peers[i].seq = i
+        peer.add_neighbor(neighbor_peers[i])
+        neighbor_peers[i].add_neighbor(peer)
+        # making sure everyone is having a score of zero
+        peer.peer_neighbor_mapping[neighbor_peers[i]].score = 0
+
+    monkeypatch.setattr(random, "sample", mock_random_sample)
+
+    # Act
+    # Now this peer should be considered as a baby since time_now - time_start < baby_ending,
+    # although time_now - peer.birth_time > baby_ending
+    selected_peer_set = engine_candidates.tit_for_tat(
+        baby_ending=10, mutual=7, optimistic=3, time_now=20, time_start=19, peer=peer
+    )
+
+    # Assert. All should be selected. In comparison, if it is not a baby peer, only 3 will be
+    # selected.
+    assert len(selected_peer_set) == 10
