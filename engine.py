@@ -2,7 +2,7 @@
 This module contains the class Engine only.
 """
 
-from typing import Set, TYPE_CHECKING, cast
+from typing import Set, TYPE_CHECKING, cast, List
 import engine_candidates
 from data_types import (
     EngineParameters,
@@ -14,6 +14,7 @@ from data_types import (
     StoreOption,
     ShareOption,
     ScoreOption,
+    RefreshOption,
     BeneficiaryOption,
     RecommendationOption,
     AllNewSelectedOld,
@@ -21,6 +22,7 @@ from data_types import (
     TitForTat,
     Preference,
     Priority,
+    RemoveLazy,
 )
 
 if TYPE_CHECKING:
@@ -84,6 +86,7 @@ class Engine:
         self.store_option: StoreOption = options.store
         self.share_option: ShareOption = options.share
         self.score_option: ScoreOption = options.score
+        self.refresh_option: RefreshOption = options.refresh
         self.beneficiary_option: BeneficiaryOption = options.beneficiary
         self.rec_option: RecommendationOption = options.rec
 
@@ -230,14 +233,34 @@ class Engine:
             if self.score_length != len(my_score_option["weights"]):
                 raise ValueError("Wrong length in weights.")
             engine_candidates.weighted_sum(
-                lazy_contribution=my_score_option["lazy_contribution_threshold"],
-                lazy_length=my_score_option["lazy_length_threshold"],
-                discount=my_score_option["weights"],
-                peer=peer,
+                discount=my_score_option["weights"], peer=peer
             )
         else:
             raise ValueError(
                 f"No such option to calculate scores: {self.score_option['method']}"
+            )
+
+    def neighbor_refreshment(self, peer: "Peer") -> None:
+        """
+        This method refreshes neighborhood for a peer by deleting some unwanted neighbors.
+        :param peer: the peer whose neighborhood is to be refreshed.
+        :return: None
+        """
+        if self.refresh_option["method"] == "RemoveLazy":
+            my_refresh_option: RemoveLazy = cast(RemoveLazy, self.refresh_option)
+            neighbor_to_remove: List["Peer"] = engine_candidates.remove_lazy_neighbors(
+                lazy_contribution=my_refresh_option["lazy_contribution"],
+                lazy_length=my_refresh_option["lazy_length"],
+                peer=peer,
+            )
+            for neighbor in neighbor_to_remove:
+                peer.del_neighbor(neighbor)
+        elif self.refresh_option["method"] == "Never":
+            # don't delete any one
+            pass
+        else:
+            raise ValueError(
+                f"No such option to refresh neighbors: {self.refresh_option['method']}"
             )
 
     def find_neighbors_to_share(

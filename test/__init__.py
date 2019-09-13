@@ -31,6 +31,7 @@ from data_types import (
     StoreOption,
     Weighted,
     TitForTat,
+    RemoveLazy,
     AllNewSelectedOld,
     RecommendationOption,
     EngineOptions,
@@ -106,12 +107,8 @@ ENGINE_SAMPLE = Engine(
         share=AllNewSelectedOld(
             method="AllNewSelectedOld", max_to_share=5000, old_share_prob=0.5
         ),
-        score=Weighted(
-            method="Weighted",
-            lazy_length_threshold=6,
-            lazy_contribution_threshold=2,
-            weights=[1.0, 1.0, 1.0],
-        ),
+        score=Weighted(method="Weighted", weights=[1.0, 1.0, 1.0]),
+        refresh=RemoveLazy(method="RemoveLazy", lazy_contribution=2, lazy_length=6),
         beneficiary=TitForTat(
             method="TitForTat",
             baby_ending_age=0,
@@ -188,12 +185,8 @@ ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN = Engine(
         share=AllNewSelectedOld(
             method="AllNewSelectedOld", max_to_share=5000, old_share_prob=0.5
         ),
-        score=Weighted(
-            method="Weighted",
-            lazy_length_threshold=6,
-            lazy_contribution_threshold=2,
-            weights=[1.0, 1.0, 1.0],
-        ),
+        score=Weighted(method="Weighted", weights=[1.0, 1.0, 1.0]),
+        refresh=RemoveLazy(method="RemoveLazy", lazy_contribution=2, lazy_length=6),
         beneficiary=TitForTat(
             method="TitForTat",
             baby_ending_age=100,
