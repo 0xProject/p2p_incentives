@@ -268,6 +268,8 @@ class Engine:
         This method determines the set of neighboring nodes to share the orders in this batch.
         :param time_now: the current time
         :param peer: the peer who is making the decision
+        :param time_start: the starting time of a peer. Usually birth_time, but for initial peers
+        in the simulator, this time is scenario.birth_time_span - 1.
         :return: the set of peer instances of neighboring nodes that are selected as beneficiaries.
         """
         if self.beneficiary_option["method"] == "TitForTat":
@@ -278,6 +280,7 @@ class Engine:
                 mutual=my_beneficiary_option["mutual_helpers"],
                 optimistic=my_beneficiary_option["optimistic_choices"],
                 time_now=time_now,
+                time_start=time_start,
                 peer=peer,
             )
         else:

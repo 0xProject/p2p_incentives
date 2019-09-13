@@ -27,16 +27,18 @@ def test_share_orders__normal(scenario, engine, monkeypatch) -> None:
 
     # mock the method of find orders/peers to share
 
-    def mock_find_orders_to_share(peer):
+    def mock_find_orders_to_share(this_peer):
         return set(
             any_order
-            for any_order in peer.order_orderinfo_mapping
+            for any_order in this_peer.order_orderinfo_mapping
             if any_order.seq < 100
         )
 
-    def mock_find_neighbors_to_share(_time_now, peer):
+    def mock_find_neighbors_to_share(_time_now, this_peer, _time_start):
         return set(
-            any_peer for any_peer in peer.peer_neighbor_mapping if any_peer.seq < 100
+            any_peer
+            for any_peer in this_peer.peer_neighbor_mapping
+            if any_peer.seq < 100
         )
 
     monkeypatch.setattr(engine, "find_orders_to_share", mock_find_orders_to_share)
@@ -59,7 +61,7 @@ def test_share_orders__normal(scenario, engine, monkeypatch) -> None:
 
     # Act.
 
-    order_sharing_set, beneficiary_set = peer.share_orders()
+    order_sharing_set, beneficiary_set = peer.share_orders(0)
 
     # Assert.
     assert len(beneficiary_set) == 2
@@ -86,4 +88,4 @@ def test_share_orders__free_rider(scenario, engine) -> None:
         neighbor.add_neighbor(free_rider)
 
     # Act and Assert.
-    assert free_rider.share_orders() == (set(), set())
+    assert free_rider.share_orders(0) == (set(), set())
