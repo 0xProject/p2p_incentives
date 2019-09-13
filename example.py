@@ -28,6 +28,7 @@ from data_types import (
     StoreOption,
     AllNewSelectedOld,
     Weighted,
+    RemoveLazy,
     TitForTat,
     RecommendationOption,
     EngineOptions,
@@ -188,12 +189,11 @@ SHARE = AllNewSelectedOld(
 # This TypedDict describes how to determine neighbor scoring system.
 
 SCORE = Weighted(
-    method="Weighted",
-    lazy_contribution_threshold=2,
-    lazy_length_threshold=6,
-    weights=[1.0, 1.0, 1.0],
+    method="Weighted", weights=[1.0, 1.0, 1.0]
 )  # must be of the same length as incentive
 
+# This TypedDict describes when to remove a neighbor
+REFRESH = RemoveLazy(method="RemoveLazy", lazy_contribution=2, lazy_length=6)
 
 # This TypedDict describes how to determine the neighbors that receive my orders.
 
@@ -209,7 +209,16 @@ REC = RecommendationOption(method="Random")
 # creating engine option, in type of a namedtuple
 
 E_OPTIONS = EngineOptions(
-    PREFERENCE, PRIORITY, EXTERNAL, INTERNAL, STORE, SHARE, SCORE, BENEFICIARY, REC
+    PREFERENCE,
+    PRIORITY,
+    EXTERNAL,
+    INTERNAL,
+    STORE,
+    SHARE,
+    SCORE,
+    REFRESH,
+    BENEFICIARY,
+    REC,
 )
 
 # creating MY_ENGINE, an instance of Engine, in type pf a namedtuple.
