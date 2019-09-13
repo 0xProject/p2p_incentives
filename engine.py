@@ -243,7 +243,7 @@ class Engine:
     def neighbor_refreshment(self, peer: "Peer") -> None:
         """
         This method refreshes neighborhood for a peer by deleting some unwanted neighbors.
-        :param peer: the peer whose neighbor is to be refreshed.
+        :param peer: the peer whose neighborhood is to be refreshed.
         :return: None
         """
         if self.refresh_option["method"] == "RemoveLazy":
