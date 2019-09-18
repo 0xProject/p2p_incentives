@@ -50,8 +50,18 @@ class OrderProperty(NamedTuple):
     """
     This data type specifies the property of a particular order type.
     ratio is the portion of orders of this type in the Mesh network.
+    Note: Summing up the ratios of all order types doesn't have to be 1; but their relative weights
+    matter.
     expiration is the distribution of expiration (mean and variance) of this type.
     """
+
+    # There is an inner enforcement on the ratio values. If the ratio of type i orders over
+    # all orders in a peer of type j is r_{ij}, and that peer type j is of weight k_j over all
+    # peers, then the ratio of type i orders in the Mesh system is r_i = sum_{j} r_{ij} * k_j.
+    # Currently we don't check this requirement in the code. In fact, we only used r_{ij} and k_j
+    # in the code; for whatever value of r_i (the order ratios) given here, they don't impact the
+    # simulation result; however, for future extensions as well as for consistency of the code,
+    # we still remain this attribute here.
 
     ratio: float
     expiration: Distribution
@@ -61,9 +71,15 @@ class PeerProperty(NamedTuple):
     """
     This data type specifies the property of a particular peer type.
     ratio is the portion of peers of this type in the Mesh.
+    Note: Summing up the ratios of all peer types doesn't have to be 1; but their relative weights
+    matter.
     initial_orderbook_size_dict: A dictionary. Keys can only be taken over OrderTypeName; values
     are of type Distribution. Each value is the distribution number of initial orders (mean and
     variance) of this type.
+    Note: The relative weights of the initial orderbook sizes of different types of orders,
+    represent the relative weights of order numbers in this type of peer as well. Later when new
+    orders arrive, the relative weights of order numbers will still remain the same as the
+    weights as the initial orderbook sizes.
     """
 
     ratio: float
