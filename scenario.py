@@ -119,7 +119,6 @@ class Scenario:
             f"No such option to generate events: {self.option_number_of_events['method']}"
         )
 
-
     def update_orders_settled_status(self, order: "Order") -> None:
         """
         This method updates the is_settled status for an order.
