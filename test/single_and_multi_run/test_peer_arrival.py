@@ -29,7 +29,7 @@ def test_peer_arrival__normal(
 
     # Act.
     order_number = 20
-    single_run_instance.peer_arrival("normal", order_number)
+    single_run_instance.peer_arrival("normal", {"default": order_number})
 
     # Assert.
 
@@ -64,7 +64,7 @@ def test_peer_arrival__free_rider(
     single_run_instance = SingleRun(scenario, engine, performance)
 
     # Act.
-    single_run_instance.peer_arrival("free_rider", 0)
+    single_run_instance.peer_arrival("free_rider", {})
 
     # Assert.
 
@@ -98,4 +98,4 @@ def test_peer_arrival__free_rider_error(
 
     # Act and Assert
     with pytest.raises(ValueError, match="Free riders do not have orders."):
-        single_run_instance.peer_arrival("free_rider", 1)
+        single_run_instance.peer_arrival("free_rider", {"default": 1})

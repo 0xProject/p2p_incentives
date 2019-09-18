@@ -255,8 +255,8 @@ def test_operations_in_a_time_round__assert_store_and_share_might_happen(
     # Assert. There must be some peer that has received something from sharing of others.
     assert any(
         len(peer.order_orderinfo_mapping) + len(peer.order_pending_orderinfo_mapping)
-        > single_run_instance.scenario.peer_type_property[
-            peer.peer_type
-        ].initial_orderbook_size.mean
+        > single_run_instance.scenario.peer_type_property[peer.peer_type]
+        .initial_orderbook_size_dict["default"]
+        .mean
         for peer in single_run_instance.peer_full_set
     )

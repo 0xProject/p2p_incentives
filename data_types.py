@@ -3,7 +3,7 @@ This module defines code specific data types for Scenario, Engine, and Performan
 It also contains the definitions of self-defined data types.
 """
 
-from typing import NamedTuple, List, Optional, Union
+from typing import NamedTuple, List, Optional, Union, Dict
 from mypy_extensions import TypedDict
 from typing_extensions import Literal
 
@@ -61,12 +61,13 @@ class PeerProperty(NamedTuple):
     """
     This data type specifies the property of a particular peer type.
     ratio is the portion of peers of this type in the Mesh.
-    initial_orderbook_size: Distribution is the distribution of a peer's initial orderbooks size
-    (mean and variance) of this type.
+    initial_orderbook_size_dict: A dictionary. Keys can only be taken over OrderTypeName; values
+    are of type Distribution. Each value is the distribution number of initial orders (mean and
+    variance) of this type.
     """
 
     ratio: float
-    initial_orderbook_size: Distribution
+    initial_orderbook_size_dict: Dict["OrderTypeName", Distribution]
 
 
 # The following two data types are created to specify order/peer type names, and their
@@ -82,6 +83,7 @@ class OrderTypePropertyDict(TypedDict):
     """
 
     default: OrderProperty
+    wash_trading: OrderProperty
 
 
 class PeerTypePropertyDict(TypedDict):
@@ -102,7 +104,7 @@ class PeerTypePropertyDict(TypedDict):
 # pylint thinks they are constants but in fact they are types.
 # We temporarily disable invalid-names
 
-OrderTypeName = Literal["default"]  # pylint: disable=invalid-name
+OrderTypeName = Literal["default", "wash_trading"]  # pylint: disable=invalid-name
 PeerTypeName = Literal["normal", "free_rider"]  # pylint: disable=invalid-name
 
 

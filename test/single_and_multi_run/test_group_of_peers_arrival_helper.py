@@ -95,8 +95,11 @@ def test_group_of_peers_arrival_helper(
     # Assert each peer's attribute and the orders they own
     for peer in single_run_instance.peer_full_set:
         assert peer.birth_time in range(0, scenario.birth_time_span)
-        assert len(peer.order_orderinfo_mapping) == int(
-            scenario.peer_type_property[peer.peer_type].initial_orderbook_size.mean
+        assert len(peer.order_orderinfo_mapping) == sum(
+            int(item.mean)
+            for item in scenario.peer_type_property[
+                peer.peer_type
+            ].initial_orderbook_size_dict.values()
         )
         for order in peer.order_orderinfo_mapping:
             assert order.creator is peer
@@ -108,8 +111,11 @@ def test_group_of_peers_arrival_helper(
     expected_order_nums = 0
     for peer_type in scenario.peer_type_property:
         peer_type = cast(PeerTypeName, peer_type)
-        expected_order_nums += expected_peer_nums[peer_type] * int(
-            scenario.peer_type_property[peer_type].initial_orderbook_size.mean
+        expected_order_nums += expected_peer_nums[peer_type] * sum(
+            int(item.mean)
+            for item in scenario.peer_type_property[
+                peer_type
+            ].initial_orderbook_size_dict.values()
         )
     # Assert the order sequence number update
     assert single_run_instance.latest_order_seq == expected_order_nums

@@ -98,23 +98,24 @@ class SingleRun:
 
         self.check_adding_neighbor()
 
-    def peer_arrival(self, peer_type: PeerTypeName, num_orders: int) -> None:
+    def peer_arrival(
+        self, peer_type: PeerTypeName, num_orders_dict: Dict[OrderTypeName, int]
+    ) -> None:
         """
         This method deals with peer arrival.
         When a new peer arrives, it may already have a set of orders. It only needs to specify
         the number of initial orders, and the function will specify the sequence numbers for the
         peers and orders.
         :param peer_type: the type of the newly arrived peer.
-        :param num_orders: number of orders that this peer brings to the system initially.
-        :return: None
+        :param num_orders_dict: a dictionary, keys are (subset of) order types and values
+        are the numbers of initial orders of that type that this new peer has.
+        :return: None.
         """
 
-        # HACK (weijiewu8): There is only one type of orders (default) and it is hard coded.
-        # This appears not only in this method, but need to check "default" for the entire code
-        # base.
-
         # free riders must have no orders
-        if peer_type == "free_rider" and num_orders:
+        if peer_type == "free_rider" and any(
+            order_num != 0 for order_num in num_orders_dict.values()
+        ):
             raise ValueError("Free riders do not have orders.")
 
         # decide this peer's sequence number
@@ -123,31 +124,33 @@ class SingleRun:
         # create the initial orders for this peer and update global order set
         cur_order_set: Set["Order"] = set()
         order_seq: int = self.latest_order_seq
-        for _ in range(num_orders):
-            expiration_mean: float = self.scenario.order_type_property[
-                "default"
-            ].expiration.mean
-            expiration_var: float = self.scenario.order_type_property[
-                "default"
-            ].expiration.var
-            expiration: int = max(
-                0, round(random.gauss(expiration_mean, expiration_var))
-            )
-            # Now we initiate the new orders, whose creator should be the new peer.
-            # But the new peer has not been initiated, so we set the creator to be None temporarily.
-            # We will modify it when the peer is initiated.
-            # This is tricky and informal, but I don't have a better way of doing it right now.
-            new_order = Order(
-                scenario=self.scenario,
-                seq=order_seq,
-                birth_time=self.cur_time,
-                creator=None,
-                expiration=expiration,
-            )
-            self.order_full_set.add(new_order)
-            self.order_type_set_mapping["default"].add(new_order)
-            cur_order_set.add(new_order)
-            order_seq += 1
+        for order_type, order_num in num_orders_dict.items():
+            for _ in range(order_num):
+                expiration_mean: float = self.scenario.order_type_property[
+                    order_type
+                ].expiration.mean
+                expiration_var: float = self.scenario.order_type_property[
+                    order_type
+                ].expiration.var
+                expiration: int = max(
+                    0, round(random.gauss(expiration_mean, expiration_var))
+                )
+                # Now we initiate the new orders, whose creator should be the new peer.
+                # But the new peer has not been initiated, so we set the creator to be None
+                # temporarily. We will modify it when the peer is initiated.
+                # This is tricky and informal, but I don't have a better way of doing it right now.
+                new_order = Order(
+                    scenario=self.scenario,
+                    seq=order_seq,
+                    birth_time=self.cur_time,
+                    creator=None,
+                    expiration=expiration,
+                    order_type=order_type,
+                )
+                self.order_full_set.add(new_order)
+                self.order_type_set_mapping[order_type].add(new_order)
+                cur_order_set.add(new_order)
+                order_seq += 1
 
         # create the new peer, and add it to the table
         new_peer = Peer(
@@ -192,10 +195,13 @@ class SingleRun:
         # use cast due to similar reason in __init__() function of this class.
         self.peer_type_set_mapping[cast(PeerTypeName, peer.peer_type)].remove(peer)
 
-    def order_arrival(self, target_peer: Peer, expiration: int) -> None:
+    def order_arrival(
+        self, target_peer: Peer, order_type: OrderTypeName, expiration: int
+    ) -> None:
         """
         This method initiates an external order arrival, whose creator is the "target_peer"
         :param target_peer: See explanation above.
+        :param order_type: order type.
         :param expiration: expiration for this order.
         :return: None
         """
@@ -211,11 +217,12 @@ class SingleRun:
             birth_time=self.cur_time,
             creator=target_peer,
             expiration=expiration,
+            order_type=order_type,
         )
 
         # update the set of orders for the SingleRun
         self.order_full_set.add(new_order)
-        self.order_type_set_mapping["default"].add(new_order)
+        self.order_type_set_mapping[order_type].add(new_order)
         self.latest_order_seq += 1
 
         # update the order info to the target peer
@@ -247,7 +254,7 @@ class SingleRun:
                 for peer in list(order.hesitators):
                     peer.del_order(order)
                 self.order_full_set.remove(order)
-                self.order_type_set_mapping["default"].remove(order)
+                self.order_type_set_mapping[order.order_type].remove(order)
 
     def add_new_links_helper(self, requester: Peer, demand: int, minimum: int) -> None:
         """
@@ -351,48 +358,62 @@ class SingleRun:
         )
 
         for peer_type in peer_type_vector:
-            num_mean: float = self.scenario.peer_type_property[
+            num_init_orders_dict = dict()
+            for (
+                order_type,
+                init_orderbook_size_distribution,
+            ) in self.scenario.peer_type_property[
                 peer_type
-            ].initial_orderbook_size.mean
-            num_var: float = self.scenario.peer_type_property[
-                peer_type
-            ].initial_orderbook_size.var
-            num_init_orders: int = max(0, round(random.gauss(num_mean, num_var)))
-            self.peer_arrival(peer_type, num_init_orders)
+            ].initial_orderbook_size_dict.items():
+                num_mean: float = init_orderbook_size_distribution.mean
+                num_var: float = init_orderbook_size_distribution.var
+                num_init_orders_dict[order_type] = max(
+                    0, round(random.gauss(num_mean, num_var))
+                )
+            self.peer_arrival(peer_type, num_init_orders_dict)
 
     def group_of_orders_arrival_helper(self, order_arr_num):
         """
         This is a helper method for operations_in_a_time_round(). Given a certain number of
-        order arrivals, this method determines the initial holders (peers) of these orders, and
-        the values of attributes of the orders, and creates them.
+        order arrivals, this method determines the initial holders (peers) of these orders,
+        the order type, ane expiration, and creates them.
         """
 
-        # Decide which peers to hold these orders.
-        # The probability for any peer to get an order is proportional to its init orderbook size.
+        # Decide which peers to hold these orders and the type of each of these orders
+        # The probability of each order being of type i and having peer j as its holder,
+        # is proportional to the peer j's expected number of initial orders of type i.
         # Free riders will not be candidates since they don't have init orderbook.
 
-        candidate_peer_list: List[Peer] = list(self.peer_full_set)
-        peer_capacity_weight: List[int] = list(
-            item.init_orderbook_size for item in candidate_peer_list
+        candidate_peer_and_order_type_combination: List[
+            Tuple[Peer, OrderTypeName]
+        ] = list()
+        candidate_weights: List[float] = list()
+        for peer in list(self.peer_full_set):
+            peer_property = self.scenario.peer_type_property[peer.peer_type]
+            for order_type in peer_property.initial_orderbook_size_dict.keys():
+                candidate_peer_and_order_type_combination.append((peer, order_type))
+                candidate_weights.append(
+                    peer_property.initial_orderbook_size_dict[order_type].mean
+                )
+
+        target_peer_and_type_list: List[Tuple[Peer, OrderTypeName]] = random.choices(
+            candidate_peer_and_order_type_combination,
+            weights=candidate_weights,
+            k=order_arr_num,
         )
 
-        target_peer_list: List[Peer] = random.choices(
-            candidate_peer_list, weights=peer_capacity_weight, k=order_arr_num
-        )
-
-        for target_peer in target_peer_list:
+        for target_peer, this_order_type in target_peer_and_type_list:
             # decide the max expiration for this order.
-            # Assuming there is only one type of orders 'default'. Subject to change later.
             expiration_mean: float = self.scenario.order_type_property[
-                "default"
+                this_order_type
             ].expiration.mean
             expiration_var: float = self.scenario.order_type_property[
-                "default"
+                this_order_type
             ].expiration.var
             expiration: int = max(
                 0, round(random.gauss(expiration_mean, expiration_var))
             )
-            self.order_arrival(target_peer, expiration)
+            self.order_arrival(target_peer, this_order_type, expiration)
 
     def group_of_orders_cancellation_and_update_status(self, order_cancel_num):
         """
@@ -402,6 +423,10 @@ class SingleRun:
         """
 
         # Note: This method is pretty simply so we don't write unit test for it.
+
+        # HACK (weijiewu8): Now every order gets the same chance of being canceled. Maybe we will
+        # need to generalize it so that different types/ages of orders are canceled with a
+        # different chance.
 
         order_to_cancel: List[Order] = random.sample(
             self.order_full_set, min(len(self.order_full_set), order_cancel_num)

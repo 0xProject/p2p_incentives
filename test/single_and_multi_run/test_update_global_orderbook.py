@@ -23,13 +23,15 @@ def create_an_instance_with_one_peer_one_order(
 
     # create a single_run instance and a peer
     single_run_instance = SingleRun(scenario, engine, performance)
-    single_run_instance.peer_arrival("normal", 0)
+    single_run_instance.peer_arrival("normal", {})
     peer: Peer = next(iter(single_run_instance.peer_full_set))
     peer.order_pending_orderinfo_mapping.clear()
 
     # create an order and let it be held by peer.
     # 300 is arbitrarily set. As long as it is large, it is okay.
-    single_run_instance.order_arrival(target_peer=peer, expiration=300)
+    single_run_instance.order_arrival(
+        target_peer=peer, order_type="default", expiration=300
+    )
     order: Order = next(iter(single_run_instance.order_full_set))
 
     return single_run_instance, peer, order

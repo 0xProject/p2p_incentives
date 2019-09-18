@@ -120,6 +120,7 @@ class Scenario:
         )
 
     # This function updates the is_settled status for orders.
+
     def update_orders_settled_status(self, order: "Order") -> None:
         """
         This method updates the is_settled status for an order.

@@ -37,8 +37,8 @@ def test_peer_departure__normal(
     single_run_instance = SingleRun(scenario, engine, performance)
 
     # create two peers. One is the peer that will depart, the other is its neighbor.
-    single_run_instance.peer_arrival("normal", 0)
-    single_run_instance.peer_arrival("normal", 0)
+    single_run_instance.peer_arrival("normal", {})
+    single_run_instance.peer_arrival("normal", {})
 
     iterator: Iterator[Peer] = iter(single_run_instance.peer_full_set)
     peer: Peer = next(iterator)
