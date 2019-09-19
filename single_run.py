@@ -376,7 +376,7 @@ class SingleRun:
         """
         This is a helper method for operations_in_a_time_round(). Given a certain number of
         order arrivals, this method determines the initial holders (peers) of these orders,
-        the order type, ane expiration, and creates them.
+        the order type, and expiration, and creates them.
         """
 
         # Decide which peers to hold these orders and the type of each of these orders
