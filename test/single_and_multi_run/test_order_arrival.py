@@ -32,20 +32,32 @@ def test_order_arrival__normal(
 
     # create the single_run instance and a peer.
     single_run_instance = SingleRun(scenario, engine, performance)
-    single_run_instance.peer_arrival("normal", 0)
+    single_run_instance.peer_arrival("normal", {})
     peer: Peer = next(iter(single_run_instance.peer_full_set))
     peer.order_pending_orderinfo_mapping.clear()
 
     # Act.
     expiration_value = 300
-    single_run_instance.order_arrival(target_peer=peer, expiration=expiration_value)
+    single_run_instance.order_arrival(
+        target_peer=peer, order_type="default", expiration=expiration_value
+    )
+    single_run_instance.order_arrival(
+        target_peer=peer, order_type="nft", expiration=expiration_value
+    )
 
     # Assert.
-    assert len(peer.order_pending_orderinfo_mapping) == 1
-    order = next(iter(peer.order_pending_orderinfo_mapping))
-    assert order.expiration == expiration_value
-    assert order in single_run_instance.order_full_set
-    assert single_run_instance.latest_order_seq == 1
+    assert len(peer.order_pending_orderinfo_mapping) == 2
+    order_iterator = iter(peer.order_pending_orderinfo_mapping)
+    order_type_set = set()
+    for _ in range(2):
+        order = next(order_iterator)
+        order_type_set.add(order.order_type)
+        assert order.expiration == expiration_value
+        assert order in single_run_instance.order_full_set
+
+    assert "default" in order_type_set
+    assert "nft" in order_type_set
+    assert single_run_instance.latest_order_seq == 2
 
 
 @pytest.mark.parametrize(
@@ -67,4 +79,6 @@ def test_order_arrival__error(
 
     # Act and Assert.
     with pytest.raises(ValueError, match="Cannot find target peer."):
-        single_run_instance.order_arrival(target_peer=peer, expiration=300)
+        single_run_instance.order_arrival(
+            target_peer=peer, order_type="default", expiration=300
+        )

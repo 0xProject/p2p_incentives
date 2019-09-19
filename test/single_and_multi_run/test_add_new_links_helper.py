@@ -53,7 +53,7 @@ def create_single_run_instance_and_peers(
 
     # Create 12 peers in this single_run
     for _ in range(TOTAL_NUM_OF_PEERS):
-        this_instance.peer_arrival("normal", 0)
+        this_instance.peer_arrival("normal", {})
 
     # Record these peers
     the_peer_list: List[Peer] = list()

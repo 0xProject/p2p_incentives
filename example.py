@@ -49,24 +49,35 @@ from data_types import (
 # If an additional type is added, remember to modify OrderTypePropertyDict in data_types
 
 # order property for type "default".
-ORDER_DEFAULT_PROPERTY = OrderProperty(
-    ratio=1.0, expiration=Distribution(mean=500.0, var=0.0)
-)
+ORDER_DEFAULT_PROPERTY = OrderProperty(expiration=Distribution(mean=500.0, var=0.0))
 
-# order type and property dictionary. Only one type in this example.
-ORDER_TYPE_PROPERTY_DICT = OrderTypePropertyDict(default=ORDER_DEFAULT_PROPERTY)
+# order property for type "nft".
+ORDER_NFT_PROPERTY = OrderProperty(expiration=Distribution(mean=500.0, var=0.0))
+
+# order type and property dictionary.
+ORDER_TYPE_PROPERTY_DICT = OrderTypePropertyDict(
+    default=ORDER_DEFAULT_PROPERTY, nft=ORDER_NFT_PROPERTY
+)
 
 # ratio and property of peers of each type.
 # If an additional type is added, remember to modify PeerTypePropertyDict in data_types
 
 # peer property for type "normal"
 PEER_NORMAL_PROPERTY = PeerProperty(
-    ratio=0.9, initial_orderbook_size=Distribution(mean=6.0, var=0.0)
+    ratio=0.9,
+    initial_orderbook_size_dict={
+        "default": Distribution(mean=3.0, var=0.0),
+        "nft": Distribution(mean=3.0, var=0.0),
+    },
 )
 
 # peer property for type "free rider"
 PEER_FREE_RIDER_PROPERTY = PeerProperty(
-    ratio=0.1, initial_orderbook_size=Distribution(0, 0)
+    ratio=0.1,
+    initial_orderbook_size_dict={
+        "default": Distribution(mean=0.0, var=0.0),
+        "nft": Distribution(mean=0.0, var=0.0),
+    },
 )
 
 # peer type and property dictionary. Now we have normal peers and free riders.
