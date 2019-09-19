@@ -79,7 +79,7 @@ PEER_NORMAL_PROPERTY = PeerProperty(
 PEER_FREE_RIDER_PROPERTY = PeerProperty(
     ratio=0.1,
     initial_orderbook_size_dict={
-        "default": Distribution(0, 0),
+        "default": Distribution(mean=0.0, var=0.0),
         "wash_trading": Distribution(mean=0.0, var=0.0),
     },
 )
