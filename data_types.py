@@ -40,8 +40,8 @@ class Distribution(NamedTuple):
     random variable following Gaussian distribution G(mean, var).
     """
 
-    # note: this is a normal namedtuple. Written in this format in order to
-    # add type hints.
+    # note: this is a normal namedtuple. Written in this format in order to add type hints.
+
     mean: float
     var: float
 
@@ -49,21 +49,9 @@ class Distribution(NamedTuple):
 class OrderProperty(NamedTuple):
     """
     This data type specifies the property of a particular order type.
-    ratio is the portion of orders of this type in the Mesh network.
-    Note: Summing up the ratios of all order types doesn't have to be 1; but their relative weights
-    matter.
     expiration is the distribution of expiration (mean and variance) of this type.
     """
 
-    # There is an inner enforcement on the ratio values. If the ratio of type i orders over
-    # all orders in a peer of type j is r_{ij}, and that peer type j is of weight k_j over all
-    # peers, then the ratio of type i orders in the Mesh system is r_i = sum_{j} r_{ij} * k_j.
-    # Currently we don't check this requirement in the code. In fact, we only used r_{ij} and k_j
-    # in the code; for whatever value of r_i (the order ratios) given here, they don't impact the
-    # simulation result; however, for future extensions as well as for consistency of the code,
-    # we still remain this attribute here.
-
-    ratio: float
     expiration: Distribution
 
 
@@ -99,7 +87,7 @@ class OrderTypePropertyDict(TypedDict):
     """
 
     default: OrderProperty
-    wash_trading: OrderProperty
+    nft: OrderProperty
 
 
 class PeerTypePropertyDict(TypedDict):
@@ -120,7 +108,7 @@ class PeerTypePropertyDict(TypedDict):
 # pylint thinks they are constants but in fact they are types.
 # We temporarily disable invalid-names
 
-OrderTypeName = Literal["default", "wash_trading"]  # pylint: disable=invalid-name
+OrderTypeName = Literal["default", "nft"]  # pylint: disable=invalid-name
 PeerTypeName = Literal["normal", "free_rider"]  # pylint: disable=invalid-name
 
 

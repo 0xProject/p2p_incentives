@@ -88,16 +88,16 @@ def test_group_of_orders_arrival_helper(
             .mean
             / sum_of_weights
         )
-        num_wash_trading = sum(
+        num_nft = sum(
             1
             for order in normal_peer_list[idx].order_pending_orderinfo_mapping
-            if order.order_type == "wash_trading"
+            if order.order_type == "nft"
         )
         assert (
-            num_wash_trading
+            num_nft
             == len(normal_peer_list[idx].order_pending_orderinfo_mapping)
             * scenario.peer_type_property["normal"]
-            .initial_orderbook_size_dict["wash_trading"]
+            .initial_orderbook_size_dict["nft"]
             .mean
             / sum_of_weights
         )

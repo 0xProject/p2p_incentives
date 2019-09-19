@@ -34,7 +34,7 @@ class Order:
         self.expiration: float = expiration  # maximum time for a peer to be valid
         # may refer to a trading pair label or something else
         self.category: Category = category
-        self.order_type: OrderTypeName = order_type  # e.g., market making, NFT, wash trading...
+        self.order_type: OrderTypeName = order_type  # e.g., market making, NFT, ...
 
         # set of peers who put this order into their local storage.
         self.holders: Set["Peer"] = set()

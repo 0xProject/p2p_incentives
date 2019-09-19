@@ -49,18 +49,14 @@ from data_types import (
 # If an additional type is added, remember to modify OrderTypePropertyDict in data_types
 
 # order property for type "default".
-ORDER_DEFAULT_PROPERTY = OrderProperty(
-    ratio=0.5, expiration=Distribution(mean=500.0, var=0.0)
-)
+ORDER_DEFAULT_PROPERTY = OrderProperty(expiration=Distribution(mean=500.0, var=0.0))
 
-# order property for type "wash_trading".
-ORDER_WASH_PROPERTY = OrderProperty(
-    ratio=0.5, expiration=Distribution(mean=500.0, var=0.0)
-)
+# order property for type "nft".
+ORDER_NFT_PROPERTY = OrderProperty(expiration=Distribution(mean=500.0, var=0.0))
 
 # order type and property dictionary.
 ORDER_TYPE_PROPERTY_DICT = OrderTypePropertyDict(
-    default=ORDER_DEFAULT_PROPERTY, wash_trading=ORDER_WASH_PROPERTY
+    default=ORDER_DEFAULT_PROPERTY, nft=ORDER_NFT_PROPERTY
 )
 
 # ratio and property of peers of each type.
@@ -71,7 +67,7 @@ PEER_NORMAL_PROPERTY = PeerProperty(
     ratio=0.9,
     initial_orderbook_size_dict={
         "default": Distribution(mean=3.0, var=0.0),
-        "wash_trading": Distribution(mean=3.0, var=0.0),
+        "nft": Distribution(mean=3.0, var=0.0),
     },
 )
 
@@ -80,7 +76,7 @@ PEER_FREE_RIDER_PROPERTY = PeerProperty(
     ratio=0.1,
     initial_orderbook_size_dict={
         "default": Distribution(mean=0.0, var=0.0),
-        "wash_trading": Distribution(mean=0.0, var=0.0),
+        "nft": Distribution(mean=0.0, var=0.0),
     },
 )
 

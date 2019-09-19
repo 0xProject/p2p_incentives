@@ -50,26 +50,22 @@ from engine import Engine
 SCENARIO_SAMPLE = Scenario(
     ScenarioParameters(
         order_type_property=OrderTypePropertyDict(
-            default=OrderProperty(
-                ratio=2 / 3, expiration=Distribution(mean=500.0, var=0.0)
-            ),
-            wash_trading=OrderProperty(
-                ratio=1 / 3, expiration=Distribution(mean=500.0, var=0.0)
-            ),
+            default=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
+            nft=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
         ),
         peer_type_property=PeerTypePropertyDict(
             normal=PeerProperty(
                 ratio=0.9,
                 initial_orderbook_size_dict={
                     "default": Distribution(mean=4.0, var=0.0),
-                    "wash_trading": Distribution(mean=2.0, var=0.0),
+                    "nft": Distribution(mean=2.0, var=0.0),
                 },
             ),
             free_rider=PeerProperty(
                 ratio=0.1,
                 initial_orderbook_size_dict={
                     "default": Distribution(0, 0),
-                    "wash_trading": Distribution(0, 0),
+                    "nft": Distribution(0, 0),
                 },
             ),
         ),
@@ -136,26 +132,22 @@ ENGINE_SAMPLE = Engine(
 SCENARIO_SAMPLE_NON_INT = Scenario(
     ScenarioParameters(
         order_type_property=OrderTypePropertyDict(
-            default=OrderProperty(
-                ratio=1, expiration=Distribution(mean=500.0, var=0.0)
-            ),
-            wash_trading=OrderProperty(
-                ratio=0, expiration=Distribution(mean=500.0, var=0.0)
-            ),
+            default=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
+            nft=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
         ),
         peer_type_property=PeerTypePropertyDict(
             normal=PeerProperty(
                 ratio=0.52,
                 initial_orderbook_size_dict={
                     "default": Distribution(mean=7.5, var=0.0),
-                    "wash_trading": Distribution(mean=0.0, var=0.0),
+                    "nft": Distribution(mean=0.0, var=0.0),
                 },
             ),
             free_rider=PeerProperty(
                 ratio=0.48,
                 initial_orderbook_size_dict={
-                    "default": Distribution(0, 0),
-                    "wash_trading": Distribution(0, 0),
+                    "default": Distribution(mean=0, var=0),
+                    "nft": Distribution(mean=0, var=0),
                 },
             ),
         ),

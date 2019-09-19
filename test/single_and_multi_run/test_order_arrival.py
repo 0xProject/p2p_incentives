@@ -42,7 +42,7 @@ def test_order_arrival__normal(
         target_peer=peer, order_type="default", expiration=expiration_value
     )
     single_run_instance.order_arrival(
-        target_peer=peer, order_type="wash_trading", expiration=expiration_value
+        target_peer=peer, order_type="nft", expiration=expiration_value
     )
 
     # Assert.
@@ -56,7 +56,7 @@ def test_order_arrival__normal(
         assert order in single_run_instance.order_full_set
 
     assert "default" in order_type_set
-    assert "wash_trading" in order_type_set
+    assert "nft" in order_type_set
     assert single_run_instance.latest_order_seq == 2
 
 
