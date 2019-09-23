@@ -3,7 +3,7 @@ This module contains the SingleRun class only.
 """
 
 import random
-from typing import Dict, Set, List, TYPE_CHECKING, cast, Tuple
+from typing import Dict, Set, List, TYPE_CHECKING, cast, Tuple, Optional
 import numpy
 from message import Order
 from node import Peer
@@ -12,6 +12,10 @@ from data_types import (
     PeerTypeName,
     OrderTypeName,
     PeerProperty,
+    SettleParameters,
+    CancelParameters,
+    ConcaveParameters,
+    RandomParameter,
 )
 
 
@@ -98,6 +102,65 @@ class SingleRun:
 
         self.check_adding_neighbor()
 
+    @staticmethod
+    def set_properties_for_an_order_instance_helper(
+        order_type_property
+    ) -> Tuple[int, SettleParameters, CancelParameters]:
+        """
+        This is a helper function to generate an order instance's properties (expiration,
+        settlement, cancellation) from the property distribution of the order type it belongs to.
+        :param order_type_property: property distribution of the order type.
+        :return: expiration, settlement, cancellation.
+        """
+        # expiration
+        expiration: int = max(
+            0,
+            round(
+                random.gauss(
+                    mu=order_type_property.expiration.mean,
+                    sigma=order_type_property.expiration.var,
+                )
+            ),
+        )
+
+        # settlement
+        if order_type_property.settlement["method"] == "ConcaveProperty":
+            sensitivity = max(
+                0,
+                random.gauss(
+                    mu=order_type_property.settlement["sensitivity"].mean,
+                    sigma=order_type_property.settlement["sensitivity"].var,
+                ),
+            )
+            max_prob = max(
+                0,
+                random.gauss(
+                    mu=order_type_property.settlement["max_prob"].mean,
+                    sigma=order_type_property.settlement["max_prob"].var,
+                ),
+            )
+            settlement = ConcaveParameters(
+                method="ConcaveParameters", sensitivity=sensitivity, max_prob=max_prob
+            )
+        else:
+            raise ValueError("No such way of generating settlement parameters.")
+
+        # cancellation
+
+        if order_type_property.cancellation["method"] == "RandomProperty":
+            prob = max(
+                0,
+                random.gauss(
+                    mu=order_type_property.cancellation["prob"].mean,
+                    sigma=order_type_property.cancellation["prob"].var,
+                ),
+            )
+            cancellation = RandomParameter(method="RandomParameter", prob=prob)
+        else:
+            raise ValueError("No such way of generating settlement parameters.")
+
+        return expiration, settlement, cancellation
+
     def peer_arrival(
         self, peer_type: PeerTypeName, num_orders_dict: Dict[OrderTypeName, int]
     ) -> None:
@@ -126,32 +189,26 @@ class SingleRun:
         order_seq: int = self.latest_order_seq
         for order_type, order_num in num_orders_dict.items():
             for _ in range(order_num):
-                expiration_mean: float = self.scenario.order_type_property[
-                    order_type
-                ].expiration.mean
-                expiration_var: float = self.scenario.order_type_property[
-                    order_type
-                ].expiration.var
-                expiration: int = max(
-                    0, round(random.gauss(expiration_mean, expiration_var))
+                (
+                    expiration,
+                    settlement,
+                    cancellation,
+                ) = self.set_properties_for_an_order_instance_helper(
+                    self.scenario.order_type_property[order_type]
                 )
+
                 # Now we initiate the new orders, whose creator should be the new peer.
                 # But the new peer has not been initiated, so we set the creator to be None
                 # temporarily. We will modify it when the peer is initiated.
                 # This is tricky and informal, but I don't have a better way of doing it right now.
-                new_order = Order(
-                    scenario=self.scenario,
-                    seq=order_seq,
-                    birth_time=self.cur_time,
-                    creator=None,
-                    expiration=expiration,
+                new_order = self.order_arrival(
+                    target_peer=None,
                     order_type=order_type,
+                    expiration=expiration,
+                    settlement=settlement,
+                    cancellation=cancellation,
                 )
-                self.order_full_set.add(new_order)
-                self.order_type_set_mapping[order_type].add(new_order)
                 cur_order_set.add(new_order)
-                order_seq += 1
-
         # create the new peer, and add it to the table
         new_peer = Peer(
             engine=self.engine,
@@ -196,17 +253,25 @@ class SingleRun:
         self.peer_type_set_mapping[cast(PeerTypeName, peer.peer_type)].remove(peer)
 
     def order_arrival(
-        self, target_peer: Peer, order_type: OrderTypeName, expiration: int
-    ) -> None:
+        self,
+        target_peer: Optional[Peer],
+        order_type: OrderTypeName,
+        expiration: int,
+        settlement: SettleParameters,
+        cancellation: CancelParameters,
+    ) -> Order:
         """
         This method initiates an external order arrival, whose creator is the "target_peer"
-        :param target_peer: See explanation above.
+        :param target_peer: See explanation above. We allow None for this attribute since there
+        is a special use case of this method in self.peer_arrival().
         :param order_type: order type.
         :param expiration: expiration for this order.
+        :param settlement: settlement parameter for this order
+        :param cancellation: cancellation parameter for this order
         :return: None
         """
 
-        if target_peer not in self.peer_full_set:
+        if target_peer and target_peer not in self.peer_full_set:
             raise ValueError("Cannot find target peer.")
 
         # create a new order
@@ -216,8 +281,10 @@ class SingleRun:
             seq=new_order_seq,
             birth_time=self.cur_time,
             creator=target_peer,
-            expiration=expiration,
             order_type=order_type,
+            expiration=expiration,
+            settlement=settlement,
+            cancellation=cancellation,
         )
 
         # update the set of orders for the SingleRun
@@ -226,29 +293,20 @@ class SingleRun:
         self.latest_order_seq += 1
 
         # update the order info to the target peer
-        target_peer.receive_order_external(new_order)
+        if target_peer:
+            target_peer.receive_order_external(new_order)
 
-    def update_global_orderbook(self, order_cancel_list: List[Order] = None) -> None:
+        return new_order
+
+    def update_global_orderbook(self) -> None:
         """
-        This method takes a set of orders to cancel as input, deletes them, and deletes all other
-        invalid orders from both order set of SingleRun instance, and all peers' pending table and
-        storage.
-        :param order_cancel_list: a list of orders to be canceled
+        This method deletes all invalid orders from both order set of SingleRun instance,
+        and all peers' pending table and storage.
         :return: None.
         """
 
-        if order_cancel_list:
-            for order in order_cancel_list:
-                order.is_canceled = True
-
         for order in list(self.order_full_set):
-            if (
-                (not order.holders)
-                and (not order.hesitators)
-                or (self.cur_time - order.birth_time >= order.expiration)
-                or order.is_settled
-                or order.is_canceled
-            ):
+            if not order.is_valid:
                 for peer in list(order.holders):
                     peer.del_order(order)
                 for peer in list(order.hesitators):
@@ -403,46 +461,18 @@ class SingleRun:
         )
 
         for target_peer, this_order_type in target_peer_and_type_list:
-            # decide the max expiration for this order.
-            expiration_mean: float = self.scenario.order_type_property[
-                this_order_type
-            ].expiration.mean
-            expiration_var: float = self.scenario.order_type_property[
-                this_order_type
-            ].expiration.var
-            expiration: int = max(
-                0, round(random.gauss(expiration_mean, expiration_var))
+            order_type_property = self.scenario.order_type_property[this_order_type]
+
+            expiration, settlement, cancellation = self.set_properties_for_an_order_instance_helper(
+                order_type_property
             )
-            self.order_arrival(target_peer, this_order_type, expiration)
 
-    def group_of_orders_cancellation_and_update_status(self, order_cancel_num):
-        """
-        This is a helper method for operations_in_a_time_round(). Given a number of orders to be
-        canceled, this method randomly selects the orders to cancel, then updates the status
-        of the rest orders, and updates the global orderbook status.
-        """
-
-        # Note: This method is pretty simply so we don't write unit test for it.
-
-        # HACK (weijiewu8): Now every order gets the same chance of being canceled. Maybe we will
-        # need to generalize it so that different types/ages of orders are canceled with a
-        # different chance.
-
-        order_to_cancel: List[Order] = random.sample(
-            self.order_full_set, min(len(self.order_full_set), order_cancel_num)
-        )
-
-        for order in self.order_full_set:
-            order.update_settled_status()
-
-        self.update_global_orderbook(order_to_cancel)
+            self.order_arrival(
+                target_peer, this_order_type, expiration, settlement, cancellation
+            )
 
     def operations_in_a_time_round(
-        self,
-        peer_arr_num: int,
-        peer_dept_num: int,
-        order_arr_num: int,
-        order_cancel_num: int,
+        self, peer_arr_num: int, peer_dept_num: int, order_arr_num: int
     ) -> None:
         """
         This method runs normal operations at a particular time point.
@@ -451,7 +481,6 @@ class SingleRun:
         :param peer_arr_num: number of peers arriving the system
         :param peer_dept_num: number of peers departing the system
         :param order_arr_num: number of orders arriving the system
-        :param order_cancel_num: number of orders which are canceled
         :return: None
         """
 
@@ -480,8 +509,10 @@ class SingleRun:
         # external orders arrival
         self.group_of_orders_arrival_helper(order_arr_num)
 
-        # existing orders canceled, orders settled, and global orderbook updated
-        self.group_of_orders_cancellation_and_update_status(order_cancel_num)
+        # order status update and global orderbook update
+        for order in self.order_full_set:
+            order.update_valid_status()
+        self.update_global_orderbook()
 
         # peer operations
         self.check_adding_neighbor()
@@ -499,7 +530,7 @@ class SingleRun:
 
     def generate_events_during_whole_process(
         self
-    ) -> Tuple[List[int], List[int], List[int], List[int]]:
+    ) -> Tuple[List[int], List[int], List[int]]:
         """
         This function generates the number of events during each time interval of the single_run
         process. This is a helper method to single_run_execution().
@@ -529,16 +560,11 @@ class SingleRun:
                 self.scenario.stable_rates,
             )
         )
-        peer_arrival_count, peer_dept_count, order_arrival_count, order_dept_count = map(
+        peer_arrival_count, peer_dept_count, order_arrival_count = map(
             lambda x, y: list(x) + list(y), counts_growth, counts_stable
         )
 
-        return (
-            peer_arrival_count,
-            peer_dept_count,
-            order_arrival_count,
-            order_dept_count,
-        )
+        return (peer_arrival_count, peer_dept_count, order_arrival_count)
 
     def single_run_execution(self) -> SingleRunPerformanceResult:
         """
@@ -557,7 +583,7 @@ class SingleRun:
         self.update_global_orderbook()
 
         # Generate event counts.
-        peer_arrival_count, peer_dept_count, order_arrival_count, order_dept_count = (
+        peer_arrival_count, peer_dept_count, order_arrival_count = (
             self.generate_events_during_whole_process()
         )
 
@@ -565,10 +591,7 @@ class SingleRun:
         self.cur_time = self.scenario.birth_time_span
         for i in range(self.scenario.growth_rounds + self.scenario.stable_rounds):
             self.operations_in_a_time_round(
-                peer_arrival_count[i],
-                peer_dept_count[i],
-                order_arrival_count[i],
-                order_dept_count[i],
+                peer_arrival_count[i], peer_dept_count[i], order_arrival_count[i]
             )
             self.cur_time += 1
 

@@ -86,16 +86,6 @@ def hawkes(rate: HawkesArrivalRate, max_time: int) -> List[int]:
     return num_events
 
 
-def settle_dummy(_order: "Order") -> None:
-    """
-    This function determines to change an order's is_settled status or not.
-    This is a dummy implementation that never changes the status.
-    :param _order: instance of the order, not useful in a dummy implementation.
-    :return: None
-    """
-    return None
-
-
 def settle_concave(order: "Order", sensitivity: float, max_prob: float) -> None:
     """
     This function simulates the process of settling an order. The key idea is the more replicas
@@ -109,9 +99,26 @@ def settle_concave(order: "Order", sensitivity: float, max_prob: float) -> None:
     :param max_prob: the maximal probability of being settled in this round
     :return: None
     """
+
     if sensitivity < 0 or (not 0 <= max_prob <= 1):
         raise ValueError("Invalid input argument value.")
 
     prob: float = max_prob * (1 - math.exp(-sensitivity * len(order.holders)))
     if random.random() < prob:
         order.is_settled = True
+
+
+def cancel_random(order: "Order", prob: float) -> None:
+    """
+    This function simulates the process of cancelling an order. This order will be cancelled with a
+    probability of "prob" in any time slot.
+    :param order: the order to be considered for cancellation.
+    :param prob: probability of being cancelled.
+    :return: None.
+    """
+
+    if not 0 < prob < 1:
+        raise ValueError("Invalid cancellation probability.")
+
+    if random.random() < prob:
+        order.is_canceled = True

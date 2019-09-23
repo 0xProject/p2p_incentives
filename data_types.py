@@ -46,6 +46,88 @@ class Distribution(NamedTuple):
     var: float
 
 
+class SettleProperty(TypedDict):
+    """
+    This data type is a part of an order type's property. It captures how this type of orders can
+    be settled. Such data type contains "method" attribute that captures the way of implementing a
+    settlement function (for example, "ConcaveSettle" represents that the settlement probability is
+    a concavely increasing function with respect to the number of replicas of this order in Mesh.
+    In respect to each method, there might be an inherited data type that contains additional
+    attributes. For example, if the method is "ConcaveSettle", there are additional attributes
+    "sensitivity" and "max_prob" that decide the settlement probability.
+    """
+
+    method: Literal["ConcaveProperty"]
+
+
+class ConcaveProperty(SettleProperty):
+    """
+    Please refer to the above data type Docstring for explanation. However, please be noted that
+    this data type is to capture an order type, not an order instance, so all parameters are in
+    type of Dictionary so as to capture the heterogeneity of different orders of this type.
+    """
+
+    sensitivity: Distribution
+    max_prob: Distribution
+
+
+class SettleParameters(TypedDict):
+    """
+    This is similar to SettleProperty but is for a particular order instance.
+    """
+
+    method = Literal["ConcaveParameter"]
+
+
+class ConcaveParameters(SettleParameters):
+    """
+    This is similar to ConcaveProperty but is for a particular order instance, so parameters are
+    values not distributions.
+    Given the values of sensitivity and max_prob, the probability of settling an order is
+    prob = max_prob * (1 - math.exp(- sensitivity * len(order.holders))).
+    """
+
+    sensitivity: float
+    max_prob: float
+
+
+class CancelProperty(TypedDict):
+    """
+    This data type is a part of an order type's property. It is very similar to SettleProperty
+    defined above.
+    TODO: we need to have an aged-based method as well.
+    """
+
+    method: Literal["RandomProperty"]
+
+
+class RandomProperty(CancelProperty):
+    """
+    This is similar to ConcaveProperty.
+    prob is the distribution of probability for an order to be canceled during any particular time
+    slot.
+    """
+
+    prob: Distribution
+
+
+class CancelParameters(TypedDict):
+    """
+    This is similar to SettleParameters.
+    """
+
+    method: Literal["RandomParameter"]
+
+
+class RandomParameter(CancelParameters):
+    """
+    This is similar to ConcaveParameters. prob is the probability for an order to be canceled
+    during any particular time slot.
+    """
+
+    prob: float
+
+
 class OrderProperty(NamedTuple):
     """
     This data type specifies the property of a particular order type.
@@ -53,6 +135,8 @@ class OrderProperty(NamedTuple):
     """
 
     expiration: Distribution
+    settlement: "SettleProperty"
+    cancellation: "CancelProperty"
 
 
 class PeerProperty(NamedTuple):
@@ -139,7 +223,6 @@ class SystemEvolution(NamedTuple):
     peer_arrival: "EventArrivalRate"
     peer_dept: "EventArrivalRate"
     order_arrival: "EventArrivalRate"
-    order_cancel: "EventArrivalRate"
 
 
 class ScenarioParameters(NamedTuple):
@@ -183,34 +266,12 @@ class EventOption(TypedDict):
     method: Literal["Poisson", "Hawkes"]
 
 
-class SettleOption(TypedDict):
-    """
-    Option for how to settle an order. Now we have a choice Never that does not settle an order,
-    and a choice ConcaveSettle that settles an order according to the number of replicas it has
-    in the Mesh system, with a probability of being settled concavely increasing w.r.t. the # of
-    replicas.
-    """
-
-    method: Literal["Never", "ConcaveSettle"]
-
-
-class ConcaveSettle(SettleOption):
-    """
-    Option of settling an order with a probability concavely increasing with respect to the
-    number of replicas in the Mesh.
-    """
-
-    sensitivity: float
-    max_prob: float
-
-
 class ScenarioOptions(NamedTuple):
     """
     Putting all options together and use a NamedTuple to represent all options for Scenario.
     """
 
     event: EventOption
-    settle: SettleOption
 
 
 # ==================

@@ -11,11 +11,11 @@ from data_types import (
     OrderTypePropertyDict,
     PeerTypePropertyDict,
     EventOption,
-    SettleOption,
     EventArrivalRate,
     PoissonArrivalRate,
     HawkesArrivalRate,
-    ConcaveSettle,
+    ConcaveParameters,
+    RandomParameter,
 )
 
 
@@ -55,7 +55,6 @@ class Scenario:
             parameters.growth_period.peer_arrival,
             parameters.growth_period.peer_dept,
             parameters.growth_period.order_arrival,
-            parameters.growth_period.order_cancel,
         ]
 
         # stable period (number of peers and number of orders remain relatively stable)
@@ -68,16 +67,13 @@ class Scenario:
             parameters.stable_period.peer_arrival,
             parameters.stable_period.peer_dept,
             parameters.stable_period.order_arrival,
-            parameters.stable_period.order_cancel,
         ]
 
         # unpacking and setting options
         # options will determine the forms of implementations for functions in this class.
         # option_number_of_events determines event happening (peer/order arrival/dept) pattern.
         # Poisson and Hawkes processes are implemented.
-        # option_settle determines when an order is settled. Now only "never settle" is implemented.
         self.option_number_of_events: EventOption = options.event
-        self.option_settle: SettleOption = options.settle
 
     def generate_event_counts_over_time(
         self, rate: EventArrivalRate, max_time: int
@@ -119,23 +115,41 @@ class Scenario:
             f"No such option to generate events: {self.option_number_of_events['method']}"
         )
 
-    def update_orders_settled_status(self, order: "Order") -> None:
+    @staticmethod
+    def update_order_settled_status(order: "Order") -> None:
         """
         This method updates the is_settled status for an order.
-        :param order: the order to be updated
+        :param order: the order whose status is to be updated
         :return: None
         """
-
-        if self.option_settle["method"] == "Never":
-            scenario_candidates.settle_dummy(order)
-        elif self.option_settle["method"] == "ConcaveSettle":
-            self.option_settle = cast(ConcaveSettle, self.option_settle)
+        if order.settlement["method"] == "ConcaveParameters":
+            settlement_parameters = cast(ConcaveParameters, order.settlement)
             scenario_candidates.settle_concave(
-                order, self.option_settle["sensitivity"], self.option_settle["max_prob"]
+                order,
+                settlement_parameters["sensitivity"],
+                settlement_parameters["max_prob"],
             )
 
         else:
             raise ValueError(
-                f"No such option to change settlement status for orders: "
-                f"{self.option_settle['method']}"
+                f"No such method to change settlement status for orders: "
+                f"{order.settlement['method']}"
+            )
+
+    @staticmethod
+    def update_order_canceled_status(order: "Order") -> None:
+        """
+        This method updates order cancelled status.
+        :param order: the order whose status is to be updated
+        :return: None
+        """
+
+        if order.cancellation["method"] == "RandomParameter":
+            cancellation_parameters = cast(RandomParameter, order.cancellation)
+            scenario_candidates.cancel_random(order, cancellation_parameters["prob"])
+
+        else:
+            raise ValueError(
+                f"No such method to change cancellation status for orders: "
+                f"{order.cancellation['method']}"
             )

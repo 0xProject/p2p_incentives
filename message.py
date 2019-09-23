@@ -3,7 +3,15 @@ This module defines Order and OrderInfo classes
 """
 
 from typing import TYPE_CHECKING, Optional, Set
-from data_types import Category, Priority, OrderTypeName
+from data_types import (
+    Category,
+    Priority,
+    OrderTypeName,
+    SettleParameters,
+    ConcaveParameters,
+    CancelParameters,
+    RandomParameter,
+)
 
 if TYPE_CHECKING:
     from scenario import Scenario
@@ -25,16 +33,22 @@ class Order:
         expiration: float = float("inf"),
         category: Category = None,
         order_type: OrderTypeName = "default",
+        settlement: SettleParameters = ConcaveParameters(sensitivity=1, max_prob=0),
+        cancellation: CancelParameters = RandomParameter(prob=0),
     ) -> None:
 
         self.scenario: "Scenario" = scenario  # Needed for function update_settled_status().
         self.seq: int = seq  # sequence number. Not in use now, reserved for possible future use
         self.birth_time: int = birth_time  # will be decided by system clock
         self.creator: Optional["Peer"] = creator  # the peer who creates this order
-        self.expiration: float = expiration  # maximum time for a peer to be valid
         # may refer to a trading pair label or something else
         self.category: Category = category
         self.order_type: OrderTypeName = order_type  # e.g., market making, NFT, ...
+
+        # These are the order expiration, settlement and cancellation parameters.
+        self.expiration: float = expiration  # maximum time for a peer to be valid
+        self.settlement = settlement
+        self.cancellation = cancellation
 
         # set of peers who put this order into their local storage.
         self.holders: Set["Peer"] = set()
@@ -45,6 +59,10 @@ class Order:
 
         self.is_settled: bool = False  # this order instance has not been taken and settled
         self.is_canceled: bool = False  # will change to True when the order departs proactively.
+        self.is_missing: bool = False  # will change to True if no holder nor hesitator.
+
+        # will change to False if any of the above three attributes becomes True.
+        self.is_valid: bool = True
 
     # HACK (weijiewu8): need to address the issue that different types of orders get settled
     # differently. Similar issues for order cancellation, expiration, etc.
@@ -52,10 +70,38 @@ class Order:
 
     def update_settled_status(self) -> None:
         """
-        This method updates the settled status of this order.
+        This method updates is_settled value of this order.
         :return: None
         """
-        self.scenario.update_orders_settled_status(self)
+        self.scenario.update_order_settled_status(self)
+
+    def update_canceled_status(self) -> None:
+        """
+        This method updates is_canceled value of this order.
+        :return: None
+        """
+        self.scenario.update_order_canceled_status(self)
+
+    def update_missing_status(self) -> None:
+        """
+        This method updates is_missing value of this order.
+        :return: None
+        """
+
+        if not self.holders and not self.hesitators:
+            self.is_missing = True
+
+    def update_valid_status(self) -> None:
+        """
+        This method updates is_valid value of this order.
+        :return: None
+        """
+
+        self.update_settled_status()
+        self.update_canceled_status()
+        self.update_missing_status()
+        if self.is_settled or self.is_canceled or self.is_missing:
+            self.is_valid = False
 
 
 class OrderInfo:
