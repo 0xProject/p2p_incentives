@@ -94,7 +94,7 @@ setup(
     install_requires=["matplotlib", "mypy_extensions", "numpy"],
     extras_require={
         "dev": [
-            "astroid==2.2.5",
+            #  "astroid==2.2.5",
             "bandit",
             "black",
             "coverage",
