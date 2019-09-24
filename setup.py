@@ -109,6 +109,7 @@ setup(
             "sphinx-autodoc-typehints",
             "tox",
             "twine",
+            "astroid==2.2.5",
         ]
     },
     python_requires=">=3.6, <4",
