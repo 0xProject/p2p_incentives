@@ -95,8 +95,9 @@ class CancelProperty(TypedDict):
     """
     This data type is a part of an order type's property. It is very similar to SettleProperty
     defined above.
-    TODO: we need to have an aged-based method as well.
     """
+
+    # HACK (weijiewu8): We will need an age-based as well.
 
     method: Literal["RandomProperty"]
 
