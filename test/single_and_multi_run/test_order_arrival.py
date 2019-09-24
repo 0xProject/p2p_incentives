@@ -86,6 +86,7 @@ def test_order_arrival__error(
     """
     This tests order_arrival() when the target peer does not exist.
     """
+
     # Arrange.
 
     # create the single_run instance and a peer.
