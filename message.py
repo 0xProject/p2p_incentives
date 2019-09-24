@@ -10,7 +10,7 @@ from data_types import (
     SettleParameters,
     ConcaveParameters,
     CancelParameters,
-    RandomParameter,
+    AgeBasedParameters,
 )
 
 if TYPE_CHECKING:
@@ -36,8 +36,8 @@ class Order:
         settlement: SettleParameters = ConcaveParameters(
             method="ConcaveParameters", sensitivity=1, max_prob=0
         ),
-        cancellation: CancelParameters = RandomParameter(
-            method="RandomParameter", prob=0
+        cancellation: CancelParameters = AgeBasedParameters(
+            method="AgeBasedParameters", sensitivity=1, max_prob=0
         ),
     ) -> None:
 
@@ -51,8 +51,8 @@ class Order:
 
         # These are the order expiration, settlement and cancellation parameters.
         self.expiration: float = expiration  # maximum time for a peer to be valid
-        self.settlement = settlement
-        self.cancellation = cancellation
+        self.settlement: SettleParameters = settlement
+        self.cancellation: CancelParameters = cancellation
 
         # set of peers who put this order into their local storage.
         self.holders: Set["Peer"] = set()
@@ -69,10 +69,6 @@ class Order:
         # will change to False if any of the above three attributes becomes True.
         self.is_valid: bool = True
 
-    # HACK (weijiewu8): need to address the issue that different types of orders get settled
-    # differently. Similar issues for order cancellation, expiration, etc.
-    # Will address this issue in the next PR.
-
     def update_expired_status(self, time_now) -> None:
         """
         This method updates is_expired status for this order.
@@ -88,12 +84,12 @@ class Order:
         """
         self.scenario.update_order_settled_status(self)
 
-    def update_canceled_status(self) -> None:
+    def update_canceled_status(self, time_now: float) -> None:
         """
         This method updates is_canceled value of this order.
         :return: None
         """
-        self.scenario.update_order_canceled_status(self)
+        self.scenario.update_order_canceled_status(self, time_now)
 
     def update_missing_status(self) -> None:
         """
@@ -112,7 +108,7 @@ class Order:
 
         self.update_expired_status(time_now)
         self.update_settled_status()
-        self.update_canceled_status()
+        self.update_canceled_status(time_now)
         self.update_missing_status()
         if self.is_expired or self.is_settled or self.is_canceled or self.is_missing:
             self.is_valid = False

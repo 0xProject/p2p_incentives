@@ -16,6 +16,7 @@ from data_types import (
     HawkesArrivalRate,
     ConcaveParameters,
     RandomParameter,
+    AgeBasedParameters,
 )
 
 
@@ -137,16 +138,27 @@ class Scenario:
             )
 
     @staticmethod
-    def update_order_canceled_status(order: "Order") -> None:
+    def update_order_canceled_status(order: "Order", time_now) -> None:
         """
         This method updates order cancelled status.
-        :param order: the order whose status is to be updated
+        :param order: the order whose status is to be updated.
+        :param time_now: system time.
         :return: None
         """
 
         if order.cancellation["method"] == "RandomParameter":
-            cancellation_parameters = cast(RandomParameter, order.cancellation)
-            scenario_candidates.cancel_random(order, cancellation_parameters["prob"])
+            cancellation_parameters_random = cast(RandomParameter, order.cancellation)
+            scenario_candidates.cancel_random(
+                order, cancellation_parameters_random["prob"]
+            )
+        elif order.cancellation["method"] == "AgeBasedParameters":
+            cancellation_parameters_age = cast(AgeBasedParameters, order.cancellation)
+            scenario_candidates.age_based_cancellation(
+                order=order,
+                time_now=time_now,
+                sensitivity=cancellation_parameters_age["sensitivity"],
+                max_prob=cancellation_parameters_age["max_prob"],
+            )
 
         else:
             raise ValueError(

@@ -11,6 +11,7 @@ from data_types import (
     OrderProperty,
     ConcaveProperty,
     RandomProperty,
+    AgeBasedProperty,
     PeerProperty,
     OrderTypePropertyDict,
     PeerTypePropertyDict,
@@ -57,8 +58,10 @@ ORDER_DEFAULT_PROPERTY = OrderProperty(
         sensitivity=Distribution(mean=1.0, var=0.0),
         max_prob=Distribution(mean=0.0, var=0.0),
     ),
-    cancellation=RandomProperty(
-        method="RandomProperty", prob=Distribution(mean=0.01, var=0.0)
+    cancellation=AgeBasedProperty(
+        method="AgeBasedProperty",
+        sensitivity=Distribution(mean=1.0, var=0.0),
+        max_prob=Distribution(mean=0.01, var=0.0),
     ),
 )
 

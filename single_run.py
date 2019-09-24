@@ -12,10 +12,15 @@ from data_types import (
     PeerTypeName,
     OrderTypeName,
     PeerProperty,
+    OrderProperty,
+    ConcaveProperty,
+    RandomProperty,
+    AgeBasedProperty,
     SettleParameters,
     CancelParameters,
     ConcaveParameters,
     RandomParameter,
+    AgeBasedParameters,
 )
 
 
@@ -104,7 +109,7 @@ class SingleRun:
 
     @staticmethod
     def set_properties_for_an_order_instance_helper(
-        order_type_property
+        order_type_property: OrderProperty
     ) -> Tuple[int, SettleParameters, CancelParameters]:
         """
         This is a helper function to generate an order instance's properties (expiration,
@@ -113,31 +118,22 @@ class SingleRun:
         :return: expiration, settlement, cancellation.
         """
         # expiration
-        expiration: int = max(
-            0,
-            round(
-                random.gauss(
-                    mu=order_type_property.expiration.mean,
-                    sigma=order_type_property.expiration.var,
-                )
-            ),
-        )
+        this_expire = order_type_property.expiration
+        expiration: int = max(0, round(random.gauss(this_expire.mean, this_expire.var)))
 
         # settlement
-        if order_type_property.settlement["method"] == "ConcaveProperty":
+        this_settle = order_type_property.settlement
+        if this_settle["method"] == "ConcaveProperty":
+            this_settle = cast(ConcaveProperty, this_settle)
             sensitivity = max(
                 0,
                 random.gauss(
-                    mu=order_type_property.settlement["sensitivity"].mean,
-                    sigma=order_type_property.settlement["sensitivity"].var,
+                    this_settle["sensitivity"].mean, this_settle["sensitivity"].var
                 ),
             )
             max_prob = max(
                 0,
-                random.gauss(
-                    mu=order_type_property.settlement["max_prob"].mean,
-                    sigma=order_type_property.settlement["max_prob"].var,
-                ),
+                random.gauss(this_settle["max_prob"].mean, this_settle["max_prob"].var),
             )
             settlement = ConcaveParameters(
                 method="ConcaveParameters", sensitivity=sensitivity, max_prob=max_prob
@@ -147,15 +143,30 @@ class SingleRun:
 
         # cancellation
 
-        if order_type_property.cancellation["method"] == "RandomProperty":
+        cancellation: CancelParameters = CancelParameters(method="RandomParameter")
+
+        this_cancel = order_type_property.cancellation
+        if this_cancel["method"] == "RandomProperty":
+            this_cancel = cast(RandomProperty, this_cancel)
             prob = max(
-                0,
-                random.gauss(
-                    mu=order_type_property.cancellation["prob"].mean,
-                    sigma=order_type_property.cancellation["prob"].var,
-                ),
+                0, random.gauss(this_cancel["prob"].mean, this_cancel["prob"].var)
             )
             cancellation = RandomParameter(method="RandomParameter", prob=prob)
+        elif this_cancel["method"] == "AgeBasedProperty":
+            this_cancel = cast(AgeBasedProperty, this_cancel)
+            sensitivity = max(
+                0,
+                random.gauss(
+                    this_cancel["sensitivity"].mean, this_cancel["sensitivity"].var
+                ),
+            )
+            max_prob = max(
+                0,
+                random.gauss(this_cancel["max_prob"].mean, this_cancel["max_prob"].var),
+            )
+            cancellation = AgeBasedParameters(
+                method="AgeBasedParameters", sensitivity=sensitivity, max_prob=max_prob
+            )
         else:
             raise ValueError("No such way of generating settlement parameters.")
 

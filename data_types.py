@@ -94,12 +94,10 @@ class ConcaveParameters(SettleParameters):
 class CancelProperty(TypedDict):
     """
     This data type is a part of an order type's property. It is very similar to SettleProperty
-    defined above.
+    defined above. Now there are two sub-types: random-based cancellation and age-based cancellation
     """
 
-    # HACK (weijiewu8): We will need an age-based as well.
-
-    method: Literal["RandomProperty"]
+    method: Literal["RandomProperty", "AgeBasedProperty"]
 
 
 class RandomProperty(CancelProperty):
@@ -112,12 +110,22 @@ class RandomProperty(CancelProperty):
     prob: Distribution
 
 
-class CancelParameters(TypedDict):
+class AgeBasedProperty(CancelProperty):
     """
-    This is similar to SettleParameters.
+    This is aga-based cancellation. It is very similar to ConcaveProperty.
     """
 
-    method: Literal["RandomParameter"]
+    sensitivity: Distribution
+    max_prob: Distribution
+
+
+class CancelParameters(TypedDict):
+    """
+    This is similar to SettleParameters. Now there are two sub-types: random-based cancellation
+    and age-based cancellation.
+    """
+
+    method: Literal["RandomParameter", "AgeBasedParameters"]
 
 
 class RandomParameter(CancelParameters):
@@ -127,6 +135,15 @@ class RandomParameter(CancelParameters):
     """
 
     prob: float
+
+
+class AgeBasedParameters(CancelParameters):
+    """
+    This is aga-based cancellation. It is very similar to ConcaveProperty.
+    """
+
+    sensitivity: float
+    max_prob: float
 
 
 class OrderProperty(NamedTuple):

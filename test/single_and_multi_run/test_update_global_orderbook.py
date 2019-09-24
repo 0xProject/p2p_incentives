@@ -67,6 +67,7 @@ def test_update_global_orderbook__active_order(
     single_run_instance.update_global_orderbook()
 
     # Assert
+    assert order.is_valid
     assert order in single_run_instance.order_full_set
     assert order in single_run_instance.order_type_set_mapping["default"]
     assert order in peer.order_pending_orderinfo_mapping
@@ -96,6 +97,8 @@ def test_update_global_orderbook__order_no_count(
     single_run_instance.update_global_orderbook()
 
     # Assert
+    assert order.is_missing
+    assert not order.is_valid
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
 
@@ -126,6 +129,8 @@ def test_update_global_orderbook__expired(
     single_run_instance.update_global_orderbook()
 
     # Assert
+    assert order.is_expired
+    assert not order.is_valid
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
     assert order not in peer.order_pending_orderinfo_mapping
@@ -156,6 +161,7 @@ def test_update_global_orderbook__settled(
     single_run_instance.update_global_orderbook()
 
     # Assert
+    assert not order.is_valid
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
     assert order not in peer.order_pending_orderinfo_mapping
@@ -186,6 +192,7 @@ def test_update_global_orderbook__canceled(
     single_run_instance.update_global_orderbook()
 
     # Assert
+    assert not order.is_valid
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
     assert order not in peer.order_pending_orderinfo_mapping

@@ -122,3 +122,27 @@ def cancel_random(order: "Order", prob: float) -> None:
 
     if random.random() < prob:
         order.is_canceled = True
+
+
+def age_based_cancellation(
+    order: "Order", time_now: int, sensitivity: float, max_prob: float
+) -> None:
+    """
+    This function is to simulate that the cancellation probability increases (for example,
+    due to price change) as the order stays longer in the system.
+    Its math model is very similar to settle_concave(), the only difference being we take the age
+    of the order (instead of the number of order holders) in the exponent.
+    Due to the similarity we don't write unit tests of this function.
+    """
+
+    if sensitivity < 0 or (not 0 <= max_prob <= 1):
+        raise ValueError("Invalid argument value.")
+
+    if time_now < order.birth_time:
+        raise ValueError("System time in a chaos.")
+
+    prob: float = max_prob * (
+        1 - math.exp(-sensitivity * (time_now - order.birth_time))
+    )
+    if random.random() < prob:
+        order.is_canceled = True
