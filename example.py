@@ -51,7 +51,7 @@ from data_types import (
 
 # order property for type "default".
 ORDER_DEFAULT_PROPERTY = OrderProperty(
-    expiration=Distribution(mean=500.0, var=0.0),
+    expiration=Distribution(mean=510.0, var=0.0),
     settlement=ConcaveProperty(
         method="ConcaveProperty",
         sensitivity=Distribution(mean=1.0, var=0.0),
@@ -64,10 +64,10 @@ ORDER_DEFAULT_PROPERTY = OrderProperty(
 
 # order property for type "nft".
 ORDER_NFT_PROPERTY = OrderProperty(
-    expiration=Distribution(mean=500.0, var=0.0),
+    expiration=Distribution(mean=600.0, var=0.0),
     settlement=ConcaveProperty(
         method="ConcaveProperty",
-        sensitivity=Distribution(mean=1.0, var=0.0),
+        sensitivity=Distribution(mean=2.0, var=0.0),
         max_prob=Distribution(mean=0.0, var=0.0),
     ),
     cancellation=RandomProperty(

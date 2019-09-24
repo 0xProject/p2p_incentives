@@ -33,8 +33,12 @@ class Order:
         expiration: float = float("inf"),
         category: Category = None,
         order_type: OrderTypeName = "default",
-        settlement: SettleParameters = ConcaveParameters(sensitivity=1, max_prob=0),
-        cancellation: CancelParameters = RandomParameter(prob=0),
+        settlement: SettleParameters = ConcaveParameters(
+            method="ConcaveParameters", sensitivity=1, max_prob=0
+        ),
+        cancellation: CancelParameters = RandomParameter(
+            method="RandomParameter", prob=0
+        ),
     ) -> None:
 
         self.scenario: "Scenario" = scenario  # Needed for function update_settled_status().
@@ -57,6 +61,7 @@ class Order:
         # in order words, these peers are hesitating whether to store the orders.
         self.hesitators: Set["Peer"] = set()
 
+        self.is_expired: bool = False  # this order has not expired
         self.is_settled: bool = False  # this order instance has not been taken and settled
         self.is_canceled: bool = False  # will change to True when the order departs proactively.
         self.is_missing: bool = False  # will change to True if no holder nor hesitator.
@@ -67,6 +72,14 @@ class Order:
     # HACK (weijiewu8): need to address the issue that different types of orders get settled
     # differently. Similar issues for order cancellation, expiration, etc.
     # Will address this issue in the next PR.
+
+    def update_expired_status(self, time_now) -> None:
+        """
+        This method updates is_expired status for this order.
+        :return: None.
+        """
+        if time_now - self.birth_time >= self.expiration:
+            self.is_expired = True
 
     def update_settled_status(self) -> None:
         """
@@ -91,16 +104,17 @@ class Order:
         if not self.holders and not self.hesitators:
             self.is_missing = True
 
-    def update_valid_status(self) -> None:
+    def update_valid_status(self, time_now) -> None:
         """
         This method updates is_valid value of this order.
         :return: None
         """
 
+        self.update_expired_status(time_now)
         self.update_settled_status()
         self.update_canceled_status()
         self.update_missing_status()
-        if self.is_settled or self.is_canceled or self.is_missing:
+        if self.is_expired or self.is_settled or self.is_canceled or self.is_missing:
             self.is_valid = False
 
 

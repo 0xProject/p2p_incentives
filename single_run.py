@@ -186,7 +186,6 @@ class SingleRun:
 
         # create the initial orders for this peer and update global order set
         cur_order_set: Set["Order"] = set()
-        order_seq: int = self.latest_order_seq
         for order_type, order_num in num_orders_dict.items():
             for _ in range(order_num):
                 (
@@ -221,9 +220,8 @@ class SingleRun:
         self.peer_full_set.add(new_peer)
         self.peer_type_set_mapping[peer_type].add(new_peer)
 
-        # update latest sequence numbers for peer and order
+        # update latest sequence numbers for peer (order seq has been updated by order_arrival)
         self.latest_peer_seq += 1
-        self.latest_order_seq = order_seq
 
     def peer_departure(self, peer: Peer) -> None:
         """
@@ -463,9 +461,11 @@ class SingleRun:
         for target_peer, this_order_type in target_peer_and_type_list:
             order_type_property = self.scenario.order_type_property[this_order_type]
 
-            expiration, settlement, cancellation = self.set_properties_for_an_order_instance_helper(
-                order_type_property
-            )
+            (
+                expiration,
+                settlement,
+                cancellation,
+            ) = self.set_properties_for_an_order_instance_helper(order_type_property)
 
             self.order_arrival(
                 target_peer, this_order_type, expiration, settlement, cancellation
@@ -511,7 +511,7 @@ class SingleRun:
 
         # order status update and global orderbook update
         for order in self.order_full_set:
-            order.update_valid_status()
+            order.update_valid_status(self.cur_time)
         self.update_global_orderbook()
 
         # peer operations

@@ -117,7 +117,7 @@ def cancel_random(order: "Order", prob: float) -> None:
     :return: None.
     """
 
-    if not 0 < prob < 1:
+    if not 0 <= prob <= 1:
         raise ValueError("Invalid cancellation probability.")
 
     if random.random() < prob:
