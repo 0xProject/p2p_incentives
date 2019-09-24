@@ -104,7 +104,7 @@ setup(
             "mypy_extensions",
             "pycodestyle",
             "pydocstyle",
-            "pylint",
+            "pylint==2.3.0",
             "pytest",
             "sphinx",
             "sphinx-autodoc-typehints",
