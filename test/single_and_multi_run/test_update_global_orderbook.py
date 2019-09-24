@@ -30,11 +30,16 @@ def create_an_instance_with_one_peer_one_order(
 
     # create an order and let it be held by peer.
     # 300 is arbitrarily set. As long as it is large, it is okay.
-    settlement = ConcaveParameters(method="ConcaveParameters", sensitivity=1.0, max_prob=0.0)
+    settlement = ConcaveParameters(
+        method="ConcaveParameters", sensitivity=1.0, max_prob=0.0
+    )
     cancellation = RandomParameter(method="RandomParameter", prob=0.0)
     single_run_instance.order_arrival(
-        target_peer=peer, order_type="default", expiration=300, settlement=settlement,
-        cancellation=cancellation
+        target_peer=peer,
+        order_type="default",
+        expiration=300,
+        settlement=settlement,
+        cancellation=cancellation,
     )
     order: Order = next(iter(single_run_instance.order_full_set))
 

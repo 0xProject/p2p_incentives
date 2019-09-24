@@ -77,9 +77,7 @@ def test_operations_in_a_time_round__assert_order_number(
     order_arr_num = 39
 
     single_run_instance.operations_in_a_time_round(
-        peer_arr_num=scenario.init_size,
-        peer_dept_num=0,
-        order_arr_num=order_arr_num,
+        peer_arr_num=scenario.init_size, peer_dept_num=0, order_arr_num=order_arr_num
     )
 
     assert (

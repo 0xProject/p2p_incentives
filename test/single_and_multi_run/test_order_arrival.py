@@ -39,8 +39,10 @@ def test_order_arrival__normal(
 
     # Preparing parameters
     expiration_value = 300
-    settlement = ConcaveParameters(sensitivity=1.0, max_prob=0.0)
-    cancellation = RandomParameter(prob=0.0)
+    settlement = ConcaveParameters(
+        method="ConcaveParameters", sensitivity=1.0, max_prob=0.0
+    )
+    cancellation = RandomParameter(method="RandomParameter", prob=0.0)
 
     # Act.
 
@@ -91,15 +93,17 @@ def test_order_arrival__error(
     peer: Peer = create_a_test_peer(scenario, engine)[0]
     peer.order_pending_orderinfo_mapping.clear()
 
-    settlement = ConcaveParameters(sensitivity=1.0, max_prob=0.0)
-    cancellation = RandomParameter(prob=0.0)
+    settlement = ConcaveParameters(
+        method="ConcaveParameters", sensitivity=1.0, max_prob=0.0
+    )
+    cancellation = RandomParameter(method="RandomParameter", prob=0.0)
 
     # Act and Assert.
     with pytest.raises(ValueError, match="Cannot find target peer."):
         single_run_instance.order_arrival(
             target_peer=peer,
             order_type="default",
-            expiration=300,
+            expiration=500,
             settlement=settlement,
             cancellation=cancellation,
         )

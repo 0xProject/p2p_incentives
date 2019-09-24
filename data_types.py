@@ -76,7 +76,7 @@ class SettleParameters(TypedDict):
     This is similar to SettleProperty but is for a particular order instance.
     """
 
-    method = Literal["ConcaveParameter"]
+    method: Literal["ConcaveParameters"]
 
 
 class ConcaveParameters(SettleParameters):
