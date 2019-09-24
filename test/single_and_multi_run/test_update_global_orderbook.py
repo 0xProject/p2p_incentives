@@ -68,6 +68,7 @@ def test_update_global_orderbook__active_order(
 
     # Assert
     assert order.is_valid
+    assert all(item == 0 for item in single_run_instance.invalid_orders_stat.values())
     assert order in single_run_instance.order_full_set
     assert order in single_run_instance.order_type_set_mapping["default"]
     assert order in peer.order_pending_orderinfo_mapping
@@ -99,6 +100,7 @@ def test_update_global_orderbook__order_no_count(
     # Assert
     assert order.is_missing
     assert not order.is_valid
+    assert single_run_instance.invalid_orders_stat["missing_count"] == 1
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
 
@@ -131,6 +133,7 @@ def test_update_global_orderbook__expired(
     # Assert
     assert order.is_expired
     assert not order.is_valid
+    assert single_run_instance.invalid_orders_stat["expired_count"] == 1
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
     assert order not in peer.order_pending_orderinfo_mapping
@@ -162,6 +165,7 @@ def test_update_global_orderbook__settled(
 
     # Assert
     assert not order.is_valid
+    assert single_run_instance.invalid_orders_stat["settled_count"] == 1
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
     assert order not in peer.order_pending_orderinfo_mapping
@@ -193,6 +197,7 @@ def test_update_global_orderbook__canceled(
 
     # Assert
     assert not order.is_valid
+    assert single_run_instance.invalid_orders_stat["canceled_count"] == 1
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
     assert order not in peer.order_pending_orderinfo_mapping

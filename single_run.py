@@ -21,6 +21,7 @@ from data_types import (
     ConcaveParameters,
     RandomParameter,
     AgeBasedParameters,
+    InvalidOrdersStat,
 )
 
 
@@ -78,6 +79,10 @@ class SingleRun:
         self.cur_time: int = 0  # current system time
         self.latest_order_seq: int = 0  # sequence number for next order to use
         self.latest_peer_seq: int = 0  # sequence number for next peer to use
+
+        self.invalid_orders_stat = InvalidOrdersStat(
+            expired_count=0, settled_count=0, canceled_count=0, missing_count=0
+        )
 
         self.scenario: "Scenario" = scenario  # assumptions
         self.engine: "Engine" = engine  # design choices
@@ -316,6 +321,18 @@ class SingleRun:
 
         for order in list(self.order_full_set):
             if not order.is_valid:
+
+                # update invalid order statistics
+                if order.is_canceled:
+                    self.invalid_orders_stat["canceled_count"] += 1
+                elif order.is_settled:
+                    self.invalid_orders_stat["settled_count"] += 1
+                elif order.is_expired:
+                    self.invalid_orders_stat["expired_count"] += 1
+                else:
+                    self.invalid_orders_stat["missing_count"] += 1
+
+                # delete this order
                 for peer in list(order.holders):
                     peer.del_order(order)
                 for peer in list(order.hesitators):
@@ -575,7 +592,7 @@ class SingleRun:
             lambda x, y: list(x) + list(y), counts_growth, counts_stable
         )
 
-        return (peer_arrival_count, peer_dept_count, order_arrival_count)
+        return peer_arrival_count, peer_dept_count, order_arrival_count
 
     def single_run_execution(self) -> SingleRunPerformanceResult:
         """

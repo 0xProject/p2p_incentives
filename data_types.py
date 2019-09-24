@@ -718,3 +718,15 @@ class InvalidInputError(ValueError):
     evaluation cannot be done, or the number of lists is 0 so data processing cannot be done.
     Don't need anything in the class.
     """
+
+
+class InvalidOrdersStat(TypedDict):
+    """
+    This is a data type to record the counts of various types of invalid orders in history. This
+    will gives the information on how they became invalid (expired, settled, canceled, or missing).
+    """
+
+    expired_count: int
+    settled_count: int
+    canceled_count: int
+    missing_count: int
