@@ -29,7 +29,7 @@ class Neighbor:
         preference: Preference = None,
     ) -> None:
 
-        self.engine: Engine = engine  # design choice
+        self.engine: "Engine" = engine  # design choice
         self.est_time: int = est_time  # establishment time
 
         self.preference: Preference = preference
