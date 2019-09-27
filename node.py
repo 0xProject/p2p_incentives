@@ -178,7 +178,7 @@ class Peer:
         key value, then add the unverified orders to that entry.
         :return: None.
         """
-        print(self.verification_completion_time[0])
+
         if expected_completion_time in self.verification_completion_time:
             #  move orders to the entry
             self.verification_completion_time[
@@ -333,7 +333,6 @@ class Peer:
         ):
             raise ValueError("Receiving order from non-neighbor.")
 
-        print("I have an internal order coming in.")
         neighbor: Neighbor = self.peer_neighbor_mapping[peer]
 
         if not self.engine.should_accept_internal_order(self, peer, order):
@@ -417,7 +416,6 @@ class Peer:
 
             if order in self.verification_completion_time[self.local_clock]:
 
-                print("I got a candidate to store.")
                 orderinfo_list = self.order_pending_orderinfo_mapping[order]
 
                 # Sort the list of pending orderinfo with the same order instance, so that if

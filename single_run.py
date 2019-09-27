@@ -506,15 +506,12 @@ class SingleRun:
         for peer in self.peer_full_set:
 
             if peer.should_start_a_new_loop():
-                print("New loop begins", self.cur_time)
                 peer.previous_loop_starting_time = self.cur_time
                 peer.send_orders_to_on_chain_check(
                     expected_completion_time=self.cur_time
                     + self.server_response_time[self.cur_time]
                 )
-                print(peer.verification_completion_time)
             if self.cur_time in peer.verification_completion_time:  # should finish a loop
-                print("old loop ends", self.cur_time)
                 peer.store_orders()
                 peer.score_neighbors()
                 peer.refresh_neighbors()
