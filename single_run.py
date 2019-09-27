@@ -36,6 +36,20 @@ class SingleRun:
         (create_initial_peers_orders()) creates them.
         """
 
+        # server_response_time refers to the random response time of the Ethereum hosting service
+        # for on-chain check.
+        # Theoretically, the response time for a batch of n orders verification is:
+        # some_random_value + constant_factor * size(orders).
+        # Now let's assume that some_random_value is the major factor and let it represent the
+        # total response time, which is server_response_time. It is a random number between 0-30
+        # seconds, with 95% probability <= 1 seconds and 99% probability <= 5 seconds.
+        # We further assume that this random variable depends on the Ethereum hosting
+        # server's workload and is a variable upon time. Given a time point, we assume that the
+        # Ethereum hosting service's response time is determined and it is the same value if
+        # there are various verification requests from multiple peers.
+
+        self.server_response_time: List[int] = scenario.generate_server_response_time_all_zero()
+
         self.order_full_set: Set["Order"] = set()  # set of orders
 
         # mapping from order type to order sets. The value element is a set containing all orders
@@ -484,9 +498,23 @@ class SingleRun:
         self.group_of_orders_cancellation_and_update_status(order_cancel_num)
 
         # peer operations
+
+        # HACK (weijiewu8): this might differ a bit from real system implementation where the
+        # check_adding_neighbor is done when a peer starts a loop.
         self.check_adding_neighbor()
+
         for peer in self.peer_full_set:
-            if (self.cur_time - peer.birth_time) % self.engine.batch == 0:
+
+            if peer.should_start_a_new_loop():
+                print("New loop begins", self.cur_time)
+                peer.previous_loop_starting_time = self.cur_time
+                peer.send_orders_to_on_chain_check(
+                    expected_completion_time=self.cur_time
+                    + self.server_response_time[self.cur_time]
+                )
+                print(peer.verification_completion_time)
+            if self.cur_time in peer.verification_completion_time:  # should finish a loop
+                print("old loop ends", self.cur_time)
                 peer.store_orders()
                 peer.score_neighbors()
                 peer.refresh_neighbors()
@@ -496,6 +524,7 @@ class SingleRun:
                 for internal_order in orders_to_share:
                     for beneficiary_peer in neighbors_to_share:
                         beneficiary_peer.receive_order_internal(peer, internal_order)
+                del peer.verification_completion_time[self.cur_time]
 
     def generate_events_during_whole_process(
         self

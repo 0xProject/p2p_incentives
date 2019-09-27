@@ -17,12 +17,15 @@ from data_types import (
     RefreshOption,
     BeneficiaryOption,
     RecommendationOption,
+    LoopOption,
     AllNewSelectedOld,
     Weighted,
     TitForTat,
     Preference,
     Priority,
     RemoveLazy,
+    FixedInterval,
+    Hybrid,
 )
 
 if TYPE_CHECKING:
@@ -89,6 +92,7 @@ class Engine:
         self.refresh_option: RefreshOption = options.refresh
         self.beneficiary_option: BeneficiaryOption = options.beneficiary
         self.rec_option: RecommendationOption = options.rec
+        self.loop_option: LoopOption = options.loop
 
     def set_preference_for_neighbor(
         self,
@@ -318,3 +322,27 @@ class Engine:
         raise ValueError(
             f"No such option to recommend neighbors: {self.rec_option['method']}"
         )
+
+    def should_a_peer_start_a_new_loop(self, peer: "Peer", time_now: int) -> bool:
+        """
+        This method return True if the given peer should start a new loop, or False otherwise.
+        :param peer: the given peer
+        :param time_now: Mesh system time.
+        :return: True or False.
+        """
+        if self.loop_option["method"] == "FollowPrevious":
+            return engine_candidates.after_previous(peer, time_now)
+        elif self.loop_option["method"] == "FixedInterval":
+            my_loop_option = cast(FixedInterval, self.loop_option)
+            return engine_candidates.fixed_interval(peer, time_now, my_loop_option[
+                "fixed_interval"])
+        elif self.loop_option["method"] == "Hybrid":
+            my_loop_option = cast(Hybrid, self.loop_option)
+            return engine_candidates.hybrid(peer, time_now, my_loop_option[
+                "min_time"], my_loop_option["max_time"])
+        raise ValueError(
+            f"No such option to start a new loop: {self.loop_option['method']}"
+        )
+
+
+

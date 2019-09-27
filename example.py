@@ -38,6 +38,8 @@ from data_types import (
     FairnessOption,
     PerformanceOptions,
     PerformanceExecutions,
+    LoopOption,
+    FixedInterval,
 )
 
 
@@ -194,7 +196,7 @@ STORE = StoreOption(method="First")
 # Now we only implemented 'all_new_selected_old'.
 
 SHARE = AllNewSelectedOld(
-    method="AllNewSelectedOld", max_to_share=5000, old_share_prob=0.5
+    method="AllNewSelectedOld", max_to_share=5000, old_share_prob=0
 )
 
 # This TypedDict describes how to determine neighbor scoring system.
@@ -217,6 +219,10 @@ BENEFICIARY = TitForTat(
 
 REC = RecommendationOption(method="Random")
 
+# How to decide the next loop starting time
+
+LOOP = FixedInterval(method="FixedInterval", fixed_interval=10)
+
 # creating engine option, in type of a namedtuple
 
 E_OPTIONS = EngineOptions(
@@ -230,6 +236,7 @@ E_OPTIONS = EngineOptions(
     REFRESH,
     BENEFICIARY,
     REC,
+    LOOP,
 )
 
 # creating MY_ENGINE, an instance of Engine, in type pf a namedtuple.

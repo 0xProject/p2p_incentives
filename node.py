@@ -4,6 +4,7 @@ Note that sometimes we use "node" and "peer" interchangeably in the comment.
 """
 
 import collections
+import copy
 from typing import Deque, Set, Dict, List, Tuple, TYPE_CHECKING
 from message import OrderInfo, Order
 from data_types import PeerTypeName, Preference, NameSpacing, Priority
@@ -111,6 +112,27 @@ class Peer:
         # forwarded by different neighbors.
         self.order_pending_orderinfo_mapping: Dict[Order, List[OrderInfo]] = {}
 
+        # The following mapping maintains an expected completion time of on-chain verification for
+        # the set of orders. It is a Dict, key is the completion time, value is the list of orders.
+        # If the completion time is 0, it means this batch has not started so there is no
+        # estimation for now. There is always an entry with key 0.
+        # #
+        # The method to determine the completion time:
+        # Once we start a new p2p loop, send the batch of orders for on-chain verification, the
+        # simulator will check the hosting server's workload (which is
+        # SingleRun.server_response_time), and returns the expected verification completion time.
+        # In our context, the expected verification completion time will be the accurate
+        # completion time.
+        # Note that this is definitely different from the real system, but it will greatly
+        # simplify the simulator design.
+
+        self.verification_completion_time: Dict[int, List[Order]] = {0: []}
+
+        # the following records the last time this peer started a loop (sending orders to
+        # on-chain check)
+
+        self.previous_loop_starting_time: int = self.birth_time
+
         if self.is_free_rider and init_orders:
             raise ValueError("Free riders should not have their own orders.")
 
@@ -137,6 +159,39 @@ class Peer:
             # not sure if this is useful. Just keep it here to keep consistency.
             new_orderinfo.storage_decision = True
             order.holders.add(self)
+
+    def should_start_a_new_loop(self) -> bool:
+        """
+        This method determines whether a new loop should be started, i.e., do we want to assemble
+        the newly received but unverified orders for an on-chain verification.
+        :param time_now: system time.
+        :return: True if to start a new loop, or False otherwise.
+        """
+        return self.engine.should_a_peer_start_a_new_loop(self, self.local_clock)
+
+    def send_orders_to_on_chain_check(self, expected_completion_time: int) -> None:
+        """
+        This method sends all unverified orders for an on-chain verification. It will change the
+        current key (expected_completion_time) whose value is 0 to the expected completion time,
+        and creates a new key 0 for new-incoming orders.
+        A corner case is: if the expected completion time happens to be equal to some existing
+        key value, then add the unverified orders to that entry.
+        :return: None.
+        """
+        print(self.verification_completion_time[0])
+        if expected_completion_time in self.verification_completion_time:
+            #  move orders to the entry
+            self.verification_completion_time[
+                expected_completion_time
+            ] += copy.copy(self.verification_completion_time[0])
+        else:
+            # create a key expected_completion_time whose value is the same as key 0's value.
+            self.verification_completion_time[
+                expected_completion_time
+            ] = copy.copy(self.verification_completion_time[0])
+
+        # clear the entry 0
+        self.verification_completion_time[0].clear()
 
     def should_accept_neighbor_request(self, requester: "Peer") -> bool:
         """
@@ -253,6 +308,7 @@ class Peer:
                 arrival_time=self.local_clock,
             )
             self.order_pending_orderinfo_mapping[order] = [new_orderinfo]
+            self.verification_completion_time[0].append(order)
             # update the number of replicas for this order and hesitator of this order
             # a peer is a hesitator of an order if this order is in its pending table
             order.hesitators.add(self)
@@ -277,6 +333,7 @@ class Peer:
         ):
             raise ValueError("Receiving order from non-neighbor.")
 
+        print("I have an internal order coming in.")
         neighbor: Neighbor = self.peer_neighbor_mapping[peer]
 
         if not self.engine.should_accept_internal_order(self, peer, order):
@@ -319,6 +376,7 @@ class Peer:
         if order not in self.order_pending_orderinfo_mapping:
             # order not in the pending set
             self.order_pending_orderinfo_mapping[order] = [new_orderinfo]
+            self.verification_completion_time[0].append(order)
             order.hesitators.add(self)
             # Put into the pending table. Reward will be updated when storing decision is made.
             return
@@ -345,7 +403,7 @@ class Peer:
         :return: None
         """
 
-        if (self.local_clock - self.birth_time) % self.engine.batch != 0:
+        if self.local_clock not in self.verification_completion_time:
             raise RuntimeError(
                 "Store order decision should not be called at this time."
             )
@@ -355,57 +413,66 @@ class Peer:
 
         # Now store an orderinfo if necessary
 
-        for order, orderinfo_list in self.order_pending_orderinfo_mapping.items():
+        for order in list(self.order_pending_orderinfo_mapping):
 
-            # Sort the list of pending orderinfo with the same order instance, so that if
-            # there is some order to be stored, it will be the first one.
-            orderinfo_list.sort(key=lambda item: item.storage_decision, reverse=True)
+            if order in self.verification_completion_time[self.local_clock]:
 
-            # Update the order instance, e.g., number of pending orders, and remove the
-            # hesitator, in advance.
-            order.hesitators.remove(self)
+                print("I got a candidate to store.")
+                orderinfo_list = self.order_pending_orderinfo_mapping[order]
 
-            # After sorting, for all pending orderinfo with the same order instance,
-            # either (1) no one is to be stored, or (2) only the first one is stored
+                # Sort the list of pending orderinfo with the same order instance, so that if
+                # there is some order to be stored, it will be the first one.
+                orderinfo_list.sort(
+                    key=lambda item: item.storage_decision, reverse=True
+                )
 
-            if not orderinfo_list[0].storage_decision:  # if nothing is to be stored
-                for pending_orderinfo in orderinfo_list:
-                    # Find the global instance of the sender, and update it.
+                # Update the order instance, e.g., number of pending orders, and remove the
+                # hesitator, in advance.
+                order.hesitators.remove(self)
+
+                # After sorting, for all pending orderinfo with the same order instance,
+                # either (1) no one is to be stored, or (2) only the first one is stored
+
+                if not orderinfo_list[0].storage_decision:  # if nothing is to be stored
+                    for pending_orderinfo in orderinfo_list:
+                        # Find the global instance of the sender, and update it.
+                        # If it is an internal order and sender is still a neighbor
+                        if pending_orderinfo.prev_owner in self.peer_neighbor_mapping:
+                            self.peer_neighbor_mapping[
+                                pending_orderinfo.prev_owner
+                            ].share_contribution[-1] += self.engine.reward_c
+
+                else:  # the first element is to be stored
+                    first_pending_orderinfo: OrderInfo = orderinfo_list[0]
+                    # Find the global instance for the sender, and update it.
                     # If it is an internal order and sender is still a neighbor
-                    if pending_orderinfo.prev_owner in self.peer_neighbor_mapping:
+                    if first_pending_orderinfo.prev_owner in self.peer_neighbor_mapping:
                         self.peer_neighbor_mapping[
-                            pending_orderinfo.prev_owner
-                        ].share_contribution[-1] += self.engine.reward_c
+                            first_pending_orderinfo.prev_owner
+                        ].share_contribution[-1] += self.engine.reward_d
 
-            else:  # the first element is to be stored
-                first_pending_orderinfo: OrderInfo = orderinfo_list[0]
-                # Find the global instance for the sender, and update it.
-                # If it is an internal order and sender is still a neighbor
-                if first_pending_orderinfo.prev_owner in self.peer_neighbor_mapping:
-                    self.peer_neighbor_mapping[
-                        first_pending_orderinfo.prev_owner
-                    ].share_contribution[-1] += self.engine.reward_d
-                # Add the orderinfo instance into the local storage, and update the order instance
-                self.order_orderinfo_mapping[order] = first_pending_orderinfo
-                self.new_order_set.add(order)
-                order.holders.add(self)
+                    # Add the orderinfo instance into the local storage,
+                    # and update the order instance
+                    self.order_orderinfo_mapping[order] = first_pending_orderinfo
+                    self.new_order_set.add(order)
+                    order.holders.add(self)
 
-                # For the remaining pending orderinfo in the list, no need to store them,
-                # but may need updates.
-                for pending_orderinfo in orderinfo_list[1:]:
-                    if pending_orderinfo.storage_decision:
-                        raise ValueError(
-                            "Should not store multiple copies of same orders."
-                        )
-                    # internal order, sender is still neighbor
-                    if pending_orderinfo.prev_owner in self.peer_neighbor_mapping:
-                        # update the share contribution
-                        self.peer_neighbor_mapping[
-                            pending_orderinfo.prev_owner
-                        ].share_contribution[-1] += self.engine.reward_e
+                    # For the remaining pending orderinfo in the list, no need to store them,
+                    # but may need updates.
+                    for pending_orderinfo in orderinfo_list[1:]:
+                        if pending_orderinfo.storage_decision:
+                            raise ValueError(
+                                "Should not store multiple copies of same orders."
+                            )
+                        # internal order, sender is still neighbor
+                        if pending_orderinfo.prev_owner in self.peer_neighbor_mapping:
+                            # update the share contribution
+                            self.peer_neighbor_mapping[
+                                pending_orderinfo.prev_owner
+                            ].share_contribution[-1] += self.engine.reward_e
 
-        # clear the pending mapping table
-        self.order_pending_orderinfo_mapping.clear()
+                # delete this entry from the pending mapping table
+                del self.order_pending_orderinfo_mapping[order]
 
     def share_orders(self, birth_time_span) -> Tuple[Set[Order], Set["Peer"]]:
         """
@@ -416,7 +483,7 @@ class Peer:
         :return: Tuple[set of orders to share, set of peers to share]
         """
 
-        if (self.local_clock - self.birth_time) % self.engine.batch != 0:
+        if self.local_clock not in self.verification_completion_time:
             raise RuntimeError(
                 "Share order decision should not be called at this time."
             )

@@ -139,3 +139,37 @@ class Scenario:
                 f"No such option to change settlement status for orders: "
                 f"{self.option_settle['method']}"
             )
+
+    # HACK (weijiewu8): will need to include server_mean and server_sigma in scenario attributes.
+    # However, it will change a lot and cause conflicts with other ongoing PRs. Will change it
+    # later then.
+
+    def generate_server_response_time(
+        self, server_mean: float = 0, server_sigma: float = 0
+    ) -> List[int]:
+        """
+        This method generates a series of integers that represent Ethereum hosting server's
+        response time. We use a log-normal distribution to model it.
+        :param server_mean: mean in numpy.random.lognormal()
+        :param server_sigma: sigma in numpy.random.lognormal()
+        :return: a list of response times.
+        """
+        float_list: List[float] = list(
+                numpy.random.lognormal(
+                    mean=server_mean,
+                    sigma=server_sigma,
+                    # size is equal to the total length of simulation run (though we don't use the
+                    # time period [0, birth_time_span), we put it here for readability.
+                    size=self.birth_time_span + self.growth_rounds + self.stable_rounds,
+                )
+        )
+        return_list: List[int] = [int(item) for item in float_list]
+        return return_list
+
+    def generate_server_response_time_all_zero(
+        self
+    ) -> List[int]:
+        """
+        This method generates all zeros.
+        """
+        return [0] * (self.birth_time_span + self.growth_rounds + self.stable_rounds)

@@ -230,3 +230,50 @@ def random_recommendation(
         raise ValueError("Base set is empty or target number is zero.")
     # if the target number is larger than the set size, output the whole set.
     return set(random.sample(base, min(target_number, len(base))))
+
+
+def after_previous(peer: "Peer", time_now: int) -> bool:
+    """
+    This implements engine.should_a_peer_start_a_new_loop() in such a way that a peer's new loop
+    will begin immediately after the old loop finishes.
+    :param peer: the peer to decide the loop
+    :param time_now: Mesh system time
+    :return: True or False
+    """
+
+    # Our implementation simply checks if time_now is in peer.verification_completion_time. If
+    # yes, it means some on-chain verification has completed so the previous loop is ending.
+    # Such an implementation implicitly requires that judgment on should_start_a_new_loop needs
+    # to come before processing the verified orders and removing them from the
+    # peer.verification_completion_time dictionary.
+
+    return time_now in peer.verification_completion_time
+
+
+def fixed_interval(peer: "Peer", time_now: int, interval: int) -> bool:
+    """
+    This implements engine.should_a_peer_start_a_new_loop() in such a way that a peer's new loop
+    will begin after "interval" rounds of time slots, counting from the starting time of the
+    previous loop.
+    :param peer:
+    :param time_now: Mesh system time.
+    :param interval: time rounds for a new loop to begin
+    :return: True or False
+    """
+    return (time_now - peer.previous_loop_starting_time) % interval == 0
+
+
+def hybrid(peer: "Peer", time_now: int, min_time: int, max_time: int):
+    """
+    This implements engine.should_a_peer_start_a_new_loop() in such a way that a peer's new loop
+    will begin immediately after the previous loop ends if the number of time slots that have
+    passed is within [min_time, max_time], or it will start after min_time if the previous loop
+    has ended, or it will start after max_time if the previous loop is still in processing.
+    """
+
+    raise NotImplementedError("To be implemented.")
+
+
+
+
+
