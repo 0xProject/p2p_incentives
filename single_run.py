@@ -48,7 +48,9 @@ class SingleRun:
         # Ethereum hosting service's response time is determined and it is the same value if
         # there are various verification requests from multiple peers.
 
-        self.server_response_time: List[int] = scenario.generate_server_response_time_all_zero()
+        self.server_response_time: List[
+            int
+        ] = scenario.generate_server_response_time_all_zero()
 
         self.order_full_set: Set["Order"] = set()  # set of orders
 
@@ -511,7 +513,9 @@ class SingleRun:
                     expected_completion_time=self.cur_time
                     + self.server_response_time[self.cur_time]
                 )
-            if self.cur_time in peer.verification_completion_time:  # should finish a loop
+            if (
+                self.cur_time in peer.verification_completion_time
+            ):  # should finish a loop
                 peer.store_orders()
                 peer.score_neighbors()
                 peer.refresh_neighbors()

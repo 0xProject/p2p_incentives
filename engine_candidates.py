@@ -272,8 +272,3 @@ def hybrid(peer: "Peer", time_now: int, min_time: int, max_time: int):
     """
 
     raise NotImplementedError("To be implemented.")
-
-
-
-
-

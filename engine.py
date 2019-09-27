@@ -332,17 +332,19 @@ class Engine:
         """
         if self.loop_option["method"] == "FollowPrevious":
             return engine_candidates.after_previous(peer, time_now)
-        elif self.loop_option["method"] == "FixedInterval":
-            my_loop_option = cast(FixedInterval, self.loop_option)
-            return engine_candidates.fixed_interval(peer, time_now, my_loop_option[
-                "fixed_interval"])
-        elif self.loop_option["method"] == "Hybrid":
-            my_loop_option = cast(Hybrid, self.loop_option)
-            return engine_candidates.hybrid(peer, time_now, my_loop_option[
-                "min_time"], my_loop_option["max_time"])
+        if self.loop_option["method"] == "FixedInterval":
+            my_loop_option_fix = cast(FixedInterval, self.loop_option)
+            return engine_candidates.fixed_interval(
+                peer, time_now, my_loop_option_fix["fixed_interval"]
+            )
+        if self.loop_option["method"] == "Hybrid":
+            my_loop_option_hybrid = cast(Hybrid, self.loop_option)
+            return engine_candidates.hybrid(
+                peer,
+                time_now,
+                my_loop_option_hybrid["min_time"],
+                my_loop_option_hybrid["max_time"],
+            )
         raise ValueError(
             f"No such option to start a new loop: {self.loop_option['method']}"
         )
-
-
-

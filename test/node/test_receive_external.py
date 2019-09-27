@@ -89,6 +89,7 @@ def test_receive_order_external__duplicate_storage(scenario, engine) -> None:
     peer: Peer = create_a_test_peer(scenario, engine)[0]
     order: Order = create_a_test_order(scenario)
     peer.receive_order_external(order)
+    peer.send_orders_to_on_chain_check(peer.local_clock)
     peer.store_orders()
 
     # Act and Assert.

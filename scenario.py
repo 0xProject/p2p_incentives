@@ -155,20 +155,18 @@ class Scenario:
         :return: a list of response times.
         """
         float_list: List[float] = list(
-                numpy.random.lognormal(
-                    mean=server_mean,
-                    sigma=server_sigma,
-                    # size is equal to the total length of simulation run (though we don't use the
-                    # time period [0, birth_time_span), we put it here for readability.
-                    size=self.birth_time_span + self.growth_rounds + self.stable_rounds,
-                )
+            numpy.random.lognormal(
+                mean=server_mean,
+                sigma=server_sigma,
+                # size is equal to the total length of simulation run (though we don't use the
+                # time period [0, birth_time_span), we put it here for readability.
+                size=self.birth_time_span + self.growth_rounds + self.stable_rounds,
+            )
         )
         return_list: List[int] = [int(item) for item in float_list]
         return return_list
 
-    def generate_server_response_time_all_zero(
-        self
-    ) -> List[int]:
+    def generate_server_response_time_all_zero(self) -> List[int]:
         """
         This method generates all zeros.
         """

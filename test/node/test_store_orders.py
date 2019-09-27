@@ -30,6 +30,7 @@ def test_store_orders__single_orderinfo(scenario, engine) -> None:
     peer.receive_order_external(order)
 
     # Act.
+    peer.send_orders_to_on_chain_check(peer.local_clock)
     peer.store_orders()
 
     # Assert.
@@ -56,6 +57,7 @@ def test_store_orders__multi_orderinfo(scenario, engine, monkeypatch) -> None:
         neighbor.add_neighbor(peer)
         peer.add_neighbor(neighbor)
         neighbor.receive_order_external(order)
+        neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
         neighbor.store_orders()
 
     # since receive_order_internal() function has not been tested, we manually put the order
@@ -73,6 +75,7 @@ def test_store_orders__multi_orderinfo(scenario, engine, monkeypatch) -> None:
         )
         if order not in peer.order_pending_orderinfo_mapping:
             peer.order_pending_orderinfo_mapping[order] = [orderinfo]
+            peer.verification_completion_time[0].append(order)
         else:
             peer.order_pending_orderinfo_mapping[order].append(orderinfo)
     order.hesitators.add(peer)
@@ -92,6 +95,8 @@ def test_store_orders__multi_orderinfo(scenario, engine, monkeypatch) -> None:
         pass
 
     monkeypatch.setattr(engine, "store_or_discard_orders", fake_storage_decision)
+
+    peer.send_orders_to_on_chain_check(peer.local_clock)
 
     # Act.
     peer.store_orders()
@@ -124,6 +129,7 @@ def test_store_orders__do_not_store(scenario, engine, monkeypatch) -> None:
         neighbor.add_neighbor(peer)
         peer.add_neighbor(neighbor)
         neighbor.receive_order_external(order)
+        neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
         neighbor.store_orders()
 
     # since receive_order_internal() function has not been tested, we manually put the order
@@ -141,6 +147,7 @@ def test_store_orders__do_not_store(scenario, engine, monkeypatch) -> None:
         )
         if order not in peer.order_pending_orderinfo_mapping:
             peer.order_pending_orderinfo_mapping[order] = [orderinfo]
+            peer.verification_completion_time[0].append(order)
         else:
             peer.order_pending_orderinfo_mapping[order].append(orderinfo)
     order.hesitators.add(peer)
@@ -156,6 +163,8 @@ def test_store_orders__do_not_store(scenario, engine, monkeypatch) -> None:
         pass
 
     monkeypatch.setattr(engine, "store_or_discard_orders", fake_storage_decision)
+
+    peer.send_orders_to_on_chain_check(peer.local_clock)
 
     # Act.
     peer.store_orders()
@@ -186,6 +195,7 @@ def test_store_orders__sender_disconnected(scenario, engine, monkeypatch) -> Non
     # create an order and the neighbor has this order.
     order: Order = create_a_test_order(scenario)
     neighbor.receive_order_external(order)
+    neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
     neighbor.store_orders()
 
     # We manually put the order into peer's pending table
@@ -200,6 +210,7 @@ def test_store_orders__sender_disconnected(scenario, engine, monkeypatch) -> Non
         novelty=0,
     )
     peer.order_pending_orderinfo_mapping[order] = [orderinfo]
+    peer.verification_completion_time[0].append(order)
     order.hesitators.add(peer)
 
     # manually set storage_decisions for the order.
@@ -214,6 +225,8 @@ def test_store_orders__sender_disconnected(scenario, engine, monkeypatch) -> Non
         pass
 
     monkeypatch.setattr(engine, "store_or_discard_orders", fake_storage_decision)
+
+    peer.send_orders_to_on_chain_check(peer.local_clock)
 
     # Act.
     peer.store_orders()
@@ -245,6 +258,7 @@ def test_store_orders__multi_orderinfo_error(scenario, engine, monkeypatch) -> N
     for neighbor in neighbor_list:
         # each neighbor receives the orders and becomes the neighbor of the peer.
         neighbor.receive_order_external(order)
+        neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
         neighbor.store_orders()
         neighbor.add_neighbor(peer)
         peer.add_neighbor(neighbor)
@@ -264,6 +278,7 @@ def test_store_orders__multi_orderinfo_error(scenario, engine, monkeypatch) -> N
         )
         if order not in peer.order_pending_orderinfo_mapping:
             peer.order_pending_orderinfo_mapping[order] = [orderinfo]
+            peer.verification_completion_time[0].append(order)
         else:
             peer.order_pending_orderinfo_mapping[order].append(orderinfo)
         order.hesitators.add(peer)
@@ -278,6 +293,8 @@ def test_store_orders__multi_orderinfo_error(scenario, engine, monkeypatch) -> N
         pass
 
     monkeypatch.setattr(engine, "store_or_discard_orders", fake_storage_decision)
+
+    peer.send_orders_to_on_chain_check(peer.local_clock)
 
     # Act and Assert.
     with pytest.raises(

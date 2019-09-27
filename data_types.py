@@ -443,6 +443,7 @@ class FixedInterval(LoopOption):
     """
     Sub-type for LoopOption where a peer will start a new loop every fixed_interval time slots.
     """
+
     fixed_interval: int
 
 
@@ -451,6 +452,7 @@ class Hybrid(LoopOption):
     Sub-type for LoopOption where we provide an interval [min_time, max_time]. It is for use in
     implementing engine_candidates.hybrid().
     """
+
     min_time: int
     max_time: int
 

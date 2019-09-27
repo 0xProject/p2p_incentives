@@ -107,6 +107,10 @@ def test_all_new_selected_old(
     order_list: List[Order] = create_test_orders(scenario, total)
     for order in order_list:
         peer.receive_order_external(order)
+
+    # Manually set verification done
+    peer.send_orders_to_on_chain_check(peer.local_clock)
+
     peer.store_orders()
 
     # Manually set orders as new ones.

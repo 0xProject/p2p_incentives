@@ -33,6 +33,7 @@ def test_del_order__in_storage(scenario, engine) -> None:
 
     # my_peer receives an external order and stores it.
     my_peer.receive_order_external(new_order)
+    my_peer.send_orders_to_on_chain_check(my_peer.local_clock)
     my_peer.store_orders()
 
     # Act.
@@ -72,6 +73,7 @@ def test_del_order__in_pending_table(scenario, engine) -> None:
     for neighbor in [neighbor_one, neighbor_two]:
         for new_order in (new_order_list[0], new_order_list[1]):
             neighbor.receive_order_external(new_order)
+            neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
             neighbor.store_orders()
 
     my_peer.receive_order_internal(neighbor_one, new_order_list[0])

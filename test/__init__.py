@@ -41,6 +41,7 @@ from data_types import (
     SatisfactionOption,
     FairnessOption,
     PerformanceExecutions,
+    FixedInterval,
 )
 
 from scenario import Scenario
@@ -123,6 +124,7 @@ ENGINE_SAMPLE = Engine(
             optimistic_choices=1,
         ),
         rec=RecommendationOption(method="Random"),
+        loop=FixedInterval(method="FixedInterval", fixed_interval=10),
     ),
 )
 
@@ -208,6 +210,7 @@ ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN = Engine(
             optimistic_choices=10,
         ),
         rec=RecommendationOption(method="Random"),
+        loop=FixedInterval(method="FixedInterval", fixed_interval=1),
     ),
 )
 
@@ -278,6 +281,11 @@ def create_a_test_peer(scenario: Scenario, engine: Engine) -> Tuple[Peer, Set[Or
         namespacing=None,
         peer_type="normal",
     )
+
+    # change the current time for my_peer to any non-zero value
+    # the reason is we assume that all loop will begin after time 0, and
+    # my_peer.verification_completion_time[0] is left for reserved use.
+    my_peer.local_clock = 13
 
     return my_peer, order_set
 

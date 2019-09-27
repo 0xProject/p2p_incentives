@@ -31,6 +31,7 @@ from data_types import (
     RemoveLazy,
     TitForTat,
     RecommendationOption,
+    FixedInterval,
     EngineOptions,
     PerformanceParameters,
     SpreadingOption,
@@ -38,8 +39,6 @@ from data_types import (
     FairnessOption,
     PerformanceOptions,
     PerformanceExecutions,
-    LoopOption,
-    FixedInterval,
 )
 
 
@@ -196,7 +195,7 @@ STORE = StoreOption(method="First")
 # Now we only implemented 'all_new_selected_old'.
 
 SHARE = AllNewSelectedOld(
-    method="AllNewSelectedOld", max_to_share=5000, old_share_prob=0
+    method="AllNewSelectedOld", max_to_share=5000, old_share_prob=0.5
 )
 
 # This TypedDict describes how to determine neighbor scoring system.

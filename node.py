@@ -181,14 +181,14 @@ class Peer:
 
         if expected_completion_time in self.verification_completion_time:
             #  move orders to the entry
-            self.verification_completion_time[
-                expected_completion_time
-            ] += copy.copy(self.verification_completion_time[0])
+            self.verification_completion_time[expected_completion_time] += copy.copy(
+                self.verification_completion_time[0]
+            )
         else:
             # create a key expected_completion_time whose value is the same as key 0's value.
-            self.verification_completion_time[
-                expected_completion_time
-            ] = copy.copy(self.verification_completion_time[0])
+            self.verification_completion_time[expected_completion_time] = copy.copy(
+                self.verification_completion_time[0]
+            )
 
         # clear the entry 0
         self.verification_completion_time[0].clear()
