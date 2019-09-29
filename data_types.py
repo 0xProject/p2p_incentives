@@ -251,7 +251,6 @@ class EngineParameters(NamedTuple):
     Putting all values together and use a NamedTuple to represent all value parameters for Engine.
     """
 
-    batch_length: int
     topology: Topology
     incentive: Incentive
 

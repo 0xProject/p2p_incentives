@@ -93,7 +93,6 @@ SCENARIO_SAMPLE = Scenario(
 
 ENGINE_SAMPLE = Engine(
     EngineParameters(
-        batch_length=10,
         topology=Topology(max_neighbor_size=30, min_neighbor_size=20),
         incentive=Incentive(
             score_sheet_length=3,
@@ -179,7 +178,6 @@ SCENARIO_SAMPLE_NON_INT = Scenario(
 
 ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN = Engine(
     EngineParameters(
-        batch_length=1,
         topology=Topology(max_neighbor_size=30, min_neighbor_size=20),
         incentive=Incentive(
             score_sheet_length=3,

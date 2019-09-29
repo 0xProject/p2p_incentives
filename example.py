@@ -139,8 +139,6 @@ MY_SCENARIO = Scenario(S_PARAMETERS, S_OPTIONS)
 # The following is one example of Engine instance.
 # parameters
 
-BATCH: int = 10  # length of a batch period
-
 # This namedtuple describes neighbor-related parameters.
 # Similar to creating a Scenario instance, please follow the format and do not change the key.
 # Only value can be changed.
@@ -163,7 +161,7 @@ INCENTIVE = Incentive(
 )
 
 # creating engine parameters, in type of a namedtuple.
-E_PARAMETERS = EngineParameters(BATCH, TOPOLOGY, INCENTIVE)
+E_PARAMETERS = EngineParameters(TOPOLOGY, INCENTIVE)
 
 # options
 

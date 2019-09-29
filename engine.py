@@ -49,12 +49,6 @@ class Engine:
 
         # unpacking parameters
 
-        # batch is the length of a batch period.
-        # Recall that a peer runs its order storing and sharing algorithms only at the end of a
-        # batch period. A batch period contains multiple time rounds.
-
-        self.batch: int = parameters.batch_length
-
         # topology parameters: maximal/minimal size of neighborhood
         self.neighbor_max: int = parameters.topology.max_neighbor_size
         self.neighbor_min: int = parameters.topology.min_neighbor_size
