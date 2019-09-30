@@ -507,7 +507,14 @@ class SingleRun:
 
         for peer in self.peer_full_set:
 
-            if peer.should_start_a_new_loop():
+            # ========================== #
+
+            # Hack (weijiewu8): There is an error with "FollowPrevious" method.
+            # In order to debug, need to change line 51 of this file first.
+
+            # ========================== #
+
+            if peer.local_clock == 20 or peer.should_start_a_new_loop():
                 peer.previous_loop_starting_time = self.cur_time
                 peer.send_orders_to_on_chain_check(
                     expected_completion_time=self.cur_time

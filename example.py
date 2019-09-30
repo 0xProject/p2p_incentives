@@ -31,7 +31,7 @@ from data_types import (
     RemoveLazy,
     TitForTat,
     RecommendationOption,
-    FixedInterval,
+    LoopOption,
     EngineOptions,
     PerformanceParameters,
     SpreadingOption,
@@ -218,7 +218,8 @@ REC = RecommendationOption(method="Random")
 
 # How to decide the next loop starting time
 
-LOOP = FixedInterval(method="FixedInterval", fixed_interval=10)
+# LOOP = FixedInterval(method="FixedInterval", fixed_interval=10)
+LOOP = LoopOption(method="FollowPrevious")
 
 # creating engine option, in type of a namedtuple
 

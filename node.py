@@ -164,7 +164,6 @@ class Peer:
         """
         This method determines whether a new loop should be started, i.e., do we want to assemble
         the newly received but unverified orders for an on-chain verification.
-        :param time_now: system time.
         :return: True if to start a new loop, or False otherwise.
         """
         return self.engine.should_a_peer_start_a_new_loop(self, self.local_clock)

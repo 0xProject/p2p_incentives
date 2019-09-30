@@ -145,11 +145,13 @@ class Scenario:
     # later then.
 
     def generate_server_response_time(
-        self, server_mean: float = 0, server_sigma: float = 0
+        self, server_mean: float = numpy.log(10), server_sigma: float = 0
     ) -> List[int]:
         """
         This method generates a series of integers that represent Ethereum hosting server's
         response time. We use a log-normal distribution to model it.
+        Log-normal distribution is a common one to model long-tail distributions. Please refer to
+        https://en.wikipedia.org/wiki/Log-normal_distribution for details.
         :param server_mean: mean in numpy.random.lognormal()
         :param server_sigma: sigma in numpy.random.lognormal()
         :return: a list of response times.
@@ -168,6 +170,7 @@ class Scenario:
 
     def generate_server_response_time_all_zero(self) -> List[int]:
         """
-        This method generates all zeros.
+        This method generates all zeros (assuming that on-chain check can finish immediately).
+        This method is for comparison use only. It does not intend to simulate anything in reality.
         """
         return [0] * (self.birth_time_span + self.growth_rounds + self.stable_rounds)
