@@ -282,7 +282,7 @@ def create_a_test_peer(scenario: Scenario, engine: Engine) -> Tuple[Peer, Set[Or
 
     # change the current time for my_peer to any non-zero value
     # the reason is we assume that all loop will begin after time 0, and
-    # my_peer.verification_completion_time[0] is left for reserved use.
+    # my_peer.verification_time_orders_mapping[0] is left for reserved use.
     my_peer.local_clock = 13
 
     return my_peer, order_set

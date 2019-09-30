@@ -75,7 +75,7 @@ def test_store_orders__multi_orderinfo(scenario, engine, monkeypatch) -> None:
         )
         if order not in peer.order_pending_orderinfo_mapping:
             peer.order_pending_orderinfo_mapping[order] = [orderinfo]
-            peer.verification_completion_time[0].append(order)
+            peer.verification_time_orders_mapping[0].append(order)
         else:
             peer.order_pending_orderinfo_mapping[order].append(orderinfo)
     order.hesitators.add(peer)
@@ -147,7 +147,7 @@ def test_store_orders__do_not_store(scenario, engine, monkeypatch) -> None:
         )
         if order not in peer.order_pending_orderinfo_mapping:
             peer.order_pending_orderinfo_mapping[order] = [orderinfo]
-            peer.verification_completion_time[0].append(order)
+            peer.verification_time_orders_mapping[0].append(order)
         else:
             peer.order_pending_orderinfo_mapping[order].append(orderinfo)
     order.hesitators.add(peer)
@@ -210,7 +210,7 @@ def test_store_orders__sender_disconnected(scenario, engine, monkeypatch) -> Non
         novelty=0,
     )
     peer.order_pending_orderinfo_mapping[order] = [orderinfo]
-    peer.verification_completion_time[0].append(order)
+    peer.verification_time_orders_mapping[0].append(order)
     order.hesitators.add(peer)
 
     # manually set storage_decisions for the order.
@@ -278,7 +278,7 @@ def test_store_orders__multi_orderinfo_error(scenario, engine, monkeypatch) -> N
         )
         if order not in peer.order_pending_orderinfo_mapping:
             peer.order_pending_orderinfo_mapping[order] = [orderinfo]
-            peer.verification_completion_time[0].append(order)
+            peer.verification_time_orders_mapping[0].append(order)
         else:
             peer.order_pending_orderinfo_mapping[order].append(orderinfo)
         order.hesitators.add(peer)

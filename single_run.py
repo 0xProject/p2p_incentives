@@ -514,7 +514,7 @@ class SingleRun:
                     + self.server_response_time[self.cur_time]
                 )
             if (
-                self.cur_time in peer.verification_completion_time
+                self.cur_time in peer.verification_time_orders_mapping
             ):  # should finish a loop
                 peer.store_orders()
                 peer.score_neighbors()
@@ -525,7 +525,7 @@ class SingleRun:
                 for internal_order in orders_to_share:
                     for beneficiary_peer in neighbors_to_share:
                         beneficiary_peer.receive_order_internal(peer, internal_order)
-                del peer.verification_completion_time[self.cur_time]
+                del peer.verification_time_orders_mapping[self.cur_time]
 
     def generate_events_during_whole_process(
         self

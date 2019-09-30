@@ -241,13 +241,13 @@ def after_previous(peer: "Peer", time_now: int) -> bool:
     :return: True or False
     """
 
-    # Our implementation simply checks if time_now is in peer.verification_completion_time. If
+    # Our implementation simply checks if time_now is in peer.verification_time_orders_mapping. If
     # yes, it means some on-chain verification has completed so the previous loop is ending.
     # Such an implementation implicitly requires that judgment on should_start_a_new_loop needs
     # to come before processing the verified orders and removing them from the
-    # peer.verification_completion_time dictionary.
+    # peer.verification_time_orders_mapping dictionary.
 
-    return time_now in peer.verification_completion_time
+    return time_now in peer.verification_time_orders_mapping
 
 
 def fixed_interval(peer: "Peer", time_now: int, interval: int) -> bool:

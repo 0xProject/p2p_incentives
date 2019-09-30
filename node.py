@@ -113,7 +113,7 @@ class Peer:
         self.order_pending_orderinfo_mapping: Dict[Order, List[OrderInfo]] = {}
 
         # The following mapping maintains an expected completion time of on-chain verification for
-        # the set of orders. It is a Dict, key is the completion time, value is the list of orders.
+        # the list of orders. It is a Dict, key is the completion time, value is the list of orders.
         # If the completion time is 0, it means this batch has not started so there is no
         # estimation for now. There is always an entry with key 0.
         # #
@@ -126,7 +126,7 @@ class Peer:
         # Note that this is definitely different from the real system, but it will greatly
         # simplify the simulator design.
 
-        self.verification_completion_time: Dict[int, List[Order]] = {0: []}
+        self.verification_time_orders_mapping: Dict[int, List[Order]] = {0: []}
 
         # the following records the last time this peer started a loop (sending orders to
         # on-chain check)
@@ -171,27 +171,28 @@ class Peer:
 
     def send_orders_to_on_chain_check(self, expected_completion_time: int) -> None:
         """
-        This method sends all unverified orders for an on-chain verification. It will change the
-        current key (expected_completion_time) whose value is 0 to the expected completion time,
-        and creates a new key 0 for new-incoming orders.
-        A corner case is: if the expected completion time happens to be equal to some existing
-        key value, then add the unverified orders to that entry.
+        This method sends all unverified orders for an on-chain verification. It will copy
+        self.verification_time_orders_mapping[0] to self.verification_time_order_mapping[
+        expected_completion_time]. If the new entry does not exist, it creates the new entry;
+        otherwise, it extends the original list by putting elements in
+        self.verification_time_orders_mapping[0] to the end of the original list.
+        Finally, self.verification_time_orders_mapping[0] is cleared.
         :return: None.
         """
 
-        if expected_completion_time in self.verification_completion_time:
+        if expected_completion_time in self.verification_time_orders_mapping:
             #  move orders to the entry
-            self.verification_completion_time[expected_completion_time] += copy.copy(
-                self.verification_completion_time[0]
-            )
+            self.verification_time_orders_mapping[
+                expected_completion_time
+            ] += copy.copy(self.verification_time_orders_mapping[0])
         else:
             # create a key expected_completion_time whose value is the same as key 0's value.
-            self.verification_completion_time[expected_completion_time] = copy.copy(
-                self.verification_completion_time[0]
+            self.verification_time_orders_mapping[expected_completion_time] = copy.copy(
+                self.verification_time_orders_mapping[0]
             )
 
         # clear the entry 0
-        self.verification_completion_time[0].clear()
+        self.verification_time_orders_mapping[0].clear()
 
     def should_accept_neighbor_request(self, requester: "Peer") -> bool:
         """
@@ -308,7 +309,7 @@ class Peer:
                 arrival_time=self.local_clock,
             )
             self.order_pending_orderinfo_mapping[order] = [new_orderinfo]
-            self.verification_completion_time[0].append(order)
+            self.verification_time_orders_mapping[0].append(order)
             # update the number of replicas for this order and hesitator of this order
             # a peer is a hesitator of an order if this order is in its pending table
             order.hesitators.add(self)
@@ -375,7 +376,7 @@ class Peer:
         if order not in self.order_pending_orderinfo_mapping:
             # order not in the pending set
             self.order_pending_orderinfo_mapping[order] = [new_orderinfo]
-            self.verification_completion_time[0].append(order)
+            self.verification_time_orders_mapping[0].append(order)
             order.hesitators.add(self)
             # Put into the pending table. Reward will be updated when storing decision is made.
             return
@@ -402,7 +403,7 @@ class Peer:
         :return: None
         """
 
-        if self.local_clock not in self.verification_completion_time:
+        if self.local_clock not in self.verification_time_orders_mapping:
             raise RuntimeError(
                 "Store order decision should not be called at this time."
             )
@@ -414,7 +415,7 @@ class Peer:
 
         for order in list(self.order_pending_orderinfo_mapping):
 
-            if order in self.verification_completion_time[self.local_clock]:
+            if order in self.verification_time_orders_mapping[self.local_clock]:
 
                 orderinfo_list = self.order_pending_orderinfo_mapping[order]
 
@@ -481,7 +482,7 @@ class Peer:
         :return: Tuple[set of orders to share, set of peers to share]
         """
 
-        if self.local_clock not in self.verification_completion_time:
+        if self.local_clock not in self.verification_time_orders_mapping:
             raise RuntimeError(
                 "Share order decision should not be called at this time."
             )
