@@ -144,10 +144,6 @@ class Scenario:
                 f"{self.option_settle['method']}"
             )
 
-    # HACK (weijiewu8): will need to include server_mean and server_sigma in scenario attributes.
-    # However, it will change a lot and cause conflicts with other ongoing PRs. Will change it
-    # later then.
-
     def generate_server_response_time(self) -> List[int]:
         """
         This method generates a series of integers that represent Ethereum hosting server's
