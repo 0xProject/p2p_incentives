@@ -232,12 +232,13 @@ def random_recommendation(
     return set(random.sample(base, min(target_number, len(base))))
 
 
-def after_previous(peer: "Peer", time_now: int) -> bool:
+def after_previous(peer: "Peer", time_now: int, init_birth_span: int) -> bool:
     """
     This implements engine.should_a_peer_start_a_new_loop() in such a way that a peer's new loop
     will begin immediately after the old loop finishes.
     :param peer: the peer to decide the loop
     :param time_now: Mesh system time
+    :param init_birth_span: max (birth time + 1 for birth time of the system's initial orders)
     :return: True or False
     """
 
@@ -247,7 +248,19 @@ def after_previous(peer: "Peer", time_now: int) -> bool:
     # to come before processing the verified orders and removing them from the
     # peer.verification_time_orders_mapping dictionary.
 
-    return time_now in peer.verification_time_orders_mapping
+    # Note that a special case is the first time to return True.
+
+    return (
+        # a new peer
+        time_now == peer.birth_time
+        # an initial peer
+        or (
+            peer.birth_time < init_birth_span
+            and time_now == peer.birth_time + init_birth_span
+        )
+        # an existing peer
+        or time_now in peer.verification_time_orders_mapping
+    )
 
 
 def fixed_interval(peer: "Peer", time_now: int, interval: int) -> bool:
@@ -263,7 +276,9 @@ def fixed_interval(peer: "Peer", time_now: int, interval: int) -> bool:
     return (time_now - peer.previous_loop_starting_time) % interval == 0
 
 
-def hybrid(peer: "Peer", time_now: int, min_time: int, max_time: int):
+def hybrid(
+    peer: "Peer", time_now: int, init_birth_span: int, min_time: int, max_time: int
+):
     """
     This implements engine.should_a_peer_start_a_new_loop() in such a way that a peer's new loop
     will begin immediately after the previous loop ends if the number of time slots that have

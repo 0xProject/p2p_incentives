@@ -5,7 +5,7 @@ We also put some constants and helper functions in this __init__ file for unit t
 """
 
 from typing import List, Set, Tuple
-
+import numpy
 from message import Order
 from node import Peer
 from performance import Performance
@@ -50,6 +50,8 @@ from engine import Engine
 
 SCENARIO_SAMPLE = Scenario(
     ScenarioParameters(
+        # on-chain check takes zero time.
+        on_chain_verification=Distribution(mean=float("-inf"), var=0),
         order_type_property=OrderTypePropertyDict(
             default=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
             nft=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
@@ -132,6 +134,7 @@ ENGINE_SAMPLE = Engine(
 
 SCENARIO_SAMPLE_NON_INT = Scenario(
     ScenarioParameters(
+        on_chain_verification=Distribution(mean=numpy.log(10), var=0),
         order_type_property=OrderTypePropertyDict(
             default=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
             nft=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
@@ -173,7 +176,7 @@ SCENARIO_SAMPLE_NON_INT = Scenario(
     ),
 )
 
-# This is an engine example where we set batch_length = 1 so peer operations (store and share
+# This is an engine example where we set fixed_interval = 1 so peer operations (store and share
 # orders) will happen in every time slot.
 
 ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN = Engine(

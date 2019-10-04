@@ -48,9 +48,7 @@ class SingleRun:
         # Ethereum hosting service's response time is determined and it is the same value if
         # there are various verification requests from multiple peers.
 
-        self.server_response_time: List[
-            int
-        ] = scenario.generate_server_response_time_all_zero()
+        self.server_response_time: List[int] = scenario.generate_server_response_time()
 
         self.order_full_set: Set["Order"] = set()  # set of orders
 
@@ -507,22 +505,15 @@ class SingleRun:
 
         for peer in self.peer_full_set:
 
-            # ========================== #
-
-            # Hack (weijiewu8): There is an error with "FollowPrevious" method.
-            # In order to debug, need to change line 51 of this file first.
-
-            # ========================== #
-
-            if peer.local_clock == 20 or peer.should_start_a_new_loop():
+            # should start a loop
+            if peer.should_start_a_new_loop(self.scenario.birth_time_span):
                 peer.previous_loop_starting_time = self.cur_time
                 peer.send_orders_to_on_chain_check(
                     expected_completion_time=self.cur_time
                     + self.server_response_time[self.cur_time]
                 )
-            if (
-                self.cur_time in peer.verification_time_orders_mapping
-            ):  # should finish a loop
+            # should finish a loop
+            if self.cur_time in peer.verification_time_orders_mapping:
                 peer.store_orders()
                 peer.score_neighbors()
                 peer.refresh_neighbors()

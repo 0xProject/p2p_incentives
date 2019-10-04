@@ -147,6 +147,7 @@ class ScenarioParameters(NamedTuple):
     Putting all value parameters together and use a NamedTuple to represent all values for Scenario.
     """
 
+    on_chain_verification: Distribution
     order_type_property: OrderTypePropertyDict
     peer_type_property: PeerTypePropertyDict
     init_state: SystemInitialState

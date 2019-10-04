@@ -36,6 +36,10 @@ class Scenario:
 
         # unpacking parameters
 
+        # on-chain verification speed. They are mean and var in numpy.random.lognormal()
+        self.on_chain_mean: float = parameters.on_chain_verification.mean
+        self.on_chain_var: float = parameters.on_chain_verification.var
+
         # order types and properties
         self.order_type_property: OrderTypePropertyDict = parameters.order_type_property
         # peer types and properties
@@ -75,7 +79,7 @@ class Scenario:
         # options will determine the forms of implementations for functions in this class.
         # option_number_of_events determines event happening (peer/order arrival/dept) pattern.
         # Poisson and Hawkes processes are implemented.
-        # option_settle determines when an order is settled. Now only "never settle" is implemented.
+        # option_settle determines when an order is settled.
         self.option_number_of_events: EventOption = options.event
         self.option_settle: SettleOption = options.settle
 
@@ -144,22 +148,18 @@ class Scenario:
     # However, it will change a lot and cause conflicts with other ongoing PRs. Will change it
     # later then.
 
-    def generate_server_response_time(
-        self, server_mean: float = numpy.log(10), server_sigma: float = 0
-    ) -> List[int]:
+    def generate_server_response_time(self) -> List[int]:
         """
         This method generates a series of integers that represent Ethereum hosting server's
         response time. We use a log-normal distribution to model it.
         Log-normal distribution is a common one to model long-tail distributions. Please refer to
         https://en.wikipedia.org/wiki/Log-normal_distribution for details.
-        :param server_mean: mean in numpy.random.lognormal()
-        :param server_sigma: sigma in numpy.random.lognormal()
         :return: a list of response times.
         """
         float_list: List[float] = list(
             numpy.random.lognormal(
-                mean=server_mean,
-                sigma=server_sigma,
+                mean=self.on_chain_mean,
+                sigma=self.on_chain_var,
                 # size is equal to the total length of simulation run (though we don't use the
                 # time period [0, birth_time_span), we put it here for readability.
                 size=self.birth_time_span + self.growth_rounds + self.stable_rounds,

@@ -317,15 +317,18 @@ class Engine:
             f"No such option to recommend neighbors: {self.rec_option['method']}"
         )
 
-    def should_a_peer_start_a_new_loop(self, peer: "Peer", time_now: int) -> bool:
+    def should_a_peer_start_a_new_loop(
+        self, peer: "Peer", time_now: int, init_birth_span
+    ) -> bool:
         """
         This method return True if the given peer should start a new loop, or False otherwise.
         :param peer: the given peer
         :param time_now: Mesh system time.
+        :param init_birth_span: max (birth time + 1 for birth time of the system's initial orders)
         :return: True or False.
         """
         if self.loop_option["method"] == "FollowPrevious":
-            return engine_candidates.after_previous(peer, time_now)
+            return engine_candidates.after_previous(peer, time_now, init_birth_span)
         if self.loop_option["method"] == "FixedInterval":
             my_loop_option_fix = cast(FixedInterval, self.loop_option)
             return engine_candidates.fixed_interval(
@@ -336,6 +339,7 @@ class Engine:
             return engine_candidates.hybrid(
                 peer,
                 time_now,
+                init_birth_span,
                 my_loop_option_hybrid["min_time"],
                 my_loop_option_hybrid["max_time"],
             )

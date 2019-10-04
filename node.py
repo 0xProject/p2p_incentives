@@ -160,13 +160,15 @@ class Peer:
             new_orderinfo.storage_decision = True
             order.holders.add(self)
 
-    def should_start_a_new_loop(self) -> bool:
+    def should_start_a_new_loop(self, init_birth_span) -> bool:
         """
         This method determines whether a new loop should be started, i.e., do we want to assemble
         the newly received but unverified orders for an on-chain verification.
         :return: True if to start a new loop, or False otherwise.
         """
-        return self.engine.should_a_peer_start_a_new_loop(self, self.local_clock)
+        return self.engine.should_a_peer_start_a_new_loop(
+            peer=self, time_now=self.local_clock, init_birth_span=init_birth_span
+        )
 
     def send_orders_to_on_chain_check(self, expected_completion_time: int) -> None:
         """

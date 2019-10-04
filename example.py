@@ -3,6 +3,7 @@ This module contains one test case by generating a point in engine, scenario, an
 """
 
 from typing import List
+import numpy
 from engine import Engine
 from scenario import Scenario
 from performance import Performance
@@ -45,6 +46,9 @@ from data_types import (
 # ======
 # The following is one example of a Scenario instance.
 # parameters
+
+# On-chain verification speed
+ON_CHAIN_SPEED = Distribution(mean=numpy.log(3), var=0)
 
 # ratio and property of orders of each type.
 # If an additional type is added, remember to modify OrderTypePropertyDict in data_types
@@ -101,12 +105,13 @@ GROWTH_PAR = SystemEvolution(
 # when the number of peers keeps stable.
 
 STABLE_PAR = SystemEvolution(
-    rounds=50, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0, order_cancel=15.0
+    rounds=150, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0, order_cancel=15.0
 )
 
 # Create scenario parameters, in type of a namedtuple.
 
 S_PARAMETERS = ScenarioParameters(
+    on_chain_verification=ON_CHAIN_SPEED,
     order_type_property=ORDER_TYPE_PROPERTY_DICT,
     peer_type_property=PEER_TYPE_PROPERTY_DICT,
     init_state=INIT_PAR,
@@ -218,7 +223,7 @@ REC = RecommendationOption(method="Random")
 
 # How to decide the next loop starting time
 
-# LOOP = FixedInterval(method="FixedInterval", fixed_interval=10)
+#  LOOP = FixedInterval(method="FixedInterval", fixed_interval=3)
 LOOP = LoopOption(method="FollowPrevious")
 
 # creating engine option, in type of a namedtuple
@@ -247,7 +252,7 @@ MY_ENGINE = Engine(E_PARAMETERS, E_OPTIONS)
 # creating performance parameters, in type of a namedtuple.
 
 PERFORMANCE_PARAMETERS = PerformanceParameters(
-    max_age_to_track=50, adult_age=30, statistical_window=5
+    max_age_to_track=150, adult_age=30, statistical_window=5
 )
 
 # options
