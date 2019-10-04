@@ -248,7 +248,8 @@ def after_previous(peer: "Peer", time_now: int, init_birth_span: int) -> bool:
     # to come before processing the verified orders and removing them from the
     # peer.verification_time_orders_mapping dictionary.
 
-    # Note that a special case is the first time to return True.
+    # Note that a special case is the first time to return True. See code for details.
+    # This function is pretty simple and we don't have a unit test for it.
 
     return (
         # a new peer
@@ -273,17 +274,22 @@ def fixed_interval(peer: "Peer", time_now: int, interval: int) -> bool:
     :param interval: time rounds for a new loop to begin
     :return: True or False
     """
+
+    # We don't have a unit test of this function due to its simplicity.
     return (time_now - peer.previous_loop_starting_time) % interval == 0
 
 
-def hybrid(
-    peer: "Peer", time_now: int, init_birth_span: int, min_time: int, max_time: int
-):
+def hybrid(peer: "Peer", time_now: int, max_time: int):
     """
-    This implements engine.should_a_peer_start_a_new_loop() in such a way that a peer's new loop
-    will begin immediately after the previous loop ends if the number of time slots that have
-    passed is within [min_time, max_time], or it will start after min_time if the previous loop
-    has ended, or it will start after max_time if the previous loop is still in processing.
+    This implements engine.should_a_peer_start_a_new_loop() similarly to after_previous(),
+    except that if max_time has passed since the last loop beginning time, a new loop will anyway
+    start despite that the previous one is still in processing.
     """
 
-    raise NotImplementedError("To be implemented.")
+    # It is pretty simple in logic so we don't have a unit test.
+
+    return (
+        time_now == peer.birth_time
+        or time_now - peer.previous_loop_starting_time >= max_time
+        or time_now in peer.verification_time_orders_mapping
+    )

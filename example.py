@@ -32,7 +32,7 @@ from data_types import (
     RemoveLazy,
     TitForTat,
     RecommendationOption,
-    LoopOption,
+    Hybrid,
     EngineOptions,
     PerformanceParameters,
     SpreadingOption,
@@ -48,7 +48,7 @@ from data_types import (
 # parameters
 
 # On-chain verification speed
-ON_CHAIN_SPEED = Distribution(mean=numpy.log(3), var=0)
+ON_CHAIN_SPEED = Distribution(mean=numpy.log(3), var=0.1)
 
 # ratio and property of orders of each type.
 # If an additional type is added, remember to modify OrderTypePropertyDict in data_types
@@ -224,7 +224,8 @@ REC = RecommendationOption(method="Random")
 # How to decide the next loop starting time
 
 #  LOOP = FixedInterval(method="FixedInterval", fixed_interval=3)
-LOOP = LoopOption(method="FollowPrevious")
+#  LOOP = LoopOption(method="FollowPrevious")
+LOOP = Hybrid(method="Hybrid", max_time=3)
 
 # creating engine option, in type of a namedtuple
 

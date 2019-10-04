@@ -337,11 +337,7 @@ class Engine:
         if self.loop_option["method"] == "Hybrid":
             my_loop_option_hybrid = cast(Hybrid, self.loop_option)
             return engine_candidates.hybrid(
-                peer,
-                time_now,
-                init_birth_span,
-                my_loop_option_hybrid["min_time"],
-                my_loop_option_hybrid["max_time"],
+                peer, time_now, my_loop_option_hybrid["max_time"]
             )
         raise ValueError(
             f"No such option to start a new loop: {self.loop_option['method']}"

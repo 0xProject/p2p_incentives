@@ -449,11 +449,10 @@ class FixedInterval(LoopOption):
 
 class Hybrid(LoopOption):
     """
-    Sub-type for LoopOption where we provide an interval [min_time, max_time]. It is for use in
+    Sub-type for LoopOption where we provide an upper bound max_time. It is for use in
     implementing engine_candidates.hybrid().
     """
 
-    min_time: int
     max_time: int
 
 
