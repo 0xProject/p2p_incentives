@@ -112,7 +112,7 @@ class RandomProperty(CancelProperty):
 
 class AgeBasedProperty(CancelProperty):
     """
-    This is aga-based cancellation. It is very similar to ConcaveProperty.
+    This is age-based cancellation. It is very similar to ConcaveProperty.
     """
 
     sensitivity: Distribution
