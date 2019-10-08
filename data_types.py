@@ -62,7 +62,7 @@ class SettleProperty(TypedDict):
 
 class ConcaveProperty(SettleProperty):
     """
-    Please refer to the above data type Docstring for explanation. However, please be noted that
+    Please refer to the SettleProperty docstring for explanation. However, please note that
     this data type is to capture an order type, not an order instance, so all parameters are in
     type of Dictionary so as to capture the heterogeneity of different orders of this type.
     """
