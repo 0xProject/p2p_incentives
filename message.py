@@ -70,42 +70,25 @@ class Order:
         self.is_valid: bool = True
 
     def update_expired_status(self, time_now) -> None:
-        """
-        This method updates is_expired status for this order.
-        :return: None.
-        """
+        """Updates is_expired status for this order."""
         if time_now - self.birth_time >= self.expiration:
             self.is_expired = True
 
     def update_settled_status(self) -> None:
-        """
-        This method updates is_settled value of this order.
-        :return: None
-        """
+        """Updates is_settled value of this order."""
         self.scenario.update_order_settled_status(self)
 
     def update_canceled_status(self, time_now: float) -> None:
-        """
-        This method updates is_canceled value of this order.
-        :return: None
-        """
+        """Updates is_canceled value of this order."""
         self.scenario.update_order_canceled_status(self, time_now)
 
     def update_missing_status(self) -> None:
-        """
-        This method updates is_missing value of this order.
-        :return: None
-        """
-
+        """Updates is_missing value of this order."""
         if not self.holders and not self.hesitators:
             self.is_missing = True
 
     def update_valid_status(self, time_now) -> None:
-        """
-        This method updates is_valid value of this order.
-        :return: None
-        """
-
+        """Updates is_valid value of this order."""
         self.update_expired_status(time_now)
         self.update_settled_status()
         self.update_canceled_status(time_now)

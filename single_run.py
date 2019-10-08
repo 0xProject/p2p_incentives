@@ -563,7 +563,7 @@ class SingleRun:
         This function generates the number of events during each time interval of the single_run
         process. This is a helper method to single_run_execution().
         :return: Tuple, each element being a list of integers, representing the number of counts
-        of peer arrivals, departures, order arrivals, cancellations, during each time interval. The
+        of peer arrivals, departures, and order arrivals, during each time interval. The
         time interval starts from the first one of the growth period till the last one of the
         stable period.
         """
