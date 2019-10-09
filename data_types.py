@@ -436,24 +436,7 @@ class LoopOption(TypedDict):
     Option for starting a new loop (send orders for on-chain verification, and store/share orders)
     """
 
-    method: Literal["FollowPrevious", "FixedInterval", "Hybrid"]
-
-
-class FixedInterval(LoopOption):
-    """
-    Sub-type for LoopOption where a peer will start a new loop every fixed_interval time slots.
-    """
-
-    fixed_interval: int
-
-
-class Hybrid(LoopOption):
-    """
-    Sub-type for LoopOption where we provide an upper bound max_time. It is for use in
-    implementing engine_candidates.hybrid().
-    """
-
-    max_time: int
+    method: Literal["FollowPrevious"]
 
 
 class EngineOptions(NamedTuple):

@@ -262,34 +262,3 @@ def after_previous(peer: "Peer", time_now: int, init_birth_span: int) -> bool:
         # an existing peer
         or time_now in peer.verification_time_orders_mapping
     )
-
-
-def fixed_interval(peer: "Peer", time_now: int, interval: int) -> bool:
-    """
-    This implements engine.should_a_peer_start_a_new_loop() in such a way that a peer's new loop
-    will begin after "interval" rounds of time slots, counting from the starting time of the
-    previous loop.
-    :param peer:
-    :param time_now: Mesh system time.
-    :param interval: time rounds for a new loop to begin
-    :return: True or False
-    """
-
-    # We don't have a unit test of this function due to its simplicity.
-    return (time_now - peer.previous_loop_starting_time) % interval == 0
-
-
-def hybrid(peer: "Peer", time_now: int, max_time: int):
-    """
-    This implements engine.should_a_peer_start_a_new_loop() similarly to after_previous(),
-    except that if max_time has passed since the last loop beginning time, a new loop will anyway
-    start despite that the previous one is still in processing.
-    """
-
-    # It is pretty simple in logic so we don't have a unit test.
-
-    return (
-        time_now == peer.birth_time
-        or time_now - peer.previous_loop_starting_time >= max_time
-        or time_now in peer.verification_time_orders_mapping
-    )

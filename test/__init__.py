@@ -41,7 +41,7 @@ from data_types import (
     SatisfactionOption,
     FairnessOption,
     PerformanceExecutions,
-    FixedInterval,
+    LoopOption,
 )
 
 from scenario import Scenario
@@ -125,7 +125,7 @@ ENGINE_SAMPLE = Engine(
             optimistic_choices=1,
         ),
         rec=RecommendationOption(method="Random"),
-        loop=FixedInterval(method="FixedInterval", fixed_interval=10),
+        loop=LoopOption(method="FollowPrevious"),
     ),
 )
 
@@ -204,6 +204,8 @@ ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN = Engine(
         ),
         score=Weighted(method="Weighted", weights=[1.0, 1.0, 1.0]),
         refresh=RemoveLazy(method="RemoveLazy", lazy_contribution=2, lazy_length=6),
+        # note this is different from ENGINE_SAMPLE.
+        # Purpose is to make sure everyone shares everything with everyone.
         beneficiary=TitForTat(
             method="TitForTat",
             baby_ending_age=100,
@@ -211,7 +213,7 @@ ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN = Engine(
             optimistic_choices=10,
         ),
         rec=RecommendationOption(method="Random"),
-        loop=FixedInterval(method="FixedInterval", fixed_interval=1),
+        loop=LoopOption(method="FollowPrevious"),
     ),
 )
 
