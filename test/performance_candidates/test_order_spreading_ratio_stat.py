@@ -49,6 +49,9 @@ def arrange_for_test(
         order_list[i].birth_time = order_birth_time_list[i]
         for peer_index in order_spreading_sheet[i]:
             peer_list[peer_index].receive_order_external(order_list[i])
+            peer_list[peer_index].send_orders_to_on_chain_check(
+                peer_list[peer_index].local_clock
+            )
             peer_list[peer_index].store_orders()  # now order.holder should include peer
 
     return order_list, peer_list

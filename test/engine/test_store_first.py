@@ -34,6 +34,8 @@ def test_store_first__multi_orderinfo(scenario: Scenario, engine: Engine) -> Non
 
     for neighbor in neighbor_list:
         neighbor.receive_order_external(order)
+        # Manually set verification done
+        neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
         neighbor.store_orders()
         peer.add_neighbor(neighbor)
         neighbor.add_neighbor(peer)
@@ -63,6 +65,9 @@ def test_store_first__single_orderinfo(scenario: Scenario, engine: Engine) -> No
     peer: Peer = create_a_test_peer(scenario, engine)[0]
     order: Order = create_a_test_order(scenario)
     peer.receive_order_external(order)
+
+    # Manually set verification done
+    peer.send_orders_to_on_chain_check(peer.local_clock)
 
     # Act.
     engine_candidates.store_first(peer)

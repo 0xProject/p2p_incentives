@@ -60,7 +60,7 @@ def test_share_orders__normal(scenario, engine, monkeypatch) -> None:
         neighbor.add_neighbor(peer)
 
     # Act.
-
+    peer.send_orders_to_on_chain_check(peer.local_clock)
     order_sharing_set, beneficiary_set = peer.share_orders(0)
 
     # Assert.
@@ -88,4 +88,5 @@ def test_share_orders__free_rider(scenario, engine) -> None:
         neighbor.add_neighbor(free_rider)
 
     # Act and Assert.
+    free_rider.send_orders_to_on_chain_check(free_rider.local_clock)
     assert free_rider.share_orders(0) == (set(), set())

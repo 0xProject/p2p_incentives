@@ -210,6 +210,11 @@ def test_operations_in_a_time_round__assert_store_and_share_must_happen(
         scenario, engine, performance
     )
 
+    # make sure follow_previous() will return True.
+
+    for peer in single_run_instance.peer_full_set:
+        peer.birth_time = single_run_instance.cur_time
+
     # Act.
     single_run_instance.operations_in_a_time_round(
         peer_arr_num=0, peer_dept_num=0, order_arr_num=0
@@ -224,7 +229,7 @@ def test_operations_in_a_time_round__assert_store_and_share_must_happen(
 
 @pytest.mark.parametrize(
     "scenario, engine, performance",
-    [(SCENARIO_SAMPLE, ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN, PERFORMANCE_SAMPLE)],
+    [(SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE)],
 )
 def test_operations_in_a_time_round__assert_store_and_share_might_happen(
     scenario: Scenario, engine: Engine, performance: Performance

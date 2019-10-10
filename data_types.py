@@ -248,6 +248,7 @@ class ScenarioParameters(NamedTuple):
     Putting all value parameters together and use a NamedTuple to represent all values for Scenario.
     """
 
+    on_chain_verification: Distribution
     order_type_property: OrderTypePropertyDict
     peer_type_property: PeerTypePropertyDict
     init_state: SystemInitialState
@@ -330,7 +331,6 @@ class EngineParameters(NamedTuple):
     Putting all values together and use a NamedTuple to represent all value parameters for Engine.
     """
 
-    batch_length: int
     topology: Topology
     incentive: Incentive
 
@@ -510,6 +510,14 @@ class RecommendationOption(TypedDict):
     method: Literal["Random"]
 
 
+class LoopOption(TypedDict):
+    """
+    Option for starting a new loop (send orders for on-chain verification, and store/share orders)
+    """
+
+    method: Literal["FollowPrevious"]
+
+
 class EngineOptions(NamedTuple):
     """
     Putting all options together and use a NamedTuple to represent all options for Engine.
@@ -525,6 +533,7 @@ class EngineOptions(NamedTuple):
     refresh: RefreshOption
     beneficiary: BeneficiaryOption
     rec: RecommendationOption
+    loop: LoopOption
 
 
 # ==================

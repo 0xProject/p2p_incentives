@@ -25,6 +25,7 @@ def test_receive_order_internal__from_non_neighbor(scenario, engine):
     peer_list: List[Peer] = create_test_peers(scenario, engine, 2)
     order: Order = create_a_test_order(scenario)
     peer_list[1].receive_order_external(order)
+    peer_list[1].send_orders_to_on_chain_check(peer_list[1].local_clock)
     peer_list[1].store_orders()
 
     # Act and Assert.
@@ -44,6 +45,7 @@ def test_receive_order_internal__normal(scenario, engine):
     peer_list[1].add_neighbor(peer_list[0])
     order: Order = create_a_test_order(scenario)
     peer_list[1].receive_order_external(order)
+    peer_list[1].send_orders_to_on_chain_check(peer_list[1].local_clock)
     peer_list[1].store_orders()
 
     # Act.
@@ -74,6 +76,7 @@ def test_receive_order_internal_not_accepted(scenario, engine, monkeypatch):
     peer_list[1].add_neighbor(peer_list[0])
     order: Order = create_a_test_order(scenario)
     peer_list[1].receive_order_external(order)
+    peer_list[1].send_orders_to_on_chain_check(peer_list[1].local_clock)
     peer_list[1].store_orders()
 
     # Act.
@@ -95,6 +98,7 @@ def test_receive_order_internal_duplicate_from_same_neighbor(scenario, engine):
     peer_list[1].add_neighbor(peer_list[0])
     order: Order = create_a_test_order(scenario)
     peer_list[1].receive_order_external(order)
+    peer_list[1].send_orders_to_on_chain_check(peer_list[1].local_clock)
     peer_list[1].store_orders()
 
     # Act.
@@ -118,6 +122,7 @@ def test_receive_order_internal_duplicate_from_others(scenario, engine):
         peer_list[0].add_neighbor(neighbor)
         neighbor.add_neighbor(peer_list[0])
         neighbor.receive_order_external(order)
+        neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
         neighbor.store_orders()
 
     # Act.

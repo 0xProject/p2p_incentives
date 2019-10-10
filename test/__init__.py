@@ -5,7 +5,7 @@ We also put some constants and helper functions in this __init__ file for unit t
 """
 
 from typing import List, Set, Tuple
-
+import numpy
 from message import Order
 from node import Peer
 from performance import Performance
@@ -40,8 +40,7 @@ from data_types import (
     SatisfactionOption,
     FairnessOption,
     PerformanceExecutions,
-    ConcaveProperty,
-    RandomProperty,
+    LoopOption,
 )
 
 from scenario import Scenario
@@ -50,6 +49,8 @@ from engine import Engine
 
 SCENARIO_SAMPLE = Scenario(
     ScenarioParameters(
+        # on-chain check takes zero time.
+        on_chain_verification=Distribution(mean=float("-inf"), var=0),
         order_type_property=OrderTypePropertyDict(
             default=OrderProperty(
                 expiration=Distribution(mean=570.0, var=0.0),
@@ -103,7 +104,6 @@ SCENARIO_SAMPLE = Scenario(
 
 ENGINE_SAMPLE = Engine(
     EngineParameters(
-        batch_length=10,
         topology=Topology(max_neighbor_size=30, min_neighbor_size=20),
         incentive=Incentive(
             score_sheet_length=3,
@@ -134,6 +134,7 @@ ENGINE_SAMPLE = Engine(
             optimistic_choices=1,
         ),
         rec=RecommendationOption(method="Random"),
+        loop=LoopOption(method="FollowPrevious"),
     ),
 )
 
@@ -142,6 +143,7 @@ ENGINE_SAMPLE = Engine(
 
 SCENARIO_SAMPLE_NON_INT = Scenario(
     ScenarioParameters(
+        on_chain_verification=Distribution(mean=numpy.log(10), var=0),
         order_type_property=OrderTypePropertyDict(
             default=OrderProperty(
                 expiration=Distribution(mean=520.0, var=0.0),
@@ -193,12 +195,11 @@ SCENARIO_SAMPLE_NON_INT = Scenario(
     ScenarioOptions(event=EventOption(method="Poisson")),
 )
 
-# This is an engine example where we set batch_length = 1 so peer operations (store and share
+# This is an engine example where we set fixed_interval = 1 so peer operations (store and share
 # orders) will happen in every time slot.
 
 ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN = Engine(
     EngineParameters(
-        batch_length=1,
         topology=Topology(max_neighbor_size=30, min_neighbor_size=20),
         incentive=Incentive(
             score_sheet_length=3,
@@ -222,6 +223,8 @@ ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN = Engine(
         ),
         score=Weighted(method="Weighted", weights=[1.0, 1.0, 1.0]),
         refresh=RemoveLazy(method="RemoveLazy", lazy_contribution=2, lazy_length=6),
+        # note this is different from ENGINE_SAMPLE.
+        # Purpose is to make sure everyone shares everything with everyone.
         beneficiary=TitForTat(
             method="TitForTat",
             baby_ending_age=100,
@@ -229,6 +232,7 @@ ENGINE_SAMPLE_STORE_SHARE_MUST_HAPPEN = Engine(
             optimistic_choices=10,
         ),
         rec=RecommendationOption(method="Random"),
+        loop=LoopOption(method="FollowPrevious"),
     ),
 )
 
@@ -299,6 +303,11 @@ def create_a_test_peer(scenario: Scenario, engine: Engine) -> Tuple[Peer, Set[Or
         namespacing=None,
         peer_type="normal",
     )
+
+    # change the current time for my_peer to any non-zero value
+    # the reason is we assume that all loop will begin after time 0, and
+    # my_peer.verification_time_orders_mapping[0] is left for reserved use.
+    my_peer.local_clock = 13
 
     return my_peer, order_set
 

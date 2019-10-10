@@ -42,7 +42,7 @@ def test_add_neighbor__normal(scenario, engine) -> None:
     # assert neighbor instance setting
     neighbor: Neighbor = peer_list[0].peer_neighbor_mapping[peer_list[1]]
     assert neighbor.engine == engine
-    assert neighbor.est_time == peer_list[0].birth_time
+    assert neighbor.est_time == peer_list[0].local_clock
     assert neighbor.preference is None
     expected_score_sheet: Deque = collections.deque()
     for _ in range(engine.score_length):

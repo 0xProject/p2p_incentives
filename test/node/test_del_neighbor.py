@@ -94,10 +94,14 @@ def test_del_neighbor_with_remove_order__in_storage(scenario, engine) -> None:
     # we have a new order. Neighbor has it.
     order: Order = create_a_test_order(scenario)
     neighbor.receive_order_external(order)
+    # Manually set verification done
+    neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
     neighbor.store_orders()
 
     # my_peer will have the order in local storage, from the neighbor
     my_peer.receive_order_internal(neighbor, order)
+    # Manually set verification done
+    my_peer.send_orders_to_on_chain_check(my_peer.local_clock)
     my_peer.store_orders()
 
     # Act.
@@ -130,6 +134,8 @@ def test_del_neighbor_with_remove_order__single_pending_orderinfo(
     # we have a new order. Neighbor has it.
     order: Order = create_a_test_order(scenario)
     neighbor.receive_order_external(order)
+    # Manually set verification done
+    neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
     neighbor.store_orders()
 
     # my_peer will have the order in the pending table, from the neighbor
@@ -167,6 +173,8 @@ def test_del_neighbor_with_remove_order__multi_pending_orderinfo(
     order: Order = create_a_test_order(scenario)
     for neighbor in neighbor_list:
         neighbor.receive_order_external(order)
+        # Manually set verification done
+        neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
         neighbor.store_orders()
 
     # my_peer also has order in pending table. It has versions from both neighbors.

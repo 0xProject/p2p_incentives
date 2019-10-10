@@ -52,6 +52,7 @@ def arrange_for_test(
     # let the peer store corresponding orders
     for order_id in order_id_owned_by_peer:
         peer.receive_order_external(order_list[order_id])
+    peer.send_orders_to_on_chain_check(peer.local_clock)
     peer.store_orders()
 
     # prepare the set of orders for statistics

@@ -230,3 +230,35 @@ def random_recommendation(
         raise ValueError("Base set is empty or target number is zero.")
     # if the target number is larger than the set size, output the whole set.
     return set(random.sample(base, min(target_number, len(base))))
+
+
+def after_previous(peer: "Peer", time_now: int, init_birth_span: int) -> bool:
+    """
+    This implements engine.should_a_peer_start_a_new_loop() in such a way that a peer's new loop
+    will begin immediately after the old loop finishes.
+    :param peer: the peer to decide the loop
+    :param time_now: Mesh system time
+    :param init_birth_span: max (birth time + 1 for birth time of the system's initial orders)
+    :return: True or False
+    """
+
+    # Our implementation simply checks if time_now is in peer.verification_time_orders_mapping. If
+    # yes, it means some on-chain verification has completed so the previous loop is ending.
+    # Such an implementation implicitly requires that judgment on should_start_a_new_loop needs
+    # to come before processing the verified orders and removing them from the
+    # peer.verification_time_orders_mapping dictionary.
+
+    # Note that a special case is the first time to return True. See code for details.
+    # This function is pretty simple and we don't have a unit test for it.
+
+    return (
+        # a new peer
+        time_now == peer.birth_time
+        # an initial peer
+        or (
+            peer.birth_time < init_birth_span
+            and time_now == peer.birth_time + init_birth_span
+        )
+        # an existing peer
+        or time_now in peer.verification_time_orders_mapping
+    )
