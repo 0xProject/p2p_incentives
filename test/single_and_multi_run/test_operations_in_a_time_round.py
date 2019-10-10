@@ -75,18 +75,14 @@ def test_operations_in_a_time_round__assert_order_number(
     # order arrival number is also initial_order_number.
 
     order_arr_num = 39
-    order_cancel_num = 19
 
     single_run_instance.operations_in_a_time_round(
-        peer_arr_num=scenario.init_size,
-        peer_dept_num=0,
-        order_arr_num=order_arr_num,
-        order_cancel_num=order_cancel_num,
+        peer_arr_num=scenario.init_size, peer_dept_num=0, order_arr_num=order_arr_num
     )
 
     assert (
         len(single_run_instance.order_full_set)
-        == 2 * initial_order_number + order_arr_num - order_cancel_num
+        == 2 * initial_order_number + order_arr_num
     )
     assert len(single_run_instance.peer_full_set) == 2 * scenario.init_size
 
@@ -112,13 +108,11 @@ def test_operations_in_a_time_round__assert_peer_number_normal(
     peer_arr_num = 37
     peer_dept_num = 5
     order_arr_num = 8
-    order_cancel_num = 12
 
     single_run_instance.operations_in_a_time_round(
         peer_arr_num=peer_arr_num,
         peer_dept_num=peer_dept_num,
         order_arr_num=order_arr_num,
-        order_cancel_num=order_cancel_num,
     )
 
     assert len(single_run_instance.peer_full_set) == scenario.init_size - 5 + 37
@@ -146,13 +140,11 @@ def test_operations_in_a_time_round__assert_peer_number_all_peers_departed(
 
     peer_arr_num = 37
     order_arr_num = 8
-    order_cancel_num = 12
 
     single_run_instance.operations_in_a_time_round(
         peer_arr_num=peer_arr_num,
         peer_dept_num=(scenario.init_size + 1),
         order_arr_num=order_arr_num,
-        order_cancel_num=order_cancel_num,
     )
 
     assert len(single_run_instance.peer_full_set) == peer_arr_num
@@ -179,7 +171,7 @@ def test_operations_in_a_time_round__assert_neighborhood(
     # Act.
 
     single_run_instance.operations_in_a_time_round(
-        peer_arr_num=37, peer_dept_num=5, order_arr_num=8, order_cancel_num=12
+        peer_arr_num=37, peer_dept_num=5, order_arr_num=8
     )
 
     # Assert. For each peer, it has at least engine.neighbor_min neighbors, or all its neighbors
@@ -225,7 +217,7 @@ def test_operations_in_a_time_round__assert_store_and_share_must_happen(
 
     # Act.
     single_run_instance.operations_in_a_time_round(
-        peer_arr_num=0, peer_dept_num=0, order_arr_num=0, order_cancel_num=0
+        peer_arr_num=0, peer_dept_num=0, order_arr_num=0
     )
 
     # Assert. For each peer, it should have received something in the pending table.
@@ -254,7 +246,7 @@ def test_operations_in_a_time_round__assert_store_and_share_might_happen(
 
     # Act.
     single_run_instance.operations_in_a_time_round(
-        peer_arr_num=3, peer_dept_num=5, order_arr_num=27, order_cancel_num=15
+        peer_arr_num=3, peer_dept_num=5, order_arr_num=27
     )
 
     # Assert. There must be some peer that has received something from sharing of others.
