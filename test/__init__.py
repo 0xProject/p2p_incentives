@@ -41,6 +41,8 @@ from data_types import (
     FairnessOption,
     PerformanceExecutions,
     LoopOption,
+    ConcaveProperty,
+    RandomProperty,
 )
 
 from scenario import Scenario
