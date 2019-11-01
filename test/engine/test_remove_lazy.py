@@ -22,9 +22,11 @@ def test_remove_lazy(scenario: Scenario, engine: Engine):
 
     # Arrange.
 
-    peer, neighbor_list, neighbor_instance_list = create_a_peer_and_two_neighbors_helper(
-        scenario, engine
-    )
+    (
+        peer,
+        neighbor_list,
+        neighbor_instance_list,
+    ) = create_a_peer_and_two_neighbors_helper(scenario, engine)
 
     # Set neighbors lazy record. Neighbor 0's lazy_round will be reset to 0 after this round,
     # but neighbor 1's lazy_round will increase by 1, and reach 6.

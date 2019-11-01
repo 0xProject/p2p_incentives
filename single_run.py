@@ -128,7 +128,7 @@ class SingleRun:
 
     @staticmethod
     def set_properties_for_an_order_instance_helper(
-        order_type_property: OrderProperty
+        order_type_property: OrderProperty,
     ) -> Tuple[int, SettleParameters, CancelParameters]:
         """
         This is a helper function to generate an order instance's properties (expiration,
@@ -585,7 +585,7 @@ class SingleRun:
                 del peer.verification_time_orders_mapping[self.cur_time]
 
     def generate_events_during_whole_process(
-        self
+        self,
     ) -> Tuple[List[int], List[int], List[int]]:
         """
         This function generates the number of events during each time interval of the single_run
@@ -639,9 +639,11 @@ class SingleRun:
         self.update_global_orderbook()
 
         # Generate event counts.
-        peer_arrival_count, peer_dept_count, order_arrival_count = (
-            self.generate_events_during_whole_process()
-        )
+        (
+            peer_arrival_count,
+            peer_dept_count,
+            order_arrival_count,
+        ) = self.generate_events_during_whole_process()
 
         # Growth period and stable period. Run operations_in_a_time_round().
         self.cur_time = self.scenario.birth_time_span
