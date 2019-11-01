@@ -8,12 +8,14 @@ from shutil import rmtree
 from os import environ, path
 
 # from pathlib import Path
+import sys
 from sys import argv
 
 # Added a comment below since mypy doesn't know there's a clean in distutils.command.clean
 from distutils.command.clean import clean  # type: ignore
 
 import distutils.command.build_py
+import pytest
 from setuptools import find_packages, setup
 from setuptools.command.test import test as TestCommand
 
@@ -24,10 +26,7 @@ class TestCommandExtension(TestCommand):
     def run_tests(self):
         """Invoke pytest."""
 
-        # pylint: disable=C0415, R1722
-        import pytest
-
-        exit(pytest.main(["--doctest-modules"]))
+        sys.exit(pytest.main(["--doctest-modules"]))
 
 
 class LintCommand(distutils.command.build_py.build_py):
@@ -96,9 +95,6 @@ setup(
     install_requires=["matplotlib", "mypy_extensions", "numpy"],
     extras_require={
         "dev": [
-            # HACK(weijiewu): needed to pin version of pylint dependency due to bug described
-            # at https://github.com/PyCQA/pylint/issues/3123
-            # "astroid==2.2.5",
             "bandit",
             "black",
             "coverage",
@@ -108,8 +104,6 @@ setup(
             "mypy_extensions",
             "pycodestyle",
             "pydocstyle",
-            # HACK(weijiewu): Due to downgrade of astroid I have to downgrade pylint as well (
-            # otherwise they don't work together).
             "pylint",
             "pytest",
             "sphinx",
