@@ -24,6 +24,10 @@ class TestCommandExtension(TestCommand):
 
     def run_tests(self):
         """Invoke pytest."""
+
+        # pylint: disable=C0415
+        # temporarily disable Import outside toplevel for pytest.
+
         import pytest
 
         sys.exit(pytest.main(["--doctest-modules"]))
