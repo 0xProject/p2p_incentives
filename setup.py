@@ -2,6 +2,10 @@
 
 """setuptools module for p2p_incentives package."""
 
+# pylint: disable=C0415
+# we import things outside of top-level because 3rd party libs may not yet be
+# installed when you invoke this script
+
 import glob
 import subprocess  # nosec
 from shutil import rmtree
@@ -24,9 +28,6 @@ class TestCommandExtension(TestCommand):
 
     def run_tests(self):
         """Invoke pytest."""
-
-        # pylint: disable=C0415
-        # temporarily disable Import outside toplevel for pytest.
 
         import pytest
 
