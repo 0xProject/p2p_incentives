@@ -41,7 +41,7 @@ def test_generate_events_during_whole_process(
     actual_counts = list(single_run_instance.generate_events_during_whole_process())
 
     # Assert.
-    parameter_number = 4
+    parameter_number = 3
     expected_counts = [[] for _ in range(parameter_number)]
     for i in range(parameter_number):
         expected_counts[i] = [scenario.growth_rates[i]] * scenario.growth_rounds + [

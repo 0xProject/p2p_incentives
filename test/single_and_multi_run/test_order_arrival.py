@@ -8,6 +8,7 @@ from scenario import Scenario
 from engine import Engine
 from performance import Performance
 from node import Peer
+from data_types import ConcaveParameters, RandomParameter
 
 from single_run import SingleRun
 from ..__init__ import (
@@ -36,13 +37,28 @@ def test_order_arrival__normal(
     peer: Peer = next(iter(single_run_instance.peer_full_set))
     peer.order_pending_orderinfo_mapping.clear()
 
-    # Act.
+    # Preparing parameters
     expiration_value = 300
+    settlement = ConcaveParameters(
+        method="ConcaveParameters", sensitivity=1.0, max_prob=0.0
+    )
+    cancellation = RandomParameter(method="RandomParameter", prob=0.0)
+
+    # Act.
+
     single_run_instance.order_arrival(
-        target_peer=peer, order_type="default", expiration=expiration_value
+        target_peer=peer,
+        order_type="default",
+        expiration=expiration_value,
+        settlement=settlement,
+        cancellation=cancellation,
     )
     single_run_instance.order_arrival(
-        target_peer=peer, order_type="nft", expiration=expiration_value
+        target_peer=peer,
+        order_type="nft",
+        expiration=expiration_value,
+        settlement=settlement,
+        cancellation=cancellation,
     )
 
     # Assert.
@@ -70,6 +86,7 @@ def test_order_arrival__error(
     """
     This tests order_arrival() when the target peer does not exist.
     """
+
     # Arrange.
 
     # create the single_run instance and a peer.
@@ -77,8 +94,17 @@ def test_order_arrival__error(
     peer: Peer = create_a_test_peer(scenario, engine)[0]
     peer.order_pending_orderinfo_mapping.clear()
 
+    settlement = ConcaveParameters(
+        method="ConcaveParameters", sensitivity=1.0, max_prob=0.0
+    )
+    cancellation = RandomParameter(method="RandomParameter", prob=0.0)
+
     # Act and Assert.
     with pytest.raises(ValueError, match="Cannot find target peer."):
         single_run_instance.order_arrival(
-            target_peer=peer, order_type="default", expiration=300
+            target_peer=peer,
+            order_type="default",
+            expiration=500,
+            settlement=settlement,
+            cancellation=cancellation,
         )

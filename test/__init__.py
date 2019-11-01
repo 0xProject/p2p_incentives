@@ -20,7 +20,6 @@ from data_types import (
     SystemEvolution,
     ScenarioOptions,
     EventOption,
-    SettleOption,
     Incentive,
     Topology,
     EngineParameters,
@@ -42,6 +41,8 @@ from data_types import (
     FairnessOption,
     PerformanceExecutions,
     LoopOption,
+    ConcaveProperty,
+    RandomProperty,
 )
 
 from scenario import Scenario
@@ -53,8 +54,28 @@ SCENARIO_SAMPLE = Scenario(
         # on-chain check takes zero time.
         on_chain_verification=Distribution(mean=float("-inf"), var=0),
         order_type_property=OrderTypePropertyDict(
-            default=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
-            nft=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
+            default=OrderProperty(
+                expiration=Distribution(mean=570.0, var=0.0),
+                settlement=ConcaveProperty(
+                    method="ConcaveProperty",
+                    sensitivity=Distribution(mean=1.7, var=0.0),
+                    max_prob=Distribution(mean=0.0, var=0.0),
+                ),
+                cancellation=RandomProperty(
+                    method="RandomProperty", prob=Distribution(mean=0.00, var=0.0)
+                ),
+            ),
+            nft=OrderProperty(
+                expiration=Distribution(mean=510.0, var=0.0),
+                settlement=ConcaveProperty(
+                    method="ConcaveProperty",
+                    sensitivity=Distribution(mean=2.0, var=0.0),
+                    max_prob=Distribution(mean=0.0, var=0.0),
+                ),
+                cancellation=RandomProperty(
+                    method="RandomProperty", prob=Distribution(mean=0.0, var=0.0)
+                ),
+            ),
         ),
         peer_type_property=PeerTypePropertyDict(
             normal=PeerProperty(
@@ -74,23 +95,13 @@ SCENARIO_SAMPLE = Scenario(
         ),
         init_state=SystemInitialState(num_peers=10, birth_time_span=20),
         growth_period=SystemEvolution(
-            rounds=30,
-            peer_arrival=3.0,
-            peer_dept=0.0,
-            order_arrival=15.0,
-            order_cancel=15.0,
+            rounds=30, peer_arrival=3.0, peer_dept=0.0, order_arrival=15.0
         ),
         stable_period=SystemEvolution(
-            rounds=50,
-            peer_arrival=2.0,
-            peer_dept=2.0,
-            order_arrival=15.0,
-            order_cancel=15.0,
+            rounds=50, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0
         ),
     ),
-    ScenarioOptions(
-        event=EventOption(method="Poisson"), settle=SettleOption(method="Never")
-    ),
+    ScenarioOptions(event=EventOption(method="Poisson")),
 )
 
 ENGINE_SAMPLE = Engine(
@@ -136,8 +147,28 @@ SCENARIO_SAMPLE_NON_INT = Scenario(
     ScenarioParameters(
         on_chain_verification=Distribution(mean=numpy.log(10), var=0),
         order_type_property=OrderTypePropertyDict(
-            default=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
-            nft=OrderProperty(expiration=Distribution(mean=500.0, var=0.0)),
+            default=OrderProperty(
+                expiration=Distribution(mean=520.0, var=0.0),
+                settlement=ConcaveProperty(
+                    method="ConcaveProperty",
+                    sensitivity=Distribution(mean=1.6, var=0.0),
+                    max_prob=Distribution(mean=0.0, var=0.0),
+                ),
+                cancellation=RandomProperty(
+                    method="RandomProperty", prob=Distribution(mean=0.0, var=0.0)
+                ),
+            ),
+            nft=OrderProperty(
+                expiration=Distribution(mean=490.0, var=0.0),
+                settlement=ConcaveProperty(
+                    method="ConcaveProperty",
+                    sensitivity=Distribution(mean=1.5, var=0.0),
+                    max_prob=Distribution(mean=0.0, var=0.0),
+                ),
+                cancellation=RandomProperty(
+                    method="RandomProperty", prob=Distribution(mean=0.0, var=0.0)
+                ),
+            ),
         ),
         peer_type_property=PeerTypePropertyDict(
             normal=PeerProperty(
@@ -157,23 +188,13 @@ SCENARIO_SAMPLE_NON_INT = Scenario(
         ),
         init_state=SystemInitialState(num_peers=29, birth_time_span=20),
         growth_period=SystemEvolution(
-            rounds=30,
-            peer_arrival=3.0,
-            peer_dept=0.0,
-            order_arrival=15.0,
-            order_cancel=15.0,
+            rounds=30, peer_arrival=3.0, peer_dept=0.0, order_arrival=15.0
         ),
         stable_period=SystemEvolution(
-            rounds=50,
-            peer_arrival=2.0,
-            peer_dept=2.0,
-            order_arrival=15.0,
-            order_cancel=15.0,
+            rounds=50, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0
         ),
     ),
-    ScenarioOptions(
-        event=EventOption(method="Poisson"), settle=SettleOption(method="Never")
-    ),
+    ScenarioOptions(event=EventOption(method="Poisson")),
 )
 
 # This is an engine example where we set fixed_interval = 1 so peer operations (store and share

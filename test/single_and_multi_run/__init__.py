@@ -56,8 +56,13 @@ def test_mock_random_choice__with_remains() -> None:
     assert actual_result == expected_result
 
 
-def fake_gauss(mean: float, _var: float) -> int:
+def fake_gauss(mu: float, sigma: float) -> int:
     """
     This is a fake function for Gaussian variable. It simply convert mean to integer and return it.
     """
-    return int(mean)
+    # pylint: disable=invalid-name
+    # pylint: disable=unused-argument
+
+    # In here the fake function needs to have the same parameter names as random.gauss().
+
+    return int(mu)
