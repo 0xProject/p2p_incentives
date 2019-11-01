@@ -25,7 +25,6 @@ class TestCommandExtension(TestCommand):
         """Invoke pytest."""
 
         # pylint: disable=C0415, R1722
-        
         import pytest
 
         exit(pytest.main(["--doctest-modules"]))
