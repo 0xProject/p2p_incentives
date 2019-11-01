@@ -15,7 +15,6 @@ from sys import argv
 from distutils.command.clean import clean  # type: ignore
 
 import distutils.command.build_py
-import pytest
 from setuptools import find_packages, setup
 from setuptools.command.test import test as TestCommand
 
@@ -25,6 +24,7 @@ class TestCommandExtension(TestCommand):
 
     def run_tests(self):
         """Invoke pytest."""
+        import pytest
 
         sys.exit(pytest.main(["--doctest-modules"]))
 
