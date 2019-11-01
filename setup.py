@@ -94,6 +94,9 @@ setup(
     install_requires=["matplotlib", "mypy_extensions", "numpy"],
     extras_require={
         "dev": [
+            # HACK(weijiewu): needed to pin version of pylint dependency due to bug described
+            # at https://github.com/PyCQA/pylint/issues/3123
+            "astroid==2.2.5",
             "bandit",
             "black",
             "coverage",
@@ -103,7 +106,9 @@ setup(
             "mypy_extensions",
             "pycodestyle",
             "pydocstyle",
-            "pylint",
+            # HACK(weijiewu): Due to downgrade of astroid I have to downgrade pylint as well (
+            # otherwise they don't work together).
+            "pylint==2.3.0",
             "pytest",
             "sphinx",
             "sphinx-autodoc-typehints",

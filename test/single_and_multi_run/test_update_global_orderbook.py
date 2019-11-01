@@ -11,6 +11,7 @@ from message import Order
 from scenario import Scenario
 from engine import Engine
 from performance import Performance
+from data_types import ConcaveParameters, RandomParameter
 from ..__init__ import SCENARIO_SAMPLE, ENGINE_SAMPLE, PERFORMANCE_SAMPLE
 
 
@@ -29,8 +30,16 @@ def create_an_instance_with_one_peer_one_order(
 
     # create an order and let it be held by peer.
     # 300 is arbitrarily set. As long as it is large, it is okay.
+    settlement = ConcaveParameters(
+        method="ConcaveParameters", sensitivity=1.0, max_prob=0.0
+    )
+    cancellation = RandomParameter(method="RandomParameter", prob=0.0)
     single_run_instance.order_arrival(
-        target_peer=peer, order_type="default", expiration=300
+        target_peer=peer,
+        order_type="default",
+        expiration=300,
+        settlement=settlement,
+        cancellation=cancellation,
     )
     order: Order = next(iter(single_run_instance.order_full_set))
 
@@ -54,9 +63,12 @@ def test_update_global_orderbook__active_order(
     )
 
     # Act.
+    order.update_valid_status(single_run_instance.cur_time)
     single_run_instance.update_global_orderbook()
 
     # Assert
+    assert order.is_valid
+    assert all(item == 0 for item in single_run_instance.invalid_orders_stat.values())
     assert order in single_run_instance.order_full_set
     assert order in single_run_instance.order_type_set_mapping["default"]
     assert order in peer.order_pending_orderinfo_mapping
@@ -82,9 +94,13 @@ def test_update_global_orderbook__order_no_count(
     order.hesitators.clear()
 
     # Act.
+    order.update_valid_status(single_run_instance.cur_time)
     single_run_instance.update_global_orderbook()
 
     # Assert
+    assert order.is_missing
+    assert not order.is_valid
+    assert single_run_instance.invalid_orders_stat["missing_count"] == 1
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
 
@@ -111,9 +127,13 @@ def test_update_global_orderbook__expired(
     order.expiration = 30
 
     # Act.
+    order.update_valid_status(single_run_instance.cur_time)
     single_run_instance.update_global_orderbook()
 
     # Assert
+    assert order.is_expired
+    assert not order.is_valid
+    assert single_run_instance.invalid_orders_stat["expired_count"] == 1
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
     assert order not in peer.order_pending_orderinfo_mapping
@@ -140,9 +160,12 @@ def test_update_global_orderbook__settled(
     order.is_settled = True
 
     # Act.
+    order.update_valid_status(single_run_instance.cur_time)
     single_run_instance.update_global_orderbook()
 
     # Assert
+    assert not order.is_valid
+    assert single_run_instance.invalid_orders_stat["settled_count"] == 1
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
     assert order not in peer.order_pending_orderinfo_mapping
@@ -165,10 +188,16 @@ def test_update_global_orderbook__canceled(
         scenario, engine, performance
     )
 
+    # Cancel this order
+    order.is_canceled = True
+
     # Act.
-    single_run_instance.update_global_orderbook([order])
+    order.update_valid_status(single_run_instance.cur_time)
+    single_run_instance.update_global_orderbook()
 
     # Assert
+    assert not order.is_valid
+    assert single_run_instance.invalid_orders_stat["canceled_count"] == 1
     assert order not in single_run_instance.order_full_set
     assert order not in single_run_instance.order_type_set_mapping["default"]
     assert order not in peer.order_pending_orderinfo_mapping

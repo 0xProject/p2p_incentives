@@ -9,6 +9,9 @@ from performance import Performance
 from data_types import (
     Distribution,
     OrderProperty,
+    ConcaveProperty,
+    RandomProperty,
+    AgeBasedProperty,
     PeerProperty,
     OrderTypePropertyDict,
     PeerTypePropertyDict,
@@ -16,7 +19,6 @@ from data_types import (
     SystemEvolution,
     ScenarioParameters,
     EventOption,
-    SettleOption,
     ScenarioOptions,
     Topology,
     Incentive,
@@ -49,10 +51,32 @@ from data_types import (
 # If an additional type is added, remember to modify OrderTypePropertyDict in data_types
 
 # order property for type "default".
-ORDER_DEFAULT_PROPERTY = OrderProperty(expiration=Distribution(mean=500.0, var=0.0))
+ORDER_DEFAULT_PROPERTY = OrderProperty(
+    expiration=Distribution(mean=510.0, var=0.0),
+    settlement=ConcaveProperty(
+        method="ConcaveProperty",
+        sensitivity=Distribution(mean=1.0, var=0.0),
+        max_prob=Distribution(mean=0.0, var=0.0),
+    ),
+    cancellation=AgeBasedProperty(
+        method="AgeBasedProperty",
+        sensitivity=Distribution(mean=1.0, var=0.0),
+        max_prob=Distribution(mean=0.01, var=0.0),
+    ),
+)
 
 # order property for type "nft".
-ORDER_NFT_PROPERTY = OrderProperty(expiration=Distribution(mean=500.0, var=0.0))
+ORDER_NFT_PROPERTY = OrderProperty(
+    expiration=Distribution(mean=600.0, var=0.0),
+    settlement=ConcaveProperty(
+        method="ConcaveProperty",
+        sensitivity=Distribution(mean=2.0, var=0.0),
+        max_prob=Distribution(mean=0.0, var=0.0),
+    ),
+    cancellation=RandomProperty(
+        method="RandomProperty", prob=Distribution(mean=0.01, var=0.0)
+    ),
+)
 
 # order type and property dictionary.
 ORDER_TYPE_PROPERTY_DICT = OrderTypePropertyDict(
@@ -93,14 +117,14 @@ INIT_PAR = SystemInitialState(num_peers=10, birth_time_span=20)
 # when the number of peers keeps increasing.
 
 GROWTH_PAR = SystemEvolution(
-    rounds=30, peer_arrival=3.0, peer_dept=0.0, order_arrival=15.0, order_cancel=15.0
+    rounds=30, peer_arrival=3.0, peer_dept=0.0, order_arrival=15.0
 )
 
 # The following namedtuple specifies the parameters for the system's stable period
 # when the number of peers keeps stable.
 
 STABLE_PAR = SystemEvolution(
-    rounds=50, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0, order_cancel=15.0
+    rounds=50, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0
 )
 
 # Create scenario parameters, in type of a namedtuple.
@@ -124,11 +148,9 @@ S_PARAMETERS = ScenarioParameters(
 
 # event arrival pattern.
 EVENT_ARRIVAL = EventOption(method="Poisson")
-# how an order's is_settled status is changed
-CHANGE_SETTLE_STATUS = SettleOption(method="Never")
 
 # creating scenario options, in type of a namedtuple.
-S_OPTIONS = ScenarioOptions(EVENT_ARRIVAL, CHANGE_SETTLE_STATUS)
+S_OPTIONS = ScenarioOptions(EVENT_ARRIVAL)
 
 # create MY_SCENARIO instance, in type of a namedtuple.
 MY_SCENARIO = Scenario(S_PARAMETERS, S_OPTIONS)
