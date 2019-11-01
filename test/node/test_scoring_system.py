@@ -47,6 +47,7 @@ def test_scoring_system_penalty_a(scenario, engine, monkeypatch) -> None:
 
     # let neighbor own the order that it should have
     neighbor.receive_order_external(order)
+    neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
     neighbor.store_orders()
 
     # clear score sheet for neighbors
@@ -69,6 +70,7 @@ def test_scoring_system_penalty_a(scenario, engine, monkeypatch) -> None:
     # neighbor sends the order to my_peer
     my_peer.receive_order_internal(neighbor, order)
     # store orders
+    my_peer.send_orders_to_on_chain_check(my_peer.local_clock)
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
     my_peer.score_neighbors()
@@ -102,10 +104,12 @@ def test_scoring_system_reward_a(scenario, engine, monkeypatch) -> None:
 
     # let neighbor own the order that it should have
     neighbor.receive_order_external(order)
+    neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
     neighbor.store_orders()
 
     # setup the initial status for my_peer
     my_peer.receive_order_internal(neighbor, order)
+    my_peer.send_orders_to_on_chain_check(my_peer.local_clock)
     my_peer.store_orders()
 
     # clear score sheet for neighbor
@@ -119,6 +123,7 @@ def test_scoring_system_reward_a(scenario, engine, monkeypatch) -> None:
     # neighbor sends the order to my_peer
     my_peer.receive_order_internal(neighbor, order)
     # store orders
+    my_peer.send_orders_to_on_chain_check(my_peer.local_clock)
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
     my_peer.score_neighbors()
@@ -155,10 +160,12 @@ def test_scoring_system_reward_b(scenario, engine, monkeypatch) -> None:
     # let neighbor and competitor own the order that it should have
     for anyone in (neighbor, competitor):
         anyone.receive_order_external(order)
+        anyone.send_orders_to_on_chain_check(anyone.local_clock)
         anyone.store_orders()
 
     # setup the initial status for my_peer
     my_peer.receive_order_internal(competitor, order)
+    my_peer.send_orders_to_on_chain_check(my_peer.local_clock)
     my_peer.store_orders()
 
     # clear score sheet for neighbor
@@ -172,6 +179,7 @@ def test_scoring_system_reward_b(scenario, engine, monkeypatch) -> None:
     # neighbor sends the order to my_peer
     my_peer.receive_order_internal(neighbor, order)
     # store orders
+    my_peer.send_orders_to_on_chain_check(my_peer.local_clock)
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
     my_peer.score_neighbors()
@@ -205,6 +213,7 @@ def test_scoring_system_penalty_b(scenario, engine, monkeypatch) -> None:
 
     # let neighbor own the order that it should have
     neighbor.receive_order_external(order)
+    neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
     neighbor.store_orders()
 
     # setup the initial status for my_peer
@@ -221,6 +230,7 @@ def test_scoring_system_penalty_b(scenario, engine, monkeypatch) -> None:
     # neighbor sends the order to my_peer
     my_peer.receive_order_internal(neighbor, order)
     # store orders
+    my_peer.send_orders_to_on_chain_check(my_peer.local_clock)
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
     my_peer.score_neighbors()
@@ -251,6 +261,7 @@ def test_scoring_system_reward_c(scenario, engine, monkeypatch) -> None:
 
     # let neighbor own the order that it should have
     neighbor.receive_order_external(order)
+    neighbor.send_orders_to_on_chain_check(neighbor.local_clock)
     neighbor.store_orders()
 
     # clear score sheet for neighbors
@@ -271,6 +282,7 @@ def test_scoring_system_reward_c(scenario, engine, monkeypatch) -> None:
     # neighbor sends the order to my_peer
     my_peer.receive_order_internal(neighbor, order)
     # store orders
+    my_peer.send_orders_to_on_chain_check(my_peer.local_clock)
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
     my_peer.score_neighbors()
@@ -307,6 +319,7 @@ def test_scoring_system_reward_d(scenario, engine, monkeypatch) -> None:
     # let neighbor and competitor own the order that it should have
     for anyone in (neighbor, competitor):
         anyone.receive_order_external(order)
+        anyone.send_orders_to_on_chain_check(anyone.local_clock)
         anyone.store_orders()
 
     # setup the initial status for my_peer
@@ -334,6 +347,7 @@ def test_scoring_system_reward_d(scenario, engine, monkeypatch) -> None:
     # neighbor sends the order to my_peer
     my_peer.receive_order_internal(neighbor, order)
     # store orders
+    my_peer.send_orders_to_on_chain_check(my_peer.local_clock)
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
     my_peer.score_neighbors()
@@ -369,6 +383,7 @@ def test_scoring_system_reward_e(scenario, engine, monkeypatch) -> None:
     # let neighbor and competitor own the order that it should have
     for anyone in (neighbor, competitor):
         anyone.receive_order_external(order)
+        anyone.send_orders_to_on_chain_check(anyone.local_clock)
         anyone.store_orders()
 
     # setup the initial status for my_peer
@@ -396,6 +411,7 @@ def test_scoring_system_reward_e(scenario, engine, monkeypatch) -> None:
     # neighbor sends the order to my_peer
     my_peer.receive_order_internal(neighbor, order)
     # store orders
+    my_peer.send_orders_to_on_chain_check(my_peer.local_clock)
     my_peer.store_orders()
     # calculate scores. The value equals to the last entry of the score sheet.
     my_peer.score_neighbors()

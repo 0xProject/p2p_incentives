@@ -37,6 +37,10 @@ class Scenario:
 
         # unpacking parameters
 
+        # on-chain verification speed. They are mean and var in numpy.random.lognormal()
+        self.on_chain_mean: float = parameters.on_chain_verification.mean
+        self.on_chain_var: float = parameters.on_chain_verification.var
+
         # order types and properties
         self.order_type_property: OrderTypePropertyDict = parameters.order_type_property
         # peer types and properties
@@ -165,3 +169,30 @@ class Scenario:
                 f"No such method to change cancellation status for orders: "
                 f"{order.cancellation['method']}"
             )
+
+    def generate_server_response_time(self) -> List[int]:
+        """
+        This method generates a series of integers that represent Ethereum hosting server's
+        response time. We use a log-normal distribution to model it.
+        Log-normal distribution is a common one to model long-tail distributions. Please refer to
+        https://en.wikipedia.org/wiki/Log-normal_distribution for details.
+        :return: a list of response times.
+        """
+        float_list: List[float] = list(
+            numpy.random.lognormal(
+                mean=self.on_chain_mean,
+                sigma=self.on_chain_var,
+                # size is equal to the total length of simulation run (though we don't use the
+                # time period [0, birth_time_span), we put it here for readability.
+                size=self.birth_time_span + self.growth_rounds + self.stable_rounds,
+            )
+        )
+        return_list: List[int] = [int(item) for item in float_list]
+        return return_list
+
+    def generate_server_response_time_all_zero(self) -> List[int]:
+        """
+        This method generates all zeros (assuming that on-chain check can finish immediately).
+        This method is for comparison use only. It does not intend to simulate anything in reality.
+        """
+        return [0] * (self.birth_time_span + self.growth_rounds + self.stable_rounds)

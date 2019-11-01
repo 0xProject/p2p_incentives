@@ -3,6 +3,7 @@ This module contains one test case by generating a point in engine, scenario, an
 """
 
 from typing import List
+import numpy
 from engine import Engine
 from scenario import Scenario
 from performance import Performance
@@ -33,6 +34,7 @@ from data_types import (
     RemoveLazy,
     TitForTat,
     RecommendationOption,
+    LoopOption,
     EngineOptions,
     PerformanceParameters,
     SpreadingOption,
@@ -46,6 +48,9 @@ from data_types import (
 # ======
 # The following is one example of a Scenario instance.
 # parameters
+
+# On-chain verification speed
+ON_CHAIN_SPEED = Distribution(mean=numpy.log(6.7), var=0.0)
 
 # ratio and property of orders of each type.
 # If an additional type is added, remember to modify OrderTypePropertyDict in data_types
@@ -130,6 +135,7 @@ STABLE_PAR = SystemEvolution(
 # Create scenario parameters, in type of a namedtuple.
 
 S_PARAMETERS = ScenarioParameters(
+    on_chain_verification=ON_CHAIN_SPEED,
     order_type_property=ORDER_TYPE_PROPERTY_DICT,
     peer_type_property=PEER_TYPE_PROPERTY_DICT,
     init_state=INIT_PAR,
@@ -160,8 +166,6 @@ MY_SCENARIO = Scenario(S_PARAMETERS, S_OPTIONS)
 # The following is one example of Engine instance.
 # parameters
 
-BATCH: int = 10  # length of a batch period
-
 # This namedtuple describes neighbor-related parameters.
 # Similar to creating a Scenario instance, please follow the format and do not change the key.
 # Only value can be changed.
@@ -184,7 +188,7 @@ INCENTIVE = Incentive(
 )
 
 # creating engine parameters, in type of a namedtuple.
-E_PARAMETERS = EngineParameters(BATCH, TOPOLOGY, INCENTIVE)
+E_PARAMETERS = EngineParameters(TOPOLOGY, INCENTIVE)
 
 # options
 
@@ -239,6 +243,12 @@ BENEFICIARY = TitForTat(
 
 REC = RecommendationOption(method="Random")
 
+# How to decide the next loop starting time
+
+
+LOOP = LoopOption(method="FollowPrevious")
+
+
 # creating engine option, in type of a namedtuple
 
 E_OPTIONS = EngineOptions(
@@ -252,6 +262,7 @@ E_OPTIONS = EngineOptions(
     REFRESH,
     BENEFICIARY,
     REC,
+    LOOP,
 )
 
 # creating MY_ENGINE, an instance of Engine, in type pf a namedtuple.
@@ -264,7 +275,7 @@ MY_ENGINE = Engine(E_PARAMETERS, E_OPTIONS)
 # creating performance parameters, in type of a namedtuple.
 
 PERFORMANCE_PARAMETERS = PerformanceParameters(
-    max_age_to_track=50, adult_age=30, statistical_window=5
+    max_age_to_track=150, adult_age=30, statistical_window=5
 )
 
 # options

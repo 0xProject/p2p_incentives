@@ -17,6 +17,7 @@ from data_types import (
     RefreshOption,
     BeneficiaryOption,
     RecommendationOption,
+    LoopOption,
     AllNewSelectedOld,
     Weighted,
     TitForTat,
@@ -45,12 +46,6 @@ class Engine:
     def __init__(self, parameters: EngineParameters, options: EngineOptions) -> None:
 
         # unpacking parameters
-
-        # batch is the length of a batch period.
-        # Recall that a peer runs its order storing and sharing algorithms only at the end of a
-        # batch period. A batch period contains multiple time rounds.
-
-        self.batch: int = parameters.batch_length
 
         # topology parameters: maximal/minimal size of neighborhood
         self.neighbor_max: int = parameters.topology.max_neighbor_size
@@ -89,6 +84,7 @@ class Engine:
         self.refresh_option: RefreshOption = options.refresh
         self.beneficiary_option: BeneficiaryOption = options.beneficiary
         self.rec_option: RecommendationOption = options.rec
+        self.loop_option: LoopOption = options.loop
 
     def set_preference_for_neighbor(
         self,
@@ -317,4 +313,20 @@ class Engine:
             )
         raise ValueError(
             f"No such option to recommend neighbors: {self.rec_option['method']}"
+        )
+
+    def should_a_peer_start_a_new_loop(
+        self, peer: "Peer", time_now: int, init_birth_span
+    ) -> bool:
+        """
+        This method return True if the given peer should start a new loop, or False otherwise.
+        :param peer: the given peer
+        :param time_now: Mesh system time.
+        :param init_birth_span: max (birth time + 1 for birth time of the system's initial orders)
+        :return: True or False.
+        """
+        if self.loop_option["method"] == "FollowPrevious":
+            return engine_candidates.after_previous(peer, time_now, init_birth_span)
+        raise ValueError(
+            f"No such option to start a new loop: {self.loop_option['method']}"
         )

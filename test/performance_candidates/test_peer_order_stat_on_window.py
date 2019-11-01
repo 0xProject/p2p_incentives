@@ -49,6 +49,7 @@ def arrange_for_test(
     for idx in range(num_order):
         order_list[idx].birth_time = birth_time_list[idx]
         peer.receive_order_external(order_list[idx])
+    peer.send_orders_to_on_chain_check(peer.local_clock)
     peer.store_orders()
 
     # Put a subset of these orders into the order-for-statistics list in peer_order_stat_on_window()
