@@ -235,7 +235,7 @@ REFRESH = RemoveLazy(method="RemoveLazy", lazy_contribution=2, lazy_length=6)
 # This TypedDict describes how to determine the neighbors that receive my orders.
 
 BENEFICIARY = TitForTat(
-    method="TitForTat", baby_ending_age=0, mutual_helpers=3, optimistic_choices=1
+    method="TitForTat", baby_ending_age=0, mutual_helpers=0, optimistic_choices=10
 )
 
 # how to recommendation neighbors when a peer asks for more.
@@ -275,7 +275,7 @@ MY_ENGINE = Engine(E_PARAMETERS, E_OPTIONS)
 # creating performance parameters, in type of a namedtuple.
 
 PERFORMANCE_PARAMETERS = PerformanceParameters(
-    max_age_to_track=150, adult_age=30, statistical_window=5
+    max_age_to_track=80, adult_age=30, statistical_window=5
 )
 
 # options
