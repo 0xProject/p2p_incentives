@@ -137,11 +137,11 @@ class Engine:
                 f"No such option to set priority: {self.priority_option['method']}"
             )
 
-    def should_accept_external_order(self, _receiver: "Peer", _order: "Order") -> bool:
+    def should_accept_external_order(self, receiver: "Peer", order: "Order") -> bool:
         """
         This method determines whether to accept an external order into the pending table.
-        :param _receiver: the peer instance of the node who is supposed to receive this order
-        :param _order: the order instance
+        :param receiver: the peer instance of the node who is supposed to receive this order
+        :param order: the order instance
         :return: True if the node accepts this order, or False otherwise
         Note: right now, we only have a naive implementation that accepts everything, so the input
         arguments are not useful so they start with an underline. Later, one may need to delete
@@ -149,23 +149,27 @@ class Engine:
         """
         if self.external_option["method"] == "Always":
             return True
+        if self.external_option["method"] == "Selected":
+            return order.order_type in receiver.namespacing
         raise ValueError(
             f"No such option to receive external orders: {self.external_option['method']}"
         )
 
     def should_accept_internal_order(
-        self, _receiver: "Peer", _sender: "Peer", _order: "Order"
+        self, receiver: "Peer", _sender: "Peer", order: "Order"
     ) -> bool:
         """
         This method determines whether to accept an internal order into the pending table.
-        :param _receiver: same as the above method
+        :param receiver: same as the above method
         :param _sender: the peer instance of the node who wants to send this order
-        :param _order: same as the above method
+        :param order: same as the above method
         :return: same as the above method
         Note: Underline issue same as the above method.
         """
         if self.internal_option["method"] == "Always":
             return True
+        if self.internal_option["method"] == "Selected":
+            return order.order_type in receiver.namespacing
         raise ValueError(
             f"No such option to receive internal orders: {self.internal_option['method']}"
         )

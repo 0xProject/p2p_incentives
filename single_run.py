@@ -22,6 +22,7 @@ from data_types import (
     RandomParameter,
     AgeBasedParameters,
     InvalidOrdersStat,
+    NameSpacing,
 )
 
 
@@ -192,7 +193,10 @@ class SingleRun:
         return expiration, settlement, cancellation
 
     def peer_arrival(
-        self, peer_type: PeerTypeName, num_orders_dict: Dict[OrderTypeName, int]
+        self,
+        peer_type: PeerTypeName,
+        peer_namespacing: NameSpacing,
+        num_orders_dict: Dict[OrderTypeName, int],
     ) -> None:
         """
         This method deals with peer arrival.
@@ -200,6 +204,7 @@ class SingleRun:
         the number of initial orders, and the function will specify the sequence numbers for the
         peers and orders.
         :param peer_type: the type of the newly arrived peer.
+        :param peer_namespacing: the namespacing (interested order types of this peer)
         :param num_orders_dict: a dictionary, keys are (subset of) order types and values
         are the numbers of initial orders of that type that this new peer has.
         :return: None.
@@ -244,7 +249,7 @@ class SingleRun:
             seq=peer_seq,
             birth_time=self.cur_time,
             init_orders=cur_order_set,
-            namespacing=None,
+            namespacing=peer_namespacing,
             peer_type=peer_type,
         )
         self.peer_full_set.add(new_peer)
@@ -457,6 +462,9 @@ class SingleRun:
 
         for peer_type in peer_type_vector:
             num_init_orders_dict = dict()
+            this_peer_namespacing: NameSpacing = self.scenario.peer_type_property[
+                peer_type
+            ].peer_namespacing
             for (
                 order_type,
                 init_orderbook_size_distribution,
@@ -468,7 +476,7 @@ class SingleRun:
                 num_init_orders_dict[order_type] = max(
                     0, round(random.gauss(num_mean, num_var))
                 )
-            self.peer_arrival(peer_type, num_init_orders_dict)
+            self.peer_arrival(peer_type, this_peer_namespacing, num_init_orders_dict)
 
     def group_of_orders_arrival_helper(self, order_arr_num):
         """
@@ -632,6 +640,21 @@ class SingleRun:
 
         # Note: This method is simple (mostly calling other methods) and we made sure
         # other methods are correct. So we don't have unit test for this method.
+
+        # create a new file for logs
+
+        import csv
+        with open('store_order_logs.csv', 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["from_node", "to_node", "order", "timestamp"])
+
+        with open('receive_order_logs.csv', 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["from_node", "to_node", "order", "timestamp"])
+
+        with open('topology_logs.csv', 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["from_node", "to_node", "order", "timestamp"])
 
         # Create initial peers and orders. Orders are only held by creators.
         # Peers do not exchange orders at this moment.

@@ -8,6 +8,7 @@ import copy
 from typing import Deque, Set, Dict, List, Tuple, TYPE_CHECKING
 from message import OrderInfo, Order
 from data_types import PeerTypeName, Preference, NameSpacing, Priority
+import write_log
 
 if TYPE_CHECKING:
     from engine import Engine
@@ -315,6 +316,13 @@ class Peer:
             # a peer is a hesitator of an order if this order is in its pending table
             order.hesitators.add(self)
 
+            write_log.receive_log(
+                to_node=self.seq,
+                from_node=None,
+                order=order.seq,
+                timestamp=self.local_clock,
+            )
+
     def receive_order_internal(
         self, peer: "Peer", order: Order, novelty_update: bool = False
     ) -> None:
@@ -379,6 +387,13 @@ class Peer:
             self.order_pending_orderinfo_mapping[order] = [new_orderinfo]
             self.verification_time_orders_mapping[0].append(order)
             order.hesitators.add(self)
+
+            write_log.receive_log(
+                to_node=self.seq,
+                from_node=new_orderinfo.prev_owner.seq,
+                order=order.seq,
+                timestamp=self.local_clock,
+            )
             # Put into the pending table. Reward will be updated when storing decision is made.
             return
 
@@ -396,6 +411,12 @@ class Peer:
         # My neighbor is honest, but he is late in sending me the message.
         # Add it to the pending list anyway since later, his version of the order might be selected.
         self.order_pending_orderinfo_mapping[order].append(new_orderinfo)
+        write_log.receive_log(
+            to_node=self.seq,
+            from_node=new_orderinfo.prev_owner.seq,
+            order=order.seq,
+            timestamp=self.local_clock,
+        )
 
     def store_orders(self) -> None:
         """
@@ -456,6 +477,13 @@ class Peer:
                     self.order_orderinfo_mapping[order] = first_pending_orderinfo
                     self.new_order_set.add(order)
                     order.holders.add(self)
+                    write_log.store_log(
+                        to_node=self.seq,
+                        from_node=(None if not first_pending_orderinfo.prev_owner else
+                                   first_pending_orderinfo.prev_owner.seq),
+                        order=order.seq,
+                        timestamp=self.local_clock,
+                    )
 
                     # For the remaining pending orderinfo in the list, no need to store them,
                     # but may need updates.

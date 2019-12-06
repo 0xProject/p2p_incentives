@@ -14,6 +14,6 @@ if __name__ == "__main__":
                     scenario=my_scenario,
                     engine=my_engine,
                     performance=my_performance,
-                    rounds=20,
+                    rounds=1,
                 ).multi_run_execution()
                 plot.plot_performance(my_performance, multi_run_result)

@@ -174,6 +174,7 @@ class PeerProperty(NamedTuple):
 
     ratio: float
     initial_orderbook_size_dict: Dict["OrderTypeName", Distribution]
+    peer_namespacing: "NameSpacing"
 
 
 # The following two data types are created to specify order/peer type names, and their
@@ -704,7 +705,7 @@ EventArrivalRate = Union[PoissonArrivalRate, HawkesArrivalRate]
 # Neighbor/Peer and Order/OrderInfo.
 # We now specify their types to be int, but they are subject to change when implemented in future.
 
-NameSpacing = Optional[int]
+NameSpacing = Optional[OrderTypeName]  # change int to OrderTypeNames
 Preference = Optional[int]
 Priority = Optional[int]
 Category = Optional[int]

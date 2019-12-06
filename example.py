@@ -93,11 +93,25 @@ ORDER_TYPE_PROPERTY_DICT = OrderTypePropertyDict(
 
 # peer property for type "normal"
 PEER_NORMAL_PROPERTY = PeerProperty(
-    ratio=0.9,
+    ratio=0.5,
     initial_orderbook_size_dict={
         "default": Distribution(mean=3.0, var=0.0),
         "nft": Distribution(mean=3.0, var=0.0),
     },
+    peer_namespacing=["default", "nft"],
+)
+
+# peer property for type "restricted"
+# This type of peers can be Augur peers, they are only interested in Augur orders and will not
+# store or propagate any other orders.
+
+PEER_RESTRICTED_PROPERTY = PeerProperty(
+    ratio=0.4,
+    initial_orderbook_size_dict={
+        "default": Distribution(mean=0.0, var=0.0),
+        "nft": Distribution(mean=6.0, var=0.0),
+    },
+    peer_namespacing=["nft"],
 )
 
 # peer property for type "free rider"
@@ -107,11 +121,14 @@ PEER_FREE_RIDER_PROPERTY = PeerProperty(
         "default": Distribution(mean=0.0, var=0.0),
         "nft": Distribution(mean=0.0, var=0.0),
     },
+    peer_namespacing=["default", "nft"],
 )
 
-# peer type and property dictionary. Now we have normal peers and free riders.
+# peer type and property dictionary. Now we have normal peers and free riders and restricted peers.
 PEER_TYPE_PROPERTY_DICT = PeerTypePropertyDict(
-    normal=PEER_NORMAL_PROPERTY, free_rider=PEER_FREE_RIDER_PROPERTY
+    normal=PEER_NORMAL_PROPERTY,
+    free_rider=PEER_FREE_RIDER_PROPERTY,
+    restricted=PEER_RESTRICTED_PROPERTY,
 )
 
 # The following namedtuple specifies the parameters for the system's initial status.
@@ -129,7 +146,7 @@ GROWTH_PAR = SystemEvolution(
 # when the number of peers keeps stable.
 
 STABLE_PAR = SystemEvolution(
-    rounds=50, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0
+    rounds=120, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0
 )
 
 # Create scenario parameters, in type of a namedtuple.
@@ -208,10 +225,10 @@ PREFERENCE = PreferenceOption(method="Passive")
 PRIORITY = PriorityOption(method="Passive")
 
 # accepting an external order or not
-EXTERNAL = ExternalOption(method="Always")
+EXTERNAL = ExternalOption(method="Selected")
 
 # accepting an internal order or not
-INTERNAL = InternalOption(method="Always")
+INTERNAL = InternalOption(method="Selected")
 
 # storing an order or not
 STORE = StoreOption(method="First")
