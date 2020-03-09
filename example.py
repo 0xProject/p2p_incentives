@@ -129,7 +129,7 @@ GROWTH_PAR = SystemEvolution(
 # when the number of peers keeps stable.
 
 STABLE_PAR = SystemEvolution(
-    rounds=50, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0
+    rounds=150, peer_arrival=2.0, peer_dept=2.0, order_arrival=15.0
 )
 
 # Create scenario parameters, in type of a namedtuple.
